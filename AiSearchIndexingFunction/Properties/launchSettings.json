@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "FormProcessorFunction": {
+      "commandName": "Project",
+      "environmentVariables": {
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32210.308
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureUtilities", "AzureUtilities\AzureUtilities.csproj", "{F693BF9B-0161-43A8-AB02-01FA1B3745C8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentIntelligenceFunction", "DocumentIntelligenceFunction\DocumentIntelligenceFunction.csproj", "{9C1EE723-B68C-43F5-8208-799641570737}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ProcessedFileMover", "ProcessedFileMover\ProcessedFileMover.csproj", "{2BD60611-91FF-486C-A04C-AE16155CB1C1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{CDECF2CB-0529-4609-9E57-4936BB491918}"
+	ProjectSection(SolutionItems) = preProject
+		Scripts\BulkUploadAndDuplicate.ps1 = Scripts\BulkUploadAndDuplicate.ps1
+		deploy.ps1 = deploy.ps1
+		infra\main.bicep = infra\main.bicep
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentQueueingFunction", "DocumentQueueingFunction\DocumentQueueingFunction.csproj", "{8C42A22B-B77C-4ED5-B52B-58293F4696D2}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DF045F00-9739-4BA0-BAAD-974ACCA1F640}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{950B2665-0C0C-4AEF-8CDC-854EC57550A2}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.txt = LICENSE.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AiSearchIndexingFunction", "AiSearchIndexingFunction\AiSearchIndexingFunction.csproj", "{FDA33053-11D3-4DC3-ADC5-4D0AFAB08BE2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F693BF9B-0161-43A8-AB02-01FA1B3745C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F693BF9B-0161-43A8-AB02-01FA1B3745C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F693BF9B-0161-43A8-AB02-01FA1B3745C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F693BF9B-0161-43A8-AB02-01FA1B3745C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C1EE723-B68C-43F5-8208-799641570737}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C1EE723-B68C-43F5-8208-799641570737}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C1EE723-B68C-43F5-8208-799641570737}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C1EE723-B68C-43F5-8208-799641570737}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BD60611-91FF-486C-A04C-AE16155CB1C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BD60611-91FF-486C-A04C-AE16155CB1C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BD60611-91FF-486C-A04C-AE16155CB1C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BD60611-91FF-486C-A04C-AE16155CB1C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C42A22B-B77C-4ED5-B52B-58293F4696D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C42A22B-B77C-4ED5-B52B-58293F4696D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C42A22B-B77C-4ED5-B52B-58293F4696D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C42A22B-B77C-4ED5-B52B-58293F4696D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FDA33053-11D3-4DC3-ADC5-4D0AFAB08BE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FDA33053-11D3-4DC3-ADC5-4D0AFAB08BE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FDA33053-11D3-4DC3-ADC5-4D0AFAB08BE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FDA33053-11D3-4DC3-ADC5-4D0AFAB08BE2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1A8BFEF7-48C6-4553-9693-84A6587EB003}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "DocumentIntelligenceFunction": {
+      "commandName": "Project",
+      "environmentVariables": {
+    
+      }
+    }
+  }
+}
