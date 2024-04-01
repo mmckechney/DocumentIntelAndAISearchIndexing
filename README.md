@@ -14,18 +14,18 @@ This repository is offered to demonstrate a set of resources that will allow you
 
 This solution leverages the following Azure services:
 
-- **Azure AI Document Intelligence** - the Azure AI Service API that will perform the document intelligence, extraction and processing.
-- **Azure OpenAI** - the Azure AI Service API that will perform the semantic embedding calculations of the extracted text.
-- **Azure AI Search** - the Azure AI Service that will index the extracted text for search and analysis.
-- **Azure Blob Storage** with three containers
+- **[Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/?view=doc-intel-4.0.0)** - the Azure AI Service API that will perform the document intelligence, extraction and processing.
+- **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - the Azure AI Service API that will perform the semantic embedding calculations of the extracted text.
+- **[Azure AI Search](https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search)** - the Azure AI Service that will index the extracted text for search and analysis.
+- **[Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction)** with three containers
   - `documents` - starting location to perform your bulk upload of documents to be processed
   - `processresults`  - the extracted text output from the Document Intelligence service
   - `completed` - location where the original documents are moved to once successfully processed by Document Intelligence
-- **Azure Service Bus** with three queues
+- **[Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/)** with three queues
   - `docqueue` - this contains the messages for the files that need to be processed by the Document Intelligence service
   - `toindexqueue` - this contains the messages for the files that have been processed by the Document Intelligence service and the reults are ready to be indexed by Azure AI Search
   - `processedqueue` - this contains the messages for the files that have been processed by the Document Intelligence service and are ready to be moved to the `completed` blob container
-- Three **Azure Functions**
+- **[Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-overview?pivots=programming-language-csharp)**
   - `DocumentQueueing` - identifies the files in the `document` blob container and send a claim check message (containing the file name) to the `docqueue` queue. This function is triggered by an HTTP call, but could also be modified to use a Blob Trigger
   - `DocumentIntelligence` - processes the message in `docqueue` to Document Intelligence, then updates Blob metadata as "processed" and create new message in `toindexqueue` and `processedqueue` \
     This function employs scale limiting and [Polly](https://github.com/App-vNext/Polly) retries with back off for Document Intelligence (too many requests) replies to balance maximum throughput and overloading the API endpoint
