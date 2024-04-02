@@ -11,7 +11,7 @@ resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2021-02-0
   location: location
 }
 
-resource networkSecurityGroupRule 'Microsoft.Network/networkSecurityGroups/securityRules@2021-02-01' = {
+resource networkSecurityGroupRule 'Microsoft.Network/networkSecurityGroups/securityRules@2021-02-01' = if(myPublicIp != ''){
   name: 'LocalIP'
   parent: networkSecurityGroup
   properties: {

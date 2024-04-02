@@ -15,7 +15,9 @@ This repository is offered to demonstrate a set of resources that will allow you
 This solution leverages the following Azure services:
 
 - **[Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/?view=doc-intel-4.0.0)** - the Azure AI Service API that will perform the document intelligence, extraction and processing.
+
 - **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - the Azure AI Service API that will perform the semantic embedding calculations of the extracted text.
+- **[Azure API Management](https://learn.microsoft.com/en-us/azure/api-management/)** - used to load balance across multiple Azure OpenAI instances
 - **[Azure AI Search](https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search)** - the Azure AI Service that will index the extracted text for search and analysis.
 - **[Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction)** with three containers
   - `documents` - starting location to perform your bulk upload of documents to be processed
@@ -32,7 +34,6 @@ This solution leverages the following Azure services:
   - `AiSearcIndexing` - processes messages in the `toindexqueue` to get embeddings of the extracted text from Azure Open AI and saves those embeddings to Azure AI Search
   - `FileMover` - processes messages in the `processedqueue` to move files from `document` to `completed` blob containers
 
-
 ### Multiple Document Intelligence endpoints
 
 To further allow for high throughput, the `DocumentIntelligence` function can distribute processing between 1-10 separate Document Intelligence accounts. This is managed by the `docqueue` funtion automatically adding a `RecognizerIndex` value of 0-9 when queueing the files for processing. 
@@ -43,25 +44,61 @@ To configure multiple Document Intelligence accounts with the script below, add 
 
 _Assumption:_ all instances of the Document Intelligence share the same URL (such as: https://eastus.api.cognitive.microsoft.com/)
 
+### Multiple Azure OpenAI endpoints
+
+In a similar way with Document Intelligence, to ensure high throughput, you can deploy multiple Azure OpenAI accounts. To assist in load balancing, the accounts are front-ended with Azure API Management which handled the load balancing and circuit breaker should an instance get overloaded.
+
+
 ## Get Started
 
 To try out the sample end-to-end process, you will need:
 
-- An Azure subscription that you have privileges to create resources. 
-- Your public IP address. You can easily find it by following [this link](https://www.bing.com/search?q=what+is+my+ip).
+- An Azure subscription that you have privileges to create resources.
 - Have the [Azure CLI installed](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
 
 ### Running deployment script
 
-1. Login to the Azure CLI:  `az login`
-2. Run the deployment command
+1. **IMPORTANT**: Open and edit the `main.bicepparam` file found in the `infra` folder. This file will contain the information needed to properly deploy the API Management and Azure OpenAI accounts:
+
+    - **APIM settings**
+      - `apiManagementPublisherEmail` - set this to your email or the email address of the APIM owner
+      - `apiManagementPublisherName` - your name or the name of the APIM owner
+
+    - **Azure OpenAI model settings**
+
+      - `azureOpenAIEmbeddingModel` - embedding model you will use to generate the embeddings
+      - `embeddingModelVersion` - the version of the embedding model to use
+      - `embeddingMaxTokens` - the maximum 'chunk' size you want to used to split up large documents for embedding and indexing. Be sure it does not exceed the limit of the model you have chosen.
+      - `azureOpenAIChatModel` - the chat/completions model to use
+      - `chatModelVersion` - the versio of the chat model
+
+    - **Azure OpenAI deployment settings**
+
+        For each deployment you want to create, add an object type type as per the example below (note `name` is optional)
+
+        ``` bicep
+        var eastUs = {
+            name: ''
+            location: 'eastus'
+            suffix: 'eastus'
+        }
+        ```
+
+        then, add that object variable to the `openAIInstances` parameter value such as:
+
+        ``` bicep
+        param openAIInstances = [
+            eastUs
+            eastus2
+            canadaEast  
+        ]
+        ```
+
+2. Login to the Azure CLI:  `az login`
+3. Run the deployment command
 
     ``` PowerShell
-    .\deploy.ps1 -appName "<less than 6 characters>" -location "<azure region>" -docIntelligenceInstanceCount "<number needed>"`
-        -azureOpenAIAccountName "<AOAI Acct Name>" -azureOpenAiResourceGroupName "<AOAI Rg Name>" `
-        -azureOpenAiEmbeddingModel "<AOAI Text Embedding Model>" -azureOpenAiEmbeddingDeployment "<AOAI Text Embedding Deployment>" `
-        -azureOpenAiEmbeddingMaxTokens "<Max tokens of selected embedding model" `
-
+    .\deploy.ps1 -appName "<less than 6 characters>" -location "<azure region>" -docIntelligenceInstanceCount "<number needed>"
     ```
 
 These scripts will create all of the Azure resources and RBAC role assignments needed for the demonstration.
@@ -70,7 +107,7 @@ These scripts will create all of the Azure resources and RBAC role assignments n
 
 To exercise the code and run the demo, follow these steps:
 
-#### Without Teseract OCR pre-processing/file trimming
+
 1. Upload sample file to the storage account's `documents` container. To help with this, you can try the supplied PowerShell script [`BulkUploadAndDuplicate.ps1`](Scripts/BulkUploadAndDuplicate.ps1). This script will take a directory of local files and upload them to the storage container. Then, based on your settings, duplicate them to help you easily create a large library of files to process
 
     ```Powershell

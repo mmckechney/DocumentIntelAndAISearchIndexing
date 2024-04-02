@@ -3,67 +3,113 @@ targetScope = 'subscription'
 
 param appName string
 param location string
-param myPublicIp string = ''
-param docIntelligenceInstanceCount int = 1
+param myPublicIp string
+param docIntelligenceInstanceCount int
 param currentUserObjectId string
 
-param azureOpenAiResourceGroupName string
-param azureOpenAIAccountName string
 param azureOpenAIEmbeddingModel string
-param azureOpenAIEmbeddingDeployment string
-param azureOpenAiEmbeddingMaxTokens int 
+param embeddingModelVersion string
+
+param azureOpenAIChatModel string
+param chatModelVersion string
+
+param embeddingMaxTokens int 
+
 param includeGeneralIndex bool = true
 
+param apiManagementPublisherEmail string
+param apiManagementPublisherName string
+
+type openAIInstanceInfo = {
+  name: string?
+  location: string
+  suffix: string
+}
+
+
+@description('OpenAI instances to deploy. Defaults to 2 across different regions.')
+param openAIInstances openAIInstanceInfo[] = [
+	{
+		name: ''
+		location: 'eastus'
+		suffix: 'eastus'
+	}
+	{
+		name: ''
+		location: 'candadaeast'
+		suffix: 'canadaeast'
+	}
+]
+
+var abbrs = loadJsonContent('./abbreviations.json')
 var appNameLc = toLower(appName)
-var resourceGroupName = 'rg-${appName}-demo-${location}'
-var serviceBusNs = 'sbns-${appName}-demo-${location}'
-var formStorageAcct = 'stor${appNameLc}demo${location}'
-var funcStorageAcct = 'fstor${appNameLc}demo${location}'
-var formRecognizer = 'docintel-${appName}-demo-${location}'
 
-var vnet = 'vnet-${appName}-demo-${location}'
-var subnet = 'subn-${appName}-demo-${location}'
-var nsg = 'nsg-${appName}-demo-${location}'
-var funcsubnet = 'subn-${appName}-func-demo-${location}'
-var funcAppPlan = 'fcnplan-${appName}-demo-${location}'
-var funcProcess = 'fcn-${appName}Intelligence-demo-${location}'
-var funcMove = 'fcn-${appName}Mover-demo-${location}'
-var funcQueue = 'fcn-${appName}Queueing-demo-${location}'
-var aiSearchIndexFunctionName = 'fcn-${appName}AiSearch-demo-${location}'
-var keyvaultName = 'kv-${appName}-demo-${location}'
-var formQueueName = 'docqueue'
-var processedQueueName = 'processedqueue'
-var toIndexQueueName = 'toindexqueue'
-var aiSearchName = 'aisearch-${appName}-demo-${location}'
-var appInsightsName = 'appinsights-${appName}-demo-${location}'
-var logAnalyticsName = 'loganalytics-${appName}-demo-${location}'
+var resourceGroupName = '${abbrs.resourceGroup}${appName}-${location}'
+var serviceBusNs = '${abbrs.serviceBusNamespace}${appName}-${location}'
+var formStorageAcct = '${abbrs.storageAccount}${appNameLc}${location}'
+var funcStorageAcct = '${abbrs.storageAccount}${appNameLc}func${location}'
+var formRecognizer = '${abbrs.documentIntelligence}${appName}-${location}'
 
+var vnet = '${abbrs.virtualNetwork}${appName}-${location}'
+var subnet = '${abbrs.virtualNetworkSubnet}${appName}-${location}'
+var nsg = '${abbrs.networkSecurityGroup}${appName}-${location}'
+var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
+var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
+var funcProcess = '${abbrs.functionApp}${appName}-Intelligence-${location}'
+var funcMove = '${abbrs.functionApp}${appName}-Mover-${location}'
+var funcQueue = '${abbrs.functionApp}${appName}-Queueing-${location}'
+var aiSearchIndexFunctionName = '${abbrs.functionApp}${appName}-AiSearch-${location}'
+var keyvaultName = '${abbrs.keyVault}${appName}-${location}'
+
+var aiSearchName = '${abbrs.aiSearch}${appNameLc}-demo-${location}'
+var appInsightsName = '${abbrs.applicationInsights}${appName}-${location}'
+var logAnalyticsName = '${abbrs.logAnalyticsWorkspace}${appName}-${location}'
+var managedIdentityName = '${abbrs.managedIdentity}${appName}-${location}'
+var apiManagementName = '${abbrs.apiManagementService}${appName}-${location}'
 
 var documentStorageContainer = 'documents'
 var processResultsContainer = 'processresults'
 var completedContainer = 'completed'
 
-	resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
-		name: resourceGroupName
+var formQueueName = 'docqueue'
+var processedQueueName = 'processedqueue'
+var toIndexQueueName = 'toindexqueue'
+
+var openAiApiName = 'openai'
+
+
+resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
+	name: resourceGroupName
+	location: location
+}
+
+module managedIdentity 'managed-identity.bicep' = {
+	name: 'managedIdentity'
+	scope: resourceGroup(resourceGroupName)
+	params: {
+		name: managedIdentityName
 		location: location
 	}
+	dependsOn: [
+		rg
+	]
+}
 
-
-	module networking 'networking.bicep' = {
-		name: 'networking'
-		scope: resourceGroup(resourceGroupName)
-		params: {
-			vnet: vnet
-			subnet: subnet
-			nsg: nsg
-			funcsubnet: funcsubnet
-			location: location
-			myPublicIp: myPublicIp
-		}
-		dependsOn: [
-			rg
-		]
+module networking 'networking.bicep' = {
+	name: 'networking'
+	scope: resourceGroup(resourceGroupName)
+	params: {
+		vnet: vnet
+		subnet: subnet
+		nsg: nsg
+		funcsubnet: funcsubnet
+		location: location
+		myPublicIp: myPublicIp
 	}
+	dependsOn: [
+		rg
+	]
+}
 
 module appInsights 'appinsights.bicep' = {
 	name: 'appInsigts'
@@ -150,7 +196,7 @@ module keyvault 'keyvault.bicep' = {
 	]
 }
 
-module functions 'functions.bicep' = {
+module functions 'Functions/functions.bicep' = {
 	name: 'functions'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -172,13 +218,13 @@ module functions 'functions.bicep' = {
 		aiSearchIndexFunctionName: aiSearchIndexFunctionName
 		toIndexQueueName: toIndexQueueName
 		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
-		azureOpenAiResourceGroupName: azureOpenAiResourceGroupName
-		azureOpenAiAccountName: azureOpenAIAccountName
 		openAiEmbeddingModel: azureOpenAIEmbeddingModel
-		openAiEmbeddingDeployment: azureOpenAIEmbeddingDeployment
 		appInsightsName: appInsightsName
-		azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
 		includeGeneralIndex: includeGeneralIndex
+		managedIdentityId: managedIdentity.outputs.id
+		azureOpenAiEmbeddingMaxTokens: embeddingMaxTokens
+		openAiEndpoint: apiManagement.outputs.gatewayUrl
+		
 	}
 	dependsOn: [
 		rg
@@ -187,6 +233,8 @@ module functions 'functions.bicep' = {
 		keyvault
 		servicebus
 		appInsights
+		managedIdentity
+		apiManagement
 	]
 }
 
@@ -195,21 +243,15 @@ module roleAssigments 'roleassignments.bicep' = {
 	scope: resourceGroup(resourceGroupName)
 	params: {
 		docIntelligencePrincipalIds: docIntelligence.outputs.docIntelligencePrincipalIds
-		storageAccountName: formStorageAcct
-		moveFunctionId: functions.outputs.moveFunctionId
-		processFunctionId: functions.outputs.processFunctionId
-		queueFunctionId: functions.outputs.queueFunctionId
-		aiSearchIndexFunctionId: functions.outputs.aiSearchIndexFunctionId
+		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
 		currentUserObjectId : currentUserObjectId
+		functionPrincipalIds: functions.outputs.systemAssignedIdentities
+		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
 	}
 	dependsOn: [
 		rg
-		keyvault
-		storage
-		docIntelligence
-		servicebus
+		managedIdentity
 		functions
-		networking
 	]
 }
 
@@ -227,14 +269,12 @@ module aiSearch 'aisearch.bicep' = {
 	]
 }
 
-module keyvaultSecrets 'keyvaultkeys.bicep' = {
+module keyvaultSecrets 'keyvault-secrets.bicep' = {
 	name: 'keyvaultSecrets'
 	scope: resourceGroup(resourceGroupName)
 	params: {
 		keyvault: keyvaultName
 		docIntelKeyArray: docIntelligence.outputs.docIntellKeyArray
-		openAiResourceGroupName: azureOpenAiResourceGroupName
-		openAiAccountName: azureOpenAIAccountName
 	}
 	dependsOn: [
 		rg
@@ -242,3 +282,193 @@ module keyvaultSecrets 'keyvaultkeys.bicep' = {
 		docIntelligence
 	]
 }
+
+module apiManagement 'APIM/api-management.bicep' = {
+	name: 'apiManagement'
+	scope: resourceGroup(resourceGroupName)
+	params: {
+		name: apiManagementName
+		location: location
+		apiManagementIdentityId: managedIdentity.outputs.id
+		publisherEmail: apiManagementPublisherEmail
+		publisherName: apiManagementPublisherName
+		sku: { 
+			name: 'Developer'
+			capacity: 1
+		}
+		tags: {
+			CreatedBy: currentUserObjectId
+		}
+	}
+	dependsOn: [
+		rg
+	]
+}
+
+module openAI 'OpenAI/openai.bicep' = [
+  for openAIInstance in openAIInstances: {
+    name: !empty(openAIInstance.name)
+      ? openAIInstance.name!
+      : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
+    scope: resourceGroup(resourceGroupName)
+    params: {
+			managedIdentityId: managedIdentity.outputs.id
+      name: !empty(openAIInstance.name)
+        ? openAIInstance.name!
+        : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
+      location: openAIInstance.location
+      deployments: [
+        {
+          name:  azureOpenAIChatModel
+          model: {
+            format: 'OpenAI'
+            name: azureOpenAIChatModel
+            version: chatModelVersion
+          }
+          sku: {
+            name: 'Standard'
+            capacity: 1
+          }
+        }
+        {
+          name: azureOpenAIEmbeddingModel
+          model: {
+            format: 'OpenAI'
+            name: azureOpenAIEmbeddingModel
+            version: embeddingModelVersion
+          }
+          sku: {
+            name: 'Standard'
+            capacity: 1
+          }
+        }
+      ]
+      keyVaultConfig: {
+        keyVaultName: keyvaultName
+        primaryKeySecretName: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
+      }
+    }
+		dependsOn: [
+			rg
+			keyvault
+		]
+  }
+
+]
+
+module openAIApiKeyNamedValue 'APIM/api-management-key-vault-named-value.bicep' = [
+  for openAIInstance in openAIInstances: {
+    name: 'NV-OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
+    scope: resourceGroup(resourceGroupName)
+    params: {
+      name: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
+      displayName: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
+      apiManagementName: apiManagement.outputs.name
+      apiManagementIdentityClientId: managedIdentity.outputs.clientId
+      keyVaultSecretUri: '${keyvault.outputs.keyVaultUri}secrets/OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
+    }
+		dependsOn: [
+			rg
+			roleAssigments
+		]
+  }
+]
+
+// https://learn.microsoft.com/en-us/semantic-kernel/deploy/use-ai-apis-with-api-management
+module openAIApi 'APIM/api-management-openapi-api.bicep' = {
+  name: '${apiManagement.name}-api-openai'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    name: 'openai'
+    apiManagementName: apiManagement.outputs.name
+    path: '/openai'
+    format: 'openapi-link'
+    displayName: 'OpenAI'
+    value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2023-03-15-preview/inference.json'
+  }
+}
+
+module apiSubscription 'APIM/api-management-subscription.bicep' = {
+  name: '${apiManagement.name}-subscription-openai'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    name: 'openai-sub'
+    apiManagementName: apiManagement.outputs.name
+    displayName: 'OpenAI API Subscription'
+    //scope: '/apis/${openAIApi.outputs.name}'
+		scope: '/apis/${openAiApiName}'
+		keyVaultName: keyvaultName
+  }
+	dependsOn: [
+		rg
+		keyvault
+		openAIApi
+
+	]
+}
+
+module openAIApiBackend 'APIM/api-management-backend.bicep' = [
+  for (item, index) in openAIInstances: {
+    name: '${apiManagement.name}-backend-openai-${item.suffix}'
+    scope: resourceGroup(resourceGroupName)
+    params: {
+      name: 'OPENAI${toUpper(item.suffix)}'
+      apiManagementName: apiManagement.outputs.name
+      url: '${openAI[index].outputs.endpoint}openai'
+    }
+  }
+]
+
+var backends = 	[for (item, index) in openAIInstances: 'OPENAI${toUpper(item.suffix)}']
+module apimLoadBalance 'APIM/api-management-backend-loadbalance.bicep' = {
+	name: '${apiManagement.name}-backend-load-balancing'
+	scope: resourceGroup(resourceGroupName)
+	params: {
+		apiManagementName: apiManagement.outputs.name
+		openaiBackends: backends
+	}
+	dependsOn: [
+		openAIApiBackend
+
+	]
+}
+module loadBalancingPolicy 'APIM/api-management-policy.bicep' = {
+  name: '${apiManagement.name}-policy-load-balancing'
+  scope: resourceGroup(resourceGroupName)
+  params: {
+    apiManagementName: apiManagement.outputs.name
+    apiName: openAiApiName
+    format: 'rawxml'
+    value: loadTextContent('APIM/load-balance-pool-policy.xml')
+  }
+	dependsOn: [
+		apimLoadBalance
+	]
+}
+
+module apimLogger 'APIM/api-management-logger.bicep' = {
+	name: '${apiManagement.name}-logger'
+	scope: resourceGroup(resourceGroupName)
+	params: {
+		apiManagementName: apiManagement.outputs.name
+		appInsightsName: appInsightsName
+	}
+	dependsOn: [
+		appInsights
+		apiManagement
+	]
+}
+
+
+output resourceGroupName string = resourceGroupName
+output processFunctionName string = funcProcess
+output moveFunctionName string = funcMove
+output queueFunctionName string = funcQueue	
+output aiSearchIndexFunctionName string = aiSearchIndexFunctionName
+
+
+output openAINames array = [for i in range(0, length(openAIInstances)): openAI[i].outputs.name]
+output openAiChatModel string = azureOpenAIChatModel
+output openAiEmbeddingModel string = azureOpenAIEmbeddingModel
+output apimName string = apiManagement.outputs.name
+

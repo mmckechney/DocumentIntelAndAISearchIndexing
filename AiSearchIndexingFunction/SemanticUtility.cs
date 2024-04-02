@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 namespace AiSearchIndexingFunction
 {
@@ -25,7 +26,8 @@ namespace AiSearchIndexingFunction
       private int embeddingMaxTokens;
       private int embeddingMaxTokensDefault = 8100;
       private bool includeGeneralIndex = true;
-
+      HttpClient client;
+     
       public int EmbeddingMaxTokens
       {
          get
@@ -48,7 +50,7 @@ namespace AiSearchIndexingFunction
          log = logFactory.CreateLogger<SemanticUtility>();
          this.config = config;
          this.logFactory = logFactory;
-         ;
+
       }
 
 
@@ -57,23 +59,26 @@ namespace AiSearchIndexingFunction
          var openAIEndpoint = config["AZURE_OPENAI_ENDPOINT"] ?? throw new ArgumentException("Missing AZURE_OPENAI_ENDPOINT in configuration.");
          var embeddingModel = config["AZURE_OPENAI_EMBEDDING_MODEL"] ?? throw new ArgumentException("Missing AZURE_OPENAI_EMBEDDING_MODEL in configuration.");
          var embeddingDeploymentName = config["AZURE_OPENAI_EMBEDDING_DEPLOYMENT"] ?? throw new ArgumentException("Missing AZURE_OPENAI_EMBEDDING_DEPLOYMENT in configuration.");
-         var apiKey = config["AZURE_OPENAI_KEY"] ?? throw new ArgumentException("Missing AZURE_OPENAI_KEY in configuration.");
-         var aISearchEndpoint = config["AZURE_AISEARCH_ENDPOINT"] ?? throw new ArgumentException("Missing AZURE_AISEARCH_ADMIN_KEY in configuration.");
+         var apiKey = config["AZURE_OPENAI_KEY"]; //?? throw new ArgumentException("Missing AZURE_OPENAI_KEY in configuration.");
+         var aISearchEndpoint = config["AZURE_AISEARCH_ENDPOINT"] ?? throw new ArgumentException("Missing AZURE_AISEARCH_ENDPOINT in configuration.");
          var aISearchAdminKey = config["AZURE_AISEARCH_ADMIN_KEY"] ?? throw new ArgumentException("Missing AZURE_AISEARCH_ADMIN_KEY in configuration.");
+         var apimSubscriptionKey = config["APIM-SUBSCRIPTION-KEY"] ?? throw new ArgumentException("Missing APIM-SUBSCRIPTION-KEY in configuration.");
          if (bool.TryParse(config["AZURE_AISEARCH_INCLUDE_GENERAL_INDEX"], out bool tmpInclude))
          {
             includeGeneralIndex = tmpInclude;
 
          }
-
+         apiKey = "dummy";
+         log.LogInformation($"Endpoint {openAIEndpoint} ");
          //Build and configure Memory Store
          IMemoryStore store = new AzureAISearchMemoryStore(aISearchEndpoint, aISearchAdminKey);
 
-
+         client = new HttpClient();
+         client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apimSubscriptionKey);
 
          var memBuilder = new MemoryBuilder()
              .WithMemoryStore(store)
-             .WithAzureOpenAITextEmbeddingGeneration(deploymentName: embeddingDeploymentName, modelId: embeddingModel, endpoint: openAIEndpoint, apiKey: apiKey)
+             .WithAzureOpenAITextEmbeddingGeneration(deploymentName: embeddingDeploymentName, modelId: embeddingModel, endpoint: openAIEndpoint, apiKey: apiKey, httpClient: client)
              .WithLoggerFactory(logFactory);
 
          semanticMemory = memBuilder.Build();
