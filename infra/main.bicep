@@ -20,10 +20,18 @@ param includeGeneralIndex bool = true
 param apiManagementPublisherEmail string
 param apiManagementPublisherName string
 
+@allowed([
+  'round-robin'
+  'priority'
+])
+param loadBalancingType string
+
+
 type openAIInstanceInfo = {
   name: string?
   location: string
   suffix: string
+	priority: int
 }
 
 
@@ -33,11 +41,13 @@ param openAIInstances openAIInstanceInfo[] = [
 		name: ''
 		location: 'eastus'
 		suffix: 'eastus'
+		priority: 1
 	}
 	{
 		name: ''
 		location: 'candadaeast'
 		suffix: 'canadaeast'
+		priority: 2
 	}
 ]
 
@@ -375,7 +385,7 @@ module openAIApiKeyNamedValue 'APIM/api-management-key-vault-named-value.bicep' 
 ]
 
 // https://learn.microsoft.com/en-us/semantic-kernel/deploy/use-ai-apis-with-api-management
-module openAIApi 'APIM/api-management-openapi-api.bicep' = {
+module openAIApi 'APIM/api-management-openai-api.bicep' = {
   name: '${apiManagement.name}-api-openai'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -420,8 +430,10 @@ module openAIApiBackend 'APIM/api-management-backend.bicep' = [
 ]
 
 var backends = 	[for (item, index) in openAIInstances: 'OPENAI${toUpper(item.suffix)}']
-module apimLoadBalance 'APIM/api-management-backend-loadbalance.bicep' = {
-	name: '${apiManagement.name}-backend-load-balancing'
+
+// Round Robin Load Balancing
+module apimRoundRobinLoadBalance 'APIM/api-management-round-robin-backend-loadbalance.bicep'  = if(loadBalancingType == 'round-robin') {
+	name: '${apiManagement.name}-round-robin-backend-load-balancing'
 	scope: resourceGroup(resourceGroupName)
 	params: {
 		apiManagementName: apiManagement.outputs.name
@@ -432,8 +444,8 @@ module apimLoadBalance 'APIM/api-management-backend-loadbalance.bicep' = {
 
 	]
 }
-module loadBalancingPolicy 'APIM/api-management-policy.bicep' = {
-  name: '${apiManagement.name}-policy-load-balancing'
+module loadRoundRobinBalancingPolicy 'APIM/api-management-round-robin-policy.bicep' = if(loadBalancingType == 'round-robin'){
+  name: '${apiManagement.name}-round-robin-policy'
   scope: resourceGroup(resourceGroupName)
   params: {
     apiManagementName: apiManagement.outputs.name
@@ -442,9 +454,25 @@ module loadBalancingPolicy 'APIM/api-management-policy.bicep' = {
     value: loadTextContent('APIM/load-balance-pool-policy.xml')
   }
 	dependsOn: [
-		apimLoadBalance
+		apimRoundRobinLoadBalance
 	]
 }
+
+//Priority Load Balancing
+module priorityLoadBalancingPolicy 'APIM/api-management-priority-policy.bicep' = if(loadBalancingType == 'priority'){
+	name: '${apiManagement.name}-priority-policy'
+	scope: resourceGroup(resourceGroupName)
+	params: {
+		apiManagementName: apiManagement.outputs.name
+		openAiApiName: openAiApiName
+		format: 'rawxml'
+		policyXml: loadTextContent('APIM/priority-load-balance-policy-main.xml')
+	}
+	dependsOn: [
+		openAIApiBackend
+	]
+}
+
 
 module apimLogger 'APIM/api-management-logger.bicep' = {
 	name: '${apiManagement.name}-logger'
