@@ -5,20 +5,16 @@ param
     [string] $appName,
 	[Parameter(Mandatory=$true)]
 	[string] $location,
-	[Parameter(Mandatory=$true)]
-	[string] $azureOpenAIAccountName,
-	[Parameter(Mandatory=$true)]
-	[string] $azureOpenAiResourceGroupName,
-	[Parameter(Mandatory=$true)]
 	[string] $azureOpenAiEmbeddingModel,
-	[Parameter(Mandatory=$true)]
-	[string] $azureOpenAiEmbeddingDeployment,
+	[string] $embeddingModelVersion,
+	[ValidateRange(1000, 8191)]
+	[int] $embeddingMaxTokens = 8191,
+	[string] $azureOpenAiChatModel,
+	[string] $chatModelVersion,
 	[string] $myPublicIp, 
+	[Parameter(Mandatory=$true)]
 	[ValidateRange(1, 10)]
 	[int] $docIntelligenceInstanceCount = 1,
-	[Parameter(Mandatory=$true)]
-	[ValidateRange(1000, 8191)]
-	[int] $azureOpenAiEmbeddingMaxTokens = 8191,
 	[bool] $codeDeployOnly = $false,
 	<#
 	.PARAMETER includeGeneralIndex
@@ -31,14 +27,6 @@ param
 	#>
 	[bool] $includeGeneralIndex = $true
 )
-
-$resourceGroupName ="rg-$appName-demo-$location"
-$funcProcess = "fcn-$($appName)Intelligence-demo-$location"
-$funcAiSearch = "fcn-$($appName)AiSearch-demo-$location"
-$funcMove = "fcn-$($appName)Mover-demo-$location"
-$funcQueue = "fcn-$($appName)Queueing-demo-$location"
-
-
 
 $error.Clear()
 $ErrorActionPreference = 'Stop'
@@ -54,28 +42,55 @@ Write-Host "Getting current user object id" -ForegroundColor DarkCyan
 $currentUserObjectId = az ad signed-in-user show -o tsv --query id
 Write-Host "Current User Object Id: $currentUserObjectId" -ForegroundColor Green
 
+if(!$?){ exit }
+
 if($codeDeployOnly -eq $false)
 {
 	Write-Host "Deploying resources to Azure" -ForegroundColor DarkCyan
-	az deployment sub create --location $location  --template-file ./infra/main.bicep `
-		--parameters `
-		location=$location `
+	$output = az deployment sub create --location $location  --template-file ./infra/main.bicep `
+		--parameters ./infra/main.bicepparam `
+		--parameters location=$location `
 		appName=$appName `
 		myPublicIp=$myPublicIp `
 		docIntelligenceInstanceCount=$docIntelligenceInstanceCount `
 		currentUserObjectId=$currentUserObjectId  `
-		azureOpenAIAccountName=$azureOpenAIAccountName `
-		azureOpenAiResourceGroupName=$azureOpenAiResourceGroupName `
-		azureOpenAIEmbeddingModel=$azureOpenAiEmbeddingModel `
-		azureOpenAIEmbeddingDeployment=$azureOpenAiEmbeddingDeployment `
-		azureOpenAiEmbeddingMaxTokens=$azureOpenAiEmbeddingMaxTokens `
 		includeGeneralIndex=$includeGeneralIndex
-		
-}
 
+	# Write-Host $output -ForegroundColor DarkGreen
+	if(!$?){ exit }
+	if($output -contains "ERROR")
+	{
+		Write-Host $output -ForegroundColor Red
+		exit
+	}
+
+	$outputObj = $output | ConvertFrom-Json -Depth 10
+	# Write-Host $outputObj -ForegroundColor Cyan
+	$resourceGroupName = $outputObj.properties.outputs.resourceGroupName.value
+	$funcProcess = $outputObj.properties.outputs.processFunctionName.value
+	$funcAiSearch = $outputObj.properties.outputs.aiSearchIndexFunctionName.value
+	$funcMove = $outputObj.properties.outputs.moveFunctionName.value
+	$funcQueue = $outputObj.properties.outputs.queueFunctionName.value
+
+	if(!$?){ exit }
+}
+else {
+	
+	$resourceGroupName ="rg-$appName-$location"
+	$funcProcess = "func-$appName-Intelligence-$location"
+	$funcMove = "func-$appName-Mover-$location"
+	$funcQueue = "func-$appName-Queueing-$location"
+	$funcAiSearch = "func-$appName-AiSearch-$location"
+}
 if(!$?){ exit }
 
+Write-Host "Resource Group Name: $resourceGroupName" -ForegroundColor Green
+Write-Host "Queueing Function: $funcQueue" -ForegroundColor Green
+Write-Host "Doc Intel Processing Function: $funcProcess" -ForegroundColor Green
+Write-Host "AI Embedding and Search Function: $funcAiSearch" -ForegroundColor Green
+Write-Host "File Moving Function: $funcMove" -ForegroundColor Green
 
+if(!$?){ exit }
 ###########################
 ## Code Deployment
 ###########################

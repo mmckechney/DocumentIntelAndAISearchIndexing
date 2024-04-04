@@ -12,12 +12,11 @@ param moveFunctionName string
 param queueFunctionName string
 param formQueueName string
 param toIndexQueueName string
-param azureOpenAiAccountName string
-param azureOpenAiResourceGroupName string
 param openAiEmbeddingModel string
-param openAiEmbeddingDeployment string
 param aiSearchEndpoint string
-param azureOpenAiEmbeddingMaxTokens int
+param openAiEndpoint string
+param azureOpenAiEmbeddingMaxTokens int = 8091
+param managedIdentityId string
 
 param documentStorageContainer string
 param processResultsContainer string
@@ -29,12 +28,9 @@ var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/SER
 var frEndpointKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/DOCUMENT-INTELLIGENCE-ENDPOINT/)'
 var frKeyKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/DOCUMENT-INTELLIGENCE-KEY/)'
 var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/AZURE-AISEARCH-ADMIN-KEY/)'
-var openAIKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/AZURE-OPENAI-KEY/)'
+var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/APIM-SUBSCRIPTION-KEY/)' 
 
-resource openAiAccount 'Microsoft.CognitiveServices/accounts@2021-04-30' existing = {
-  name: azureOpenAiAccountName
-  scope: resourceGroup(azureOpenAiResourceGroupName)
-}
+//var openAIKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/AZURE-OPENAI-KEY/)'
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' existing = {
   name: appInsightsName
@@ -63,11 +59,15 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
   location: location
   kind: 'functionapp'
   identity: {
-    type: 'SystemAssigned'
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {
     virtualNetworkSubnetId: functionSubnetId
     serverFarmId: functionAppPlan.id
+    keyVaultReferenceIdentity: managedIdentityId
     siteConfig: {
       cors: {
         allowedOrigins: ['https://portal.azure.com']
@@ -154,11 +154,15 @@ resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
   location: location
   kind: 'functionapp'
   identity: {
-    type: 'SystemAssigned'
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {
     virtualNetworkSubnetId: functionSubnetId
     serverFarmId: functionAppPlan.id
+    keyVaultReferenceIdentity: managedIdentityId
     siteConfig: {
       cors: {
         allowedOrigins: ['https://portal.azure.com']
@@ -217,19 +221,19 @@ resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
         }
         {
           name: 'AZURE_OPENAI_ENDPOINT'
-          value: openAiAccount.properties.endpoint
+          value: openAiEndpoint
         }
-        {
-          name: 'AZURE_OPENAI_KEY'
-          value: openAIKvReference
-        }
+        // {
+        //   name: 'AZURE_OPENAI_KEY'
+        //   value: openAIKvReference
+        // }
         {
           name: 'AZURE_OPENAI_EMBEDDING_MODEL'
           value: openAiEmbeddingModel
         }
         {
           name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT'
-          value: openAiEmbeddingDeployment  
+          value: openAiEmbeddingModel  
         }
         {
           name: 'AZURE_OPENAI_EMBEDDING_MAXTOKENS'
@@ -243,6 +247,10 @@ resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
           name: 'AZURE_AISEARCH_INCLUDE_GENERAL_INDEX'
           value: includeGeneralIndex ? 'true' : 'false'
         }
+        {
+          name: 'APIM-SUBSCRIPTION-KEY'
+          value: apimSubscriptionKeyKvReference
+        }
       ]
     }
   }
@@ -253,11 +261,15 @@ resource moveFunction 'Microsoft.Web/sites@2021-01-01' = {
   location: location
   kind: 'functionapp'
   identity: {
-    type: 'SystemAssigned'
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {
     virtualNetworkSubnetId: functionSubnetId
     serverFarmId: functionAppPlan.id
+    keyVaultReferenceIdentity: managedIdentityId
     siteConfig: {
       cors: {
         allowedOrigins: ['https://portal.azure.com']
@@ -273,6 +285,10 @@ resource moveFunction 'Microsoft.Web/sites@2021-01-01' = {
         {
           name: 'DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME'
           value: processResultsContainer
+        }
+        {
+          name: 'DOCUMENT_COMPLETED_CONTAINER_NAME'
+          value: completedContainer
         }
         {
           name: 'DOCUMENT_STORAGE_ACCOUNT_NAME'
@@ -324,11 +340,15 @@ resource queueFunction 'Microsoft.Web/sites@2021-01-01' = {
   location: location
   kind: 'functionapp'
   identity: {
-    type: 'SystemAssigned'
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {
     virtualNetworkSubnetId: functionSubnetId
     serverFarmId: functionAppPlan.id
+    keyVaultReferenceIdentity: managedIdentityId
     siteConfig: {
       cors: {
         allowedOrigins: ['https://portal.azure.com']
@@ -382,8 +402,10 @@ resource queueFunction 'Microsoft.Web/sites@2021-01-01' = {
   }
 }
 
-
-output queueFunctionId string = queueFunction.identity.principalId
-output moveFunctionId string = moveFunction.identity.principalId
-output processFunctionId string = processFunction.identity.principalId
-output aiSearchIndexFunctionId string = aiSearchIndexFunction.identity.principalId
+output systemAssignedIdentities array = [
+  processFunction.identity.principalId
+  aiSearchIndexFunction.identity.principalId
+  moveFunction.identity.principalId
+  queueFunction.identity.principalId
+  
+]

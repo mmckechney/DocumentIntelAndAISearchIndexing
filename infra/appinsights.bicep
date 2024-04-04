@@ -7,7 +7,7 @@ param aiSearchIndexFunctionName string
 param location string = resourceGroup().location
 
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' = {
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
   kind: 'web'

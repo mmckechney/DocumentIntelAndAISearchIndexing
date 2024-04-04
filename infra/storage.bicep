@@ -25,12 +25,12 @@ resource formStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
     allowBlobPublicAccess: false
     networkAcls: {
       defaultAction: 'Deny'
-      ipRules: [
+      ipRules: !empty(myPublicIp) ? [
         {
           value: myPublicIp
           action: 'Allow'
         }
-      ]
+      ] : []
       virtualNetworkRules:[for subnetId in subnetIds: {
         
           id: subnetId
