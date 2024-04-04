@@ -3,6 +3,7 @@ param location = ''
 param appName = ''
 param currentUserObjectId = ''
 param myPublicIp = ''
+param loadBalancingType = 'round-robin'
 
 param docIntelligenceInstanceCount = 2
 
@@ -19,23 +20,26 @@ param chatModelVersion = '0613'
 
 
 
-//Add info on each Azure OpenAI instance to deploy
+//ADd info on each Azure OpenAI instance to deploy
 var eastUs = {
     name: ''
     location: 'eastus'
     suffix: 'eastus'
+    priority: 1
 }
 
 var eastus2 = {
     name: ''
     location: 'eastus2'
     suffix: 'eastus2'
+    priority: 2
 }
 
 var canadaEast = {
     name: ''
     location: 'canadaeast'
     suffix: 'canadaeast'
+    priority: 2
 }
 
 param openAIInstances = [

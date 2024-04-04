@@ -10,17 +10,7 @@
             "request": "launch",
             "script": "${file}",
             "args": [
-                "-appName",
-                "mwmintel5",
-                "-location",
-                "eastus",
-                "-docIntelligenceInstanceCount",
-                 2,
-                 "-includeGeneralIndex",
-                "$true", 
-                "-codeDeployOnly",
-                 "$false",
-                 "-Verbose"
+                
                 ]
         }
     ]

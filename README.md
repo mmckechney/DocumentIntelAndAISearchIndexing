@@ -7,6 +7,7 @@ This repository is offered to demonstrate a set of resources that will allow you
 **IMPORTANT!** In addition to leveraging the solution below with multiple Document Intelligence instances, it will be beneficial to _request a transaction limit increase_ for your Document Intelligence Accounts. Instructions for how to do this can be found in the [Azure AI Document Intelligence Documentation](https://docs.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/service-limits#increasing-transactions-per-second-request-limit)
 
 ## Architecture and Process Overview
+
 ![Process flow](Images/ProcessFlow.png)
 
 
@@ -74,13 +75,14 @@ To try out the sample end-to-end process, you will need:
 
     - **Azure OpenAI deployment settings**
 
-        For each deployment you want to create, add an object type type as per the example below (note `name` is optional)
+        For each deployment you want to create, add an object type type as per the example below (note `name` is optional). The value of `prority` is only used if `$loadBalancingType` is set to `priority` (vs. `round-robin`)
 
         ``` bicep
         var eastUs = {
             name: ''
             location: 'eastus'
             suffix: 'eastus'
+            priority: 1
         }
         ```
 
@@ -98,7 +100,7 @@ To try out the sample end-to-end process, you will need:
 3. Run the deployment command
 
     ``` PowerShell
-    .\deploy.ps1 -appName "<less than 6 characters>" -location "<azure region>" -docIntelligenceInstanceCount "<number needed>"
+    .\deploy.ps1 -appName "<less than 6 characters>" -location "<azure region>" -docIntelligenceInstanceCount "<number needed>" -loadBalancingType "<priority or round-robin>"
     ```
 
 These scripts will create all of the Azure resources and RBAC role assignments needed for the demonstration.

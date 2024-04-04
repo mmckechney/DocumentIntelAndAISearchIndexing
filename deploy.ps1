@@ -16,6 +16,9 @@ param
 	[ValidateRange(1, 10)]
 	[int] $docIntelligenceInstanceCount = 1,
 	[bool] $codeDeployOnly = $false,
+	[Parameter(Mandatory=$true)]
+	[ValidateSet('round-robin', 'priority')]
+	[string] $loadBalancingType,
 	<#
 	.PARAMETER includeGeneralIndex
 	Include all indexed documents in an all-inclusive 'general' index.
@@ -42,6 +45,24 @@ Write-Host "Getting current user object id" -ForegroundColor DarkCyan
 $currentUserObjectId = az ad signed-in-user show -o tsv --query id
 Write-Host "Current User Object Id: $currentUserObjectId" -ForegroundColor Green
 
+if($loadBalancingType -eq "priority")
+{
+	Write-Host "Building priority load balancing policy" -ForegroundColor DarkCyan
+	$arrayList = [System.Collections.ArrayList]::new()
+	$params = (az bicep build-params --file ./infra/main.bicepparam --stdout | ConvertFrom-Json -depth 100 ).parametersJson | ConvertFrom-Json -depth 100
+	foreach($oai in  $params.parameters.openAIInstances.value)
+	{
+		$beName = "OPENAI$($oai.suffix.ToUpper())"
+		$item = "backends.Add(new JObject() {{ ""backend-id"", ""$($beName)"" }, { ""priority"", $($oai.priority) }, { ""isThrottling"", false }, { ""retryAfter"", DateTime.MinValue }}); "
+		$arrayList.Add($item)
+	}
+    
+	$policy = Get-Content "./infra/APIM/priority-load-balance-policy.xml" -Raw
+	$policy = $policy -replace "{{BACKENDS}}", ($arrayList -join "`r`n`t`t`t`t`t")
+	Write-Host "Writing priority load balancing policy XML with $($arrayList.Count) backends" -ForegroundColor DarkCyan
+    $policy | Set-Content -Path "./infra/APIM/priority-load-balance-policy-main.xml"
+}
+
 if(!$?){ exit }
 
 if($codeDeployOnly -eq $false)
@@ -54,7 +75,8 @@ if($codeDeployOnly -eq $false)
 		myPublicIp=$myPublicIp `
 		docIntelligenceInstanceCount=$docIntelligenceInstanceCount `
 		currentUserObjectId=$currentUserObjectId  `
-		includeGeneralIndex=$includeGeneralIndex
+		includeGeneralIndex=$includeGeneralIndex `
+		loadBalancingType=$loadBalancingType
 
 	# Write-Host $output -ForegroundColor DarkGreen
 	if(!$?){ exit }
