@@ -5,14 +5,15 @@ param currentUserObjectId string
 param apimSystemAssignedIdentityPrincipalId string
 
 //Combine the function and current user (if supplied) and principal ids
-  var principalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
-    currentUserObjectId
-    userAssignedManagedIdentityPrincipalId
-  ]) : concat(functionPrincipalIds, [
-    userAssignedManagedIdentityPrincipalId
-  ])
+var principalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
+  currentUserObjectId
+  userAssignedManagedIdentityPrincipalId
+]) : concat(functionPrincipalIds, [
+  userAssignedManagedIdentityPrincipalId
+])
 
-
+var deploymentEntropy = '3F2504E0-4F89-11D3-9A0C-0305E82C3302'
+var roles = loadJsonContent('../constants/roles.json')
 
 resource blobDataContrib 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()
@@ -44,10 +45,10 @@ resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-
   name: roles.cognitiveServicesUser
 }
 
-var deploymentEntropy = '3F2504E0-4F89-11D3-9A0C-0305E82C3302'
 
 
-var roles = loadJsonContent('./roles.json')
+
+
 
 resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(userAssignedManagedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)

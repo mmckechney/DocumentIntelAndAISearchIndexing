@@ -10,9 +10,9 @@ param docIntelligenceInstanceCount = 2
 param apiManagementPublisherEmail = 'test@email.com'
 param apiManagementPublisherName = 'Me'
 
-param azureOpenAIEmbeddingModel = 'text-embedding-3-large'
-param embeddingMaxTokens = 8191
-param embeddingModelVersion = '1'
+param azureOpenAIEmbeddingModel = 'text-embedding-ada-002'
+param embeddingMaxTokens = 2048
+param embeddingModelVersion = '2'
 
 param azureOpenAIChatModel = 'gpt-35-turbo-16k'
 param chatModelVersion = '0613'

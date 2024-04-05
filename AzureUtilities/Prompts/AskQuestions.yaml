@@ -1,0 +1,40 @@
+﻿name: AskQuestions
+description: Ask questions to get information from a document
+template: |
+  <message role="system"> 
+  You are a document answering bot.  
+  You will be provided with information from a document, and you are to answer the question based on the content provided.  
+  Your are not to make up answers. Use the content provided to answer the question.
+
+
+  Document Content:
+   {{content}}
+  </message>
+  <message role="user">
+    {{question}}
+  </message>
+  <message role="system">Answer to the question</message>
+template_format: handlebars
+input_variables: 
+ - name: question
+   description: User question
+   is_required: true
+ - name: content
+   description: Document content
+   is_required: true
+execution_settings:
+  default: 
+    max_tokens: 3500
+    temperature: 0.9
+  gpt-4-turbo:
+    model_id:     gpt-4-1106-preview
+    max_tokens:   3500
+    temperature:  0.9
+  gpt-4-32k:
+    model_id:     gpt-4-32k
+    max_tokens:   3500
+    temperature:  0.9
+  gpt-35-turbo-16k:
+    model_id:     gpt-35-turbo-16k
+    max_tokens:   8000
+    temperature:  0.9

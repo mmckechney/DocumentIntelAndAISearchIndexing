@@ -17,395 +17,154 @@ param aiSearchEndpoint string
 param openAiEndpoint string
 param azureOpenAiEmbeddingMaxTokens int = 8091
 param managedIdentityId string
-
 param documentStorageContainer string
 param processResultsContainer string
 param completedContainer string
 param appInsightsName string
 param includeGeneralIndex bool = true
+param openAiChatModel string
+param askQuestionsFunctionName string
 
-var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/SERVICE-BUS-CONNECTION/)'
-var frEndpointKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/DOCUMENT-INTELLIGENCE-ENDPOINT/)'
-var frKeyKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/DOCUMENT-INTELLIGENCE-KEY/)'
-var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/AZURE-AISEARCH-ADMIN-KEY/)'
-var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/APIM-SUBSCRIPTION-KEY/)' 
 
-//var openAIKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/AZURE-OPENAI-KEY/)'
-
-resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' existing = {
+resource appInsights 'Microsoft.Insights/components@2020-02-02'existing = {
   name: appInsightsName
 }
 
-
-resource functionAppPlan 'Microsoft.Web/serverfarms@2021-01-01' = {
+module functionAppPlan 'appplan.bicep' = {
   name: funcAppPlan
-  location: location
-  sku: {
-    name: 'EP1'
-    capacity: 4 
-  }
-  properties: {
-    reserved: false 
+  params: {
+    location: location
+    funcAppPlan: funcAppPlan
   }
 }
 
-resource funcStorageAcct 'Microsoft.Storage/storageAccounts@2021-04-01'existing = {
-  name: functionStorageAcctName
-}
-var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${funcStorageAcct.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${funcStorageAcct.listKeys().keys[0].value}'
-
-resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
+module processFunction 'function-process.bicep' = {
   name: processFunctionName
-  location: location
-  kind: 'functionapp'
-  identity: {
-    type: 'SystemAssigned, UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentityId}': {}
-    }
+  params: {
+    location: location
+    processFunctionName: processFunctionName
+    functionSubnetId: functionSubnetId
+    functionStorageAcctName: functionStorageAcctName
+    keyVaultUri: keyVaultUri
+    processedQueueName: processedQueueName
+    serviceBusNs: serviceBusNs
+    formStorageAcctName: formStorageAcctName
+    documentStorageContainer: documentStorageContainer
+    processResultsContainer: processResultsContainer
+    completedContainer: completedContainer
+    managedIdentityId: managedIdentityId
+    appInsightsName: appInsightsName
+    funcAppPlan: funcAppPlan
+    toIndexQueueName: toIndexQueueName
   }
-  properties: {
-    virtualNetworkSubnetId: functionSubnetId
-    serverFarmId: functionAppPlan.id
-    keyVaultReferenceIdentity: managedIdentityId
-    siteConfig: {
-      cors: {
-        allowedOrigins: ['https://portal.azure.com']
-      }
-      use32BitWorkerProcess: false
-      netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
-      appSettings: [
-        {
-          name: 'DOCUMENT_SOURCE_CONTAINER_NAME'
-          value: documentStorageContainer
-        }
-        {
-          name: 'DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME'
-          value: processResultsContainer
-        }
-        {
-          name: 'DOCUMENT_COMPLETED_CONTAINER_NAME'
-          value: completedContainer
-        }
-        {
-          name: 'DOCUMENT_STORAGE_ACCOUNT_NAME'
-          value: formStorageAcctName
-        }
-        {
-          name: 'DOCUMENT_INTELLIGENCE_MODEL_NAME'
-          value: 'prebuilt-read'
-        }
-        {
-          name: 'DOCUMENT_INTELLIGENCE_ENDPOINT'
-          value: frEndpointKvReference
-        }
-        {
-          name: 'DOCUMENT_INTELLIGENCE_KEY'
-          value: frKeyKvReference
-        }
-        {
-          name: 'SERVICE_BUS_CONNECTION'
-          value: sbConnKvReference
-        }
-        {
-          name: 'SERVICE_BUS_PROCESSED_QUEUE_NAME'
-          value: processedQueueName
-        }
-        {
-          name: 'SERVICE_BUS_TOINDEX_QUEUE_NAME'
-          value: toIndexQueueName
-        }
-        {
-          name: 'SERVICE_BUS_NAMESPACE_NAME'
-          value: serviceBusNs
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: storageConnectionString
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: storageConnectionString
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet-isolated'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-      ]
-    }
-  }
+  dependsOn: [
+    functionAppPlan
+    appInsights
+  ]
 }
-
-resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
+module aiSearchFunction 'function-aisearch.bicep' = {
   name: aiSearchIndexFunctionName
-  location: location
-  kind: 'functionapp'
-  identity: {
-    type: 'SystemAssigned, UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentityId}': {}
-    }
+  params: {
+    location: location
+    aiSearchIndexFunctionName: aiSearchIndexFunctionName
+    keyVaultUri: keyVaultUri
+    openAiEmbeddingModel: openAiEmbeddingModel
+    aiSearchEndpoint: aiSearchEndpoint
+    openAiEndpoint: openAiEndpoint
+    azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
+    managedIdentityId: managedIdentityId
+    appInsightsName: appInsightsName
+    funcAppPlan: funcAppPlan
+    formStorageAcctName: formStorageAcctName
+    functionStorageAcctName: functionStorageAcctName
+    functionSubnetId: functionSubnetId
+    processResultsContainer: processResultsContainer
+    serviceBusNs: serviceBusNs
+    toIndexQueueName: toIndexQueueName
+    includeGeneralIndex: includeGeneralIndex
+    openAiChatModel: openAiChatModel
+
   }
-  properties: {
-    virtualNetworkSubnetId: functionSubnetId
-    serverFarmId: functionAppPlan.id
-    keyVaultReferenceIdentity: managedIdentityId
-    siteConfig: {
-      cors: {
-        allowedOrigins: ['https://portal.azure.com']
-      }
-      use32BitWorkerProcess: false
-      netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
-      appSettings: [
-        {
-          name: 'DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME'
-          value: processResultsContainer
-        }
-        {
-          name: 'DOCUMENT_STORAGE_ACCOUNT_NAME'
-          value: formStorageAcctName
-        }
-        {
-          name: 'SERVICE_BUS_CONNECTION'
-          value: sbConnKvReference
-        }
-        {
-          name: 'SERVICE_BUS_TOINDEX_QUEUE_NAME'
-          value: toIndexQueueName
-        }
-        {
-          name: 'SERVICE_BUS_NAMESPACE_NAME'
-          value: serviceBusNs
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: storageConnectionString
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: storageConnectionString
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet-isolated'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
-          name: 'AZURE_AISEARCH_ENDPOINT'
-          value: aiSearchEndpoint
-        }
-        {
-          name: 'AZURE_AISEARCH_ADMIN_KEY'
-          value: aiSearchKvReference  
-        }
-        {
-          name: 'AZURE_OPENAI_ENDPOINT'
-          value: openAiEndpoint
-        }
-        // {
-        //   name: 'AZURE_OPENAI_KEY'
-        //   value: openAIKvReference
-        // }
-        {
-          name: 'AZURE_OPENAI_EMBEDDING_MODEL'
-          value: openAiEmbeddingModel
-        }
-        {
-          name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT'
-          value: openAiEmbeddingModel  
-        }
-        {
-          name: 'AZURE_OPENAI_EMBEDDING_MAXTOKENS'
-          value: string(azureOpenAiEmbeddingMaxTokens)
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-        {
-          name: 'AZURE_AISEARCH_INCLUDE_GENERAL_INDEX'
-          value: includeGeneralIndex ? 'true' : 'false'
-        }
-        {
-          name: 'APIM-SUBSCRIPTION-KEY'
-          value: apimSubscriptionKeyKvReference
-        }
-      ]
-    }
-  }
+  dependsOn: [
+    functionAppPlan
+    appInsights
+  ]
 }
 
-resource moveFunction 'Microsoft.Web/sites@2021-01-01' = {
+module moveFunction 'function-move.bicep' = {
   name: moveFunctionName
-  location: location
-  kind: 'functionapp'
-  identity: {
-    type: 'SystemAssigned, UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentityId}': {}
-    }
+  params: {
+    location: location
+    moveFunctionName: moveFunctionName
+    keyVaultUri: keyVaultUri
+    managedIdentityId: managedIdentityId
+    appInsightsName: appInsightsName
+    funcAppPlan: funcAppPlan
+    formStorageAcctName: formStorageAcctName
+    functionStorageAcctName: functionStorageAcctName
+    functionSubnetId: functionSubnetId
+    processResultsContainer: processResultsContainer
+    completedContainer: completedContainer
+    documentStorageContainer: documentStorageContainer
+    processedQueueName: processedQueueName
   }
-  properties: {
-    virtualNetworkSubnetId: functionSubnetId
-    serverFarmId: functionAppPlan.id
-    keyVaultReferenceIdentity: managedIdentityId
-    siteConfig: {
-      cors: {
-        allowedOrigins: ['https://portal.azure.com']
-      }
-      use32BitWorkerProcess: false
-      netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
-      appSettings: [
-        {
-          name: 'DOCUMENT_SOURCE_CONTAINER_NAME'
-          value: documentStorageContainer
-        }
-        {
-          name: 'DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME'
-          value: processResultsContainer
-        }
-        {
-          name: 'DOCUMENT_COMPLETED_CONTAINER_NAME'
-          value: completedContainer
-        }
-        {
-          name: 'DOCUMENT_STORAGE_ACCOUNT_NAME'
-          value: formStorageAcctName
-        }
-        {
-          name: 'SERVICE_BUS_CONNECTION'
-          value: sbConnKvReference
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: storageConnectionString
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: storageConnectionString
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'SERVICE_BUS_PROCESSED_QUEUE_NAME'
-          value: processedQueueName
-        }
-        {
-          name: 'SERVICE_BUS_MOVE_QUEUE_NAME'
-          value: moveFunctionName
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet-isolated'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-      ]
-    }
-  }
+  dependsOn: [
+    functionAppPlan
+    appInsights
+  ]
 }
 
-resource queueFunction 'Microsoft.Web/sites@2021-01-01' = {
+module queueFunction 'functions-queueing.bicep' = {
   name: queueFunctionName
-  location: location
-  kind: 'functionapp'
-  identity: {
-    type: 'SystemAssigned, UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentityId}': {}
-    }
+  params: {
+    location: location
+    queueFunctionName: queueFunctionName
+    managedIdentityId: managedIdentityId
+    appInsightsName: appInsightsName
+    funcAppPlan: funcAppPlan
+    formStorageAcctName: formStorageAcctName
+    functionStorageAcctName: functionStorageAcctName
+    functionSubnetId: functionSubnetId
+    documentStorageContainer: documentStorageContainer
+    formQueueName: formQueueName
+    serviceBusNs: serviceBusNs
   }
-  properties: {
-    virtualNetworkSubnetId: functionSubnetId
-    serverFarmId: functionAppPlan.id
-    keyVaultReferenceIdentity: managedIdentityId
-    siteConfig: {
-      cors: {
-        allowedOrigins: ['https://portal.azure.com']
-      }
-      use32BitWorkerProcess: false
-      netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
-      appSettings: [
-        {
-          name: 'DOCUMENT_SOURCE_CONTAINER_NAME'
-          value: documentStorageContainer
-        }
-        {
-          name: 'DOCUMENT_STORAGE_ACCOUNT_NAME'
-          value: formStorageAcctName
-        }
-        {
-          name: 'SERVICE_BUS_NAMESPACE_NAME'
-          value: serviceBusNs
-        }
-        {
-          name: 'SERVICE_BUS_QUEUE_NAME'
-          value: formQueueName
-        }
-        {
-          name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-          value: storageConnectionString
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: storageConnectionString
-        }
-        {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet-isolated'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: appInsights.properties.ConnectionString
-        }
-      ]
-    }
+  dependsOn: [
+    functionAppPlan
+    appInsights
+  ]
+}
+
+module askQuestions 'function-askquestions.bicep' = {
+  name: askQuestionsFunctionName
+  params: {
+    location: location
+    askQuestionsFunctionName: askQuestionsFunctionName
+    keyVaultUri: keyVaultUri
+    openAiEmbeddingModel: openAiEmbeddingModel
+    aiSearchEndpoint: aiSearchEndpoint
+    openAiEndpoint: openAiEndpoint
+    azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
+    managedIdentityId: managedIdentityId
+    appInsightsName: appInsightsName
+    funcAppPlan: funcAppPlan
+    functionStorageAcctName: functionStorageAcctName
+    functionSubnetId: functionSubnetId
+    openAiChatModel: openAiChatModel
+
   }
+  dependsOn: [
+    functionAppPlan
+    appInsights
+  ]
 }
 
 output systemAssignedIdentities array = [
-  processFunction.identity.principalId
-  aiSearchIndexFunction.identity.principalId
-  moveFunction.identity.principalId
-  queueFunction.identity.principalId
+  processFunction.outputs.systemAssignedIdentity
+  aiSearchFunction.outputs.systemAssignedIdentity
+  moveFunction.outputs.systemAssignedIdentity
+  queueFunction.outputs.systemAssignedIdentity
+  askQuestions.outputs.systemAssignedIdentity
+
   
 ]
