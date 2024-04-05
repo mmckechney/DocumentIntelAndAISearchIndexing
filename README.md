@@ -33,7 +33,8 @@ This solution leverages the following Azure services:
   - `DocumentIntelligence` - processes the message in `docqueue` to Document Intelligence, then updates Blob metadata as "processed" and create new message in `toindexqueue` and `processedqueue` \
     This function employs scale limiting and [Polly](https://github.com/App-vNext/Polly) retries with back off for Document Intelligence (too many requests) replies to balance maximum throughput and overloading the API endpoint
   - `AiSearcIndexing` - processes messages in the `toindexqueue` to get embeddings of the extracted text from Azure Open AI and saves those embeddings to Azure AI Search
-  - `FileMover` - processes messages in the `processedqueue` to move files from `document` to `completed` blob containers
+  - `FileMover` - processes messages in the `processedqueue` to move files from `document` to `completed` blob
+  - `AskQuestions` - simple HTTP function to demonstrate RAG retrieval by allowing you to ask questions on the indexed documents
 
 ### Multiple Document Intelligence endpoints
 
@@ -126,5 +127,4 @@ To exercise the code and run the demo, follow these steps:
 
 5. You can review the execution and timings of the end to end process
 
-
-
+6. Use the `AskQuestions` function to demonstrate RAG retrieval of the index documents.

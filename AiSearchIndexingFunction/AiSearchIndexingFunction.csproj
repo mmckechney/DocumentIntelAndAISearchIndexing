@@ -23,12 +23,7 @@
       <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
       <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="1.2.0" />
       <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.17.0" />
-      <PackageReference Include="Microsoft.SemanticKernel" Version="1.6.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.6.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureAISearch" Version="1.6.3-alpha" />
-      <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.6.3-alpha" />
-      <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.6.3" />
-      <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.6.3" />
+
    </ItemGroup>
    <ItemGroup>
       <ProjectReference Include="..\AzureUtilities\AzureUtilities.csproj" />

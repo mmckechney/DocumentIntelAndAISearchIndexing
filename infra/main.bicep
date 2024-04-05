@@ -51,7 +51,7 @@ param openAIInstances openAIInstanceInfo[] = [
 	}
 ]
 
-var abbrs = loadJsonContent('./abbreviations.json')
+var abbrs = loadJsonContent('./constants/abbreviations.json')
 var appNameLc = toLower(appName)
 
 var resourceGroupName = '${abbrs.resourceGroup}${appName}-${location}'
@@ -65,10 +65,13 @@ var subnet = '${abbrs.virtualNetworkSubnet}${appName}-${location}'
 var nsg = '${abbrs.networkSecurityGroup}${appName}-${location}'
 var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
 var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
+
 var funcProcess = '${abbrs.functionApp}${appName}-Intelligence-${location}'
 var funcMove = '${abbrs.functionApp}${appName}-Mover-${location}'
 var funcQueue = '${abbrs.functionApp}${appName}-Queueing-${location}'
 var aiSearchIndexFunctionName = '${abbrs.functionApp}${appName}-AiSearch-${location}'
+var askQuestionsFunctionName = '${abbrs.functionApp}${appName}-AskQuestions-${location}'
+
 var keyvaultName = '${abbrs.keyVault}${appName}-${location}'
 
 var aiSearchName = '${abbrs.aiSearch}${appNameLc}-demo-${location}'
@@ -93,7 +96,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 	location: location
 }
 
-module managedIdentity 'managed-identity.bicep' = {
+module managedIdentity 'core/managed-identity.bicep' = {
 	name: 'managedIdentity'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -105,7 +108,7 @@ module managedIdentity 'managed-identity.bicep' = {
 	]
 }
 
-module networking 'networking.bicep' = {
+module networking 'core/networking.bicep' = {
 	name: 'networking'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -121,7 +124,7 @@ module networking 'networking.bicep' = {
 	]
 }
 
-module appInsights 'appinsights.bicep' = {
+module appInsights 'core/appinsights.bicep' = {
 	name: 'appInsigts'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -138,7 +141,7 @@ module appInsights 'appinsights.bicep' = {
 	]
 }
 
-module storage 'storage.bicep' = {
+module storage 'core/storage.bicep' = {
 	name: 'storage'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -159,7 +162,7 @@ module storage 'storage.bicep' = {
 	]
 }
 
-module docIntelligence 'documentintelligence.bicep' = {
+module docIntelligence 'core/documentintelligence.bicep' = {
 	name: 'docintelligence'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -175,7 +178,7 @@ module docIntelligence 'documentintelligence.bicep' = {
 	]
 }
 
-module servicebus 'servicebus.bicep' = {
+module servicebus 'core/servicebus.bicep' = {
 	name: 'serviceBus'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -193,7 +196,7 @@ module servicebus 'servicebus.bicep' = {
 	]
 }
 
-module keyvault 'keyvault.bicep' = {
+module keyvault 'core/keyvault.bicep' = {
 	name: 'keyvault'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -206,7 +209,7 @@ module keyvault 'keyvault.bicep' = {
 	]
 }
 
-module functions 'Functions/functions.bicep' = {
+module functions 'functions/functions.bicep' = {
 	name: 'functions'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -234,7 +237,9 @@ module functions 'Functions/functions.bicep' = {
 		managedIdentityId: managedIdentity.outputs.id
 		azureOpenAiEmbeddingMaxTokens: embeddingMaxTokens
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
-		
+		openAiChatModel: azureOpenAIChatModel
+		askQuestionsFunctionName: askQuestionsFunctionName
+	
 	}
 	dependsOn: [
 		rg
@@ -248,7 +253,7 @@ module functions 'Functions/functions.bicep' = {
 	]
 }
 
-module roleAssigments 'roleassignments.bicep' = {
+module roleAssigments 'core/roleassignments.bicep' = {
 	name: 'roleAssigments'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -265,7 +270,7 @@ module roleAssigments 'roleassignments.bicep' = {
 	]
 }
 
-module aiSearch 'aisearch.bicep' = {
+module aiSearch 'core/aisearch.bicep' = {
 	name: 'aiSearch'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -279,7 +284,7 @@ module aiSearch 'aisearch.bicep' = {
 	]
 }
 
-module keyvaultSecrets 'keyvault-secrets.bicep' = {
+module keyvaultSecrets 'core/keyvault-secrets.bicep' = {
 	name: 'keyvaultSecrets'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -293,7 +298,7 @@ module keyvaultSecrets 'keyvault-secrets.bicep' = {
 	]
 }
 
-module apiManagement 'APIM/api-management.bicep' = {
+module apiManagement 'apim/api-management.bicep' = {
 	name: 'apiManagement'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -315,7 +320,7 @@ module apiManagement 'APIM/api-management.bicep' = {
 	]
 }
 
-module openAI 'OpenAI/openai.bicep' = [
+module openAI 'openai/openai.bicep' = [
   for openAIInstance in openAIInstances: {
     name: !empty(openAIInstance.name)
       ? openAIInstance.name!
@@ -366,7 +371,7 @@ module openAI 'OpenAI/openai.bicep' = [
 
 ]
 
-module openAIApiKeyNamedValue 'APIM/api-management-key-vault-named-value.bicep' = [
+module openAIApiKeyNamedValue 'apim/api-management-key-vault-named-value.bicep' = [
   for openAIInstance in openAIInstances: {
     name: 'NV-OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
     scope: resourceGroup(resourceGroupName)
@@ -385,7 +390,7 @@ module openAIApiKeyNamedValue 'APIM/api-management-key-vault-named-value.bicep' 
 ]
 
 // https://learn.microsoft.com/en-us/semantic-kernel/deploy/use-ai-apis-with-api-management
-module openAIApi 'APIM/api-management-openai-api.bicep' = {
+module openAIApi 'apim/api-management-openai-api.bicep' = {
   name: '${apiManagement.name}-api-openai'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -398,7 +403,7 @@ module openAIApi 'APIM/api-management-openai-api.bicep' = {
   }
 }
 
-module apiSubscription 'APIM/api-management-subscription.bicep' = {
+module apiSubscription 'apim/api-management-subscription.bicep' = {
   name: '${apiManagement.name}-subscription-openai'
   scope: resourceGroup(resourceGroupName)
   params: {
@@ -417,7 +422,7 @@ module apiSubscription 'APIM/api-management-subscription.bicep' = {
 	]
 }
 
-module openAIApiBackend 'APIM/api-management-backend.bicep' = [
+module openAIApiBackend 'apim/api-management-backend.bicep' = [
   for (item, index) in openAIInstances: {
     name: '${apiManagement.name}-backend-openai-${item.suffix}'
     scope: resourceGroup(resourceGroupName)
@@ -432,7 +437,7 @@ module openAIApiBackend 'APIM/api-management-backend.bicep' = [
 var backends = 	[for (item, index) in openAIInstances: 'OPENAI${toUpper(item.suffix)}']
 
 // Round Robin Load Balancing
-module apimRoundRobinLoadBalance 'APIM/api-management-round-robin-backend-loadbalance.bicep'  = if(loadBalancingType == 'round-robin') {
+module apimRoundRobinLoadBalance 'apim/api-management-round-robin-backend-loadbalance.bicep'  = if(loadBalancingType == 'round-robin') {
 	name: '${apiManagement.name}-round-robin-backend-load-balancing'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -459,7 +464,7 @@ module loadRoundRobinBalancingPolicy 'APIM/api-management-round-robin-policy.bic
 }
 
 //Priority Load Balancing
-module priorityLoadBalancingPolicy 'APIM/api-management-priority-policy.bicep' = if(loadBalancingType == 'priority'){
+module priorityLoadBalancingPolicy 'apim/api-management-priority-policy.bicep' = if(loadBalancingType == 'priority'){
 	name: '${apiManagement.name}-priority-policy'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -474,7 +479,7 @@ module priorityLoadBalancingPolicy 'APIM/api-management-priority-policy.bicep' =
 }
 
 
-module apimLogger 'APIM/api-management-logger.bicep' = {
+module apimLogger 'apim/api-management-logger.bicep' = {
 	name: '${apiManagement.name}-logger'
 	scope: resourceGroup(resourceGroupName)
 	params: {
@@ -493,6 +498,7 @@ output processFunctionName string = funcProcess
 output moveFunctionName string = funcMove
 output queueFunctionName string = funcQueue	
 output aiSearchIndexFunctionName string = aiSearchIndexFunctionName
+output questionsFunctionName string = askQuestionsFunctionName
 
 
 output openAINames array = [for i in range(0, length(openAIInstances)): openAI[i].outputs.name]

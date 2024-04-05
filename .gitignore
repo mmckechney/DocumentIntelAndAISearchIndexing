@@ -351,3 +351,4 @@ MigrationBackup/
 /FormProcessorFunction/build.zip
 /ProcessedFileMover/build.zip
 /Scriptsbuild.zip
+local.settings.json
