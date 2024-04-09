@@ -128,3 +128,9 @@ To exercise the code and run the demo, follow these steps:
 5. You can review the execution and timings of the end to end process
 
 6. Use the `AskQuestions` function to demonstrate RAG retrieval of the index documents.
+
+## References
+
+- [Smart load balancing for OpenAI endpoints and Azure API Management](https://techcommunity.microsoft.com/t5/fasttrack-for-azure/smart-load-balancing-for-openai-endpoints-and-azure-api/ba-p/3991616) (priority load balancing)
+- [Using Azure API Management Circuit Breaker and Load balancing with Azure OpenAI Service](https://techcommunity.microsoft.com/t5/fasttrack-for-azure/using-azure-api-management-circuit-breaker-and-load-balancing/ba-p/4041003) (round robin load balancing)
+- [Azure OpenAI Service Load Balancing with Azure API Management](https://github.com/Azure-Samples/azure-openai-apim-load-balancing) (round robin load balancing)
