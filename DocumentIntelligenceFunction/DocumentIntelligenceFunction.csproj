@@ -8,8 +8,8 @@
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
       <PackageReference Include="Azure.AI.FormRecognizer" Version="4.1.0" />
-      <PackageReference Include="Azure.Identity" Version="1.10.4" />
-      <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.17.4" />
+      <PackageReference Include="Azure.Identity" Version="1.11.1" />
+      <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.17.5" />
       <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.6.0" />
       <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
       <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />

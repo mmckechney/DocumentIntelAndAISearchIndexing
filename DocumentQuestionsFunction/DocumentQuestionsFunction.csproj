@@ -5,9 +5,9 @@
 		<OutputType>Exe</OutputType>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Azure.Identity" Version="1.10.4" />
+		<PackageReference Include="Azure.Identity" Version="1.11.1" />
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
-		<PackageReference Include="HttpMultipartParser" Version="8.3.0" />
+		<PackageReference Include="HttpMultipartParser" Version="8.4.0" />
 		<PackageReference Include="Microsoft.Azure.Functions.Extensions" Version="1.1.0" />
 		<PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.21.0" />
 		<PackageReference Include="Microsoft.Azure.Functions.Worker.Core" Version="1.17.0" />
