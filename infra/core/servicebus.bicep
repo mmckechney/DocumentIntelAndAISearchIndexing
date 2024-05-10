@@ -5,47 +5,53 @@ param processedQueueName string
 param toIndexQueueName string
 param location string = resourceGroup().location
 param keyVaultName string
+param serviceBusSku string = 'Standard' 
+param vnetName string = ''
+param subnetName string = ''
+
+var enablePartitioning = (serviceBusSku != 'Premium')
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }
 
-resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2021-06-01-preview' = {
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
   name: serviceBusNs
   location: location
   sku: {
-    name: 'Standard'
+    name: serviceBusSku
   }
+
 }
 
-resource serviceBusFormQueue 'Microsoft.ServiceBus/namespaces/queues@2021-06-01-preview' = {
+resource serviceBusFormQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
   name: formQueueName
   parent: serviceBusNamespace
   properties: {
-    enablePartitioning: true
+    enablePartitioning: enablePartitioning
     maxSizeInMegabytes: 4096
   }
 }
 
-resource serviceBusProcessedQueue 'Microsoft.ServiceBus/namespaces/queues@2021-06-01-preview' = {
+resource serviceBusProcessedQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
   name: processedQueueName
   parent: serviceBusNamespace
   properties: {
-    enablePartitioning: true
+    enablePartitioning: enablePartitioning
     maxSizeInMegabytes: 4096
   }
 }
 
-resource serviceBusToIndexQueue 'Microsoft.ServiceBus/namespaces/queues@2021-06-01-preview' = {
+resource serviceBusToIndexQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
   name: toIndexQueueName
   parent: serviceBusNamespace
   properties: {
-    enablePartitioning: true
+    enablePartitioning: enablePartitioning
     maxSizeInMegabytes: 4096
   }
 }
 
-resource serviceBusAuthorizationRule 'Microsoft.ServiceBus/namespaces/authorizationRules@2021-06-01-preview' = {
+resource serviceBusAuthorizationRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-10-01-preview' = {
   name: 'FormProcessFuncRule'
   parent: serviceBusNamespace
   properties: {
@@ -56,7 +62,7 @@ resource serviceBusAuthorizationRule 'Microsoft.ServiceBus/namespaces/authorizat
   }
 }
 
-resource serviceBusConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
+resource serviceBusConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'SERVICE-BUS-CONNECTION'
   parent: keyVault
   properties: {
@@ -64,6 +70,22 @@ resource serviceBusConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-0
   }
 }
 
+resource serviceBusNamespaceNetworkRuleSet 'Microsoft.ServiceBus/namespaces/networkRuleSets@2021-06-01-preview' = {
+  parent: serviceBusNamespace
+  name: 'default'
+  properties: {
+    defaultAction: 'Deny'
+    trustedServiceAccessEnabled: true
+    virtualNetworkRules: [
+      {
+        subnet: {
+          id: resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, subnetName)
+        }
+        ignoreMissingVnetServiceEndpoint: false
+      }
+    ]
+  }
+}
 
 output serviceBusId string = serviceBusNamespace.id
 output authorizationRuleName string = serviceBusAuthorizationRule.name

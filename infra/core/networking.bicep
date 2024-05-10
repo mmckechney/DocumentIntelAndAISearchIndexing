@@ -3,27 +3,11 @@ param nsg string
 param vnet string
 param subnet string
 param funcsubnet string
-param myPublicIp string
+param apimsubnet string
 
 
-resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2021-02-01' = {
+resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2021-02-01' existing = {
   name: nsg
-  location: location
-}
-
-resource networkSecurityGroupRule 'Microsoft.Network/networkSecurityGroups/securityRules@2021-02-01' = if(myPublicIp != ''){
-  name: 'LocalIP'
-  parent: networkSecurityGroup
-  properties: {
-    sourceAddressPrefix: myPublicIp
-    destinationAddressPrefix: '*'
-    sourcePortRange: '*'
-    destinationPortRange: '*'
-    priority: 500
-    access: 'Allow'
-    direction: 'Inbound'
-    protocol: 'Tcp'
-  }
 }
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
@@ -51,11 +35,32 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
           serviceEndpoints: [
             {
               service: 'Microsoft.Storage'
+              locations: [
+                location
+              ]
             }
             {
               service: 'Microsoft.Web'
+              locations: [
+                location
+              ]
+            }
+            {
+              service: 'Microsoft.ServiceBus'
+              locations: [
+                location
+              ]
             }
           ]
+          networkSecurityGroup: {
+            id: networkSecurityGroup.id
+          }
+        }
+       }
+       {
+        name: apimsubnet
+        properties: {
+          addressPrefix: '10.10.2.0/24'
           networkSecurityGroup: {
             id: networkSecurityGroup.id
           }
@@ -68,9 +73,21 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
           serviceEndpoints: [
             {
               service: 'Microsoft.Storage'
+              locations: [
+                location
+              ]
             }
             {
               service: 'Microsoft.Web'
+              locations: [
+                location
+              ]
+            }
+            {
+              service: 'Microsoft.ServiceBus'
+              locations: [
+                location
+              ]
             }
           ]
           networkSecurityGroup: {
@@ -84,11 +101,12 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
 
 
 
-output subnetIds array = [
+output storageSubnetIds array = [
   virtualNetwork.properties.subnets[0].id
-  virtualNetwork.properties.subnets[1].id 
+  virtualNetwork.properties.subnets[2].id 
 
 ]
-
+output vnetName string = virtualNetwork.name
+output functionSubnetName string= virtualNetwork.properties.subnets[0].name
 output functionSubnetId string= virtualNetwork.properties.subnets[0].id
-
+output apimSubnetId string= virtualNetwork.properties.subnets[1].id

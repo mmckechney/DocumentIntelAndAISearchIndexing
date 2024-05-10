@@ -7,6 +7,9 @@ param tags object = {}
 @description('ID for the Managed Identity associated with the API Management resource.')
 param apiManagementIdentityId string
 
+@description('ID for the subnet to deploy the API Management resource.')
+param subnetId string
+
 type skuInfo = {
   name: 'Developer' | 'Standard' | 'Premium' | 'Basic' | 'Consumption' | 'Isolated'
   capacity: int
@@ -38,6 +41,10 @@ resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
   properties: {
     publisherEmail: publisherEmail
     publisherName: publisherName
+    virtualNetworkType: 'Internal' 
+    virtualNetworkConfiguration: {
+      subnetResourceId: subnetId
+    }
   }
 }
 

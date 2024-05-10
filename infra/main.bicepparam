@@ -4,6 +4,7 @@ param appName = ''
 param currentUserObjectId = ''
 param myPublicIp = ''
 param loadBalancingType = 'round-robin'
+param serviceBusSku = 'Standard'
 
 param docIntelligenceInstanceCount = 2
 

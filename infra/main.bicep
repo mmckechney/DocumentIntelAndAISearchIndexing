@@ -20,6 +20,8 @@ param includeGeneralIndex bool = true
 param apiManagementPublisherEmail string
 param apiManagementPublisherName string
 
+param serviceBusSku string = 'Standard'
+
 @allowed([
   'round-robin'
   'priority'
@@ -64,6 +66,7 @@ var vnet = '${abbrs.virtualNetwork}${appName}-${location}'
 var subnet = '${abbrs.virtualNetworkSubnet}${appName}-${location}'
 var nsg = '${abbrs.networkSecurityGroup}${appName}-${location}'
 var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
+var apimsubnet = '${abbrs.virtualNetworkSubnet}${appName}-apim-${location}'
 var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
 
 var funcProcess = '${abbrs.functionApp}${appName}-Intelligence-${location}'
@@ -98,35 +101,42 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 
 module managedIdentity 'core/managed-identity.bicep' = {
 	name: 'managedIdentity'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		name: managedIdentityName
 		location: location
 	}
-	dependsOn: [
-		rg
-	]
+}
+
+module networkSecurityGroup 'core/networksecuritygroup.bicep' = {
+	name: 'networkSecurityGroup'
+	scope: rg
+	params: {
+		nsg: nsg
+		myPublicIp: myPublicIp
+		location: location
+	}
 }
 
 module networking 'core/networking.bicep' = {
 	name: 'networking'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		vnet: vnet
 		subnet: subnet
 		nsg: nsg
 		funcsubnet: funcsubnet
 		location: location
-		myPublicIp: myPublicIp
+		apimsubnet: apimsubnet
 	}
 	dependsOn: [
-		rg
+		networkSecurityGroup
 	]
 }
 
 module appInsights 'core/appinsights.bicep' = {
 	name: 'appInsigts'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		appInsightsName: appInsightsName
 		logAnalyticsName : logAnalyticsName
@@ -136,27 +146,23 @@ module appInsights 'core/appinsights.bicep' = {
 		funcQueue: funcQueue
 		funcProcess: funcProcess
 	}
-	dependsOn: [
-		rg
-	]
 }
 
 module storage 'core/storage.bicep' = {
 	name: 'storage'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		formStorageAcct: formStorageAcct
 		funcStorageAcct: funcStorageAcct
 		myPublicIp: myPublicIp
 		location: location
-		subnetIds: networking.outputs.subnetIds
+		subnetIds: networking.outputs.storageSubnetIds
 		completedContainer: completedContainer
 		documentStorageContainer: documentStorageContainer
 		processResultsContainer: processResultsContainer
 		keyVaultName:	keyvaultName
 	}
 	dependsOn: [
-		rg
 		networking
 		keyvault
 	]
@@ -164,7 +170,7 @@ module storage 'core/storage.bicep' = {
 
 module docIntelligence 'core/documentintelligence.bicep' = {
 	name: 'docintelligence'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		docIntelligenceName: formRecognizer
 		docIntelligenceInstanceCount: docIntelligenceInstanceCount
@@ -172,15 +178,14 @@ module docIntelligence 'core/documentintelligence.bicep' = {
 		keyVaultName: keyvaultName
 	}
 	dependsOn: [
-		rg
-		networking
+  	networking
 		keyvault
 	]
 }
 
 module servicebus 'core/servicebus.bicep' = {
 	name: 'serviceBus'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		serviceBusNs: serviceBusNs
 		location: location
@@ -188,30 +193,31 @@ module servicebus 'core/servicebus.bicep' = {
 		processedQueueName: processedQueueName
 		toIndexQueueName: toIndexQueueName
 		keyVaultName: keyvaultName
+		subnetName: funcsubnet
+		vnetName: vnet
+		serviceBusSku: serviceBusSku
 	}
 	dependsOn: [
-		rg
-		networking
 		keyvault
+		networking
 	]
 }
 
 module keyvault 'core/keyvault.bicep' = {
 	name: 'keyvault'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		keyVaultName: keyvaultName
 		location: location
 	}
 	dependsOn: [
-		rg
 		networking
 	]
 }
 
 module functions 'functions/functions.bicep' = {
 	name: 'functions'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		funcAppPlan: funcAppPlan
 		processFunctionName: funcProcess
@@ -242,7 +248,6 @@ module functions 'functions/functions.bicep' = {
 	
 	}
 	dependsOn: [
-		rg
 		networking
 		storage
 		keyvault
@@ -255,7 +260,7 @@ module functions 'functions/functions.bicep' = {
 
 module roleAssigments 'core/roleassignments.bicep' = {
 	name: 'roleAssigments'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		docIntelligencePrincipalIds: docIntelligence.outputs.docIntelligencePrincipalIds
 		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
@@ -264,7 +269,6 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
 	}
 	dependsOn: [
-		rg
 		managedIdentity
 		functions
 	]
@@ -272,27 +276,25 @@ module roleAssigments 'core/roleassignments.bicep' = {
 
 module aiSearch 'core/aisearch.bicep' = {
 	name: 'aiSearch'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		aiSearchName: aiSearchName
 		keyVaultName: keyvaultName
 		location: location
 	}
 	dependsOn: [
-		rg
 		keyvault
 	]
 }
 
 module keyvaultSecrets 'core/keyvault-secrets.bicep' = {
 	name: 'keyvaultSecrets'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		keyvault: keyvaultName
 		docIntelKeyArray: docIntelligence.outputs.docIntellKeyArray
 	}
 	dependsOn: [
-		rg
 		keyvault
 		docIntelligence
 	]
@@ -300,13 +302,14 @@ module keyvaultSecrets 'core/keyvault-secrets.bicep' = {
 
 module apiManagement 'apim/api-management.bicep' = {
 	name: 'apiManagement'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		name: apiManagementName
 		location: location
 		apiManagementIdentityId: managedIdentity.outputs.id
 		publisherEmail: apiManagementPublisherEmail
 		publisherName: apiManagementPublisherName
+		subnetId: networking.outputs.apimSubnetId
 		sku: { 
 			name: 'Developer'
 			capacity: 1
@@ -315,9 +318,7 @@ module apiManagement 'apim/api-management.bicep' = {
 			CreatedBy: currentUserObjectId
 		}
 	}
-	dependsOn: [
-		rg
-	]
+	
 }
 
 module openAI 'openai/openai.bicep' = [
@@ -325,7 +326,7 @@ module openAI 'openai/openai.bicep' = [
     name: !empty(openAIInstance.name)
       ? openAIInstance.name!
       : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
-    scope: resourceGroup(resourceGroupName)
+    scope: rg
     params: {
 			managedIdentityId: managedIdentity.outputs.id
       name: !empty(openAIInstance.name)
@@ -364,7 +365,6 @@ module openAI 'openai/openai.bicep' = [
       }
     }
 		dependsOn: [
-			rg
 			keyvault
 		]
   }
@@ -374,7 +374,7 @@ module openAI 'openai/openai.bicep' = [
 module openAIApiKeyNamedValue 'apim/api-management-key-vault-named-value.bicep' = [
   for openAIInstance in openAIInstances: {
     name: 'NV-OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
-    scope: resourceGroup(resourceGroupName)
+    scope: rg
     params: {
       name: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
       displayName: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
@@ -383,7 +383,6 @@ module openAIApiKeyNamedValue 'apim/api-management-key-vault-named-value.bicep' 
       keyVaultSecretUri: '${keyvault.outputs.keyVaultUri}secrets/OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
     }
 		dependsOn: [
-			rg
 			roleAssigments
 		]
   }
@@ -392,7 +391,7 @@ module openAIApiKeyNamedValue 'apim/api-management-key-vault-named-value.bicep' 
 // https://learn.microsoft.com/en-us/semantic-kernel/deploy/use-ai-apis-with-api-management
 module openAIApi 'apim/api-management-openai-api.bicep' = {
   name: '${apiManagement.name}-api-openai'
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   params: {
     name: 'openai'
     apiManagementName: apiManagement.outputs.name
@@ -405,7 +404,7 @@ module openAIApi 'apim/api-management-openai-api.bicep' = {
 
 module apiSubscription 'apim/api-management-subscription.bicep' = {
   name: '${apiManagement.name}-subscription-openai'
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   params: {
     name: 'openai-sub'
     apiManagementName: apiManagement.outputs.name
@@ -415,7 +414,6 @@ module apiSubscription 'apim/api-management-subscription.bicep' = {
 		keyVaultName: keyvaultName
   }
 	dependsOn: [
-		rg
 		keyvault
 		openAIApi
 
@@ -425,7 +423,7 @@ module apiSubscription 'apim/api-management-subscription.bicep' = {
 module openAIApiBackend 'apim/api-management-backend.bicep' = [
   for (item, index) in openAIInstances: {
     name: '${apiManagement.name}-backend-openai-${item.suffix}'
-    scope: resourceGroup(resourceGroupName)
+    scope: rg
     params: {
       name: 'OPENAI${toUpper(item.suffix)}'
       apiManagementName: apiManagement.outputs.name
@@ -439,7 +437,7 @@ var backends = 	[for (item, index) in openAIInstances: 'OPENAI${toUpper(item.suf
 // Round Robin Load Balancing
 module apimRoundRobinLoadBalance 'apim/api-management-round-robin-backend-loadbalance.bicep'  = if(loadBalancingType == 'round-robin') {
 	name: '${apiManagement.name}-round-robin-backend-load-balancing'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		apiManagementName: apiManagement.outputs.name
 		openaiBackends: backends
@@ -451,7 +449,7 @@ module apimRoundRobinLoadBalance 'apim/api-management-round-robin-backend-loadba
 }
 module loadRoundRobinBalancingPolicy 'APIM/api-management-round-robin-policy.bicep' = if(loadBalancingType == 'round-robin'){
   name: '${apiManagement.name}-round-robin-policy'
-  scope: resourceGroup(resourceGroupName)
+  scope: rg
   params: {
     apiManagementName: apiManagement.outputs.name
     apiName: openAiApiName
@@ -466,7 +464,7 @@ module loadRoundRobinBalancingPolicy 'APIM/api-management-round-robin-policy.bic
 //Priority Load Balancing
 module priorityLoadBalancingPolicy 'apim/api-management-priority-policy.bicep' = if(loadBalancingType == 'priority'){
 	name: '${apiManagement.name}-priority-policy'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		apiManagementName: apiManagement.outputs.name
 		openAiApiName: openAiApiName
@@ -481,7 +479,7 @@ module priorityLoadBalancingPolicy 'apim/api-management-priority-policy.bicep' =
 
 module apimLogger 'apim/api-management-logger.bicep' = {
 	name: '${apiManagement.name}-logger'
-	scope: resourceGroup(resourceGroupName)
+	scope: rg
 	params: {
 		apiManagementName: apiManagement.outputs.name
 		appInsightsName: appInsightsName

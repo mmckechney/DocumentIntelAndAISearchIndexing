@@ -18,7 +18,8 @@ param
 	[bool] $codeDeployOnly = $false,
 	[Parameter(Mandatory=$true)]
 	[ValidateSet('round-robin', 'priority')]
-	[string] $loadBalancingType,
+	[string] $loadBalancingType = 'priority',
+	[string] $serviceBusSku = 'Standard',
 	<#
 	.PARAMETER includeGeneralIndex
 	Include all indexed documents in an all-inclusive 'general' index.
@@ -79,7 +80,8 @@ if($codeDeployOnly -eq $false)
 		docIntelligenceInstanceCount=$docIntelligenceInstanceCount `
 		currentUserObjectId=$currentUserObjectId  `
 		includeGeneralIndex=$includeGeneralIndex `
-		loadBalancingType=$loadBalancingType
+		loadBalancingType=$loadBalancingType `
+		serviceBusSku=$serviceBusSku 
 
 	# Write-Host $output -ForegroundColor DarkGreen
 	if(!$?){ exit }
