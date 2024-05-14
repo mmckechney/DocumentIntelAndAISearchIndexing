@@ -11,7 +11,7 @@ resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' exis
   }
 
 
-  resource apimLogger 'Microsoft.ApiManagement/service/loggers@2021-04-01-preview' = {
+  resource apimLogger 'Microsoft.ApiManagement/service/loggers@2023-05-01-preview' = {
   parent: apiManagement
   name: 'apimlogger'
   properties:{

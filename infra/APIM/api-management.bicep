@@ -41,7 +41,7 @@ resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
   properties: {
     publisherEmail: publisherEmail
     publisherName: publisherName
-    virtualNetworkType: 'Internal' 
+    virtualNetworkType: 'External' 
     virtualNetworkConfiguration: {
       subnetResourceId: subnetId
     }

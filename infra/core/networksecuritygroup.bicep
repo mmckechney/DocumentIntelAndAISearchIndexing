@@ -23,6 +23,36 @@ resource allowLocalPublicIPRule 'Microsoft.Network/networkSecurityGroups/securit
   }
 }
 
+resource internetToVnetInbound 'Microsoft.Network/networkSecurityGroups/securityRules@2021-02-01' = {
+  name: 'InternetToVnetInbound'
+  parent: networkSecurityGroup
+  properties: {
+    sourceAddressPrefix: 'Internet'
+    destinationAddressPrefix: 'VirtualNetwork'
+    sourcePortRange: '*'
+    destinationPortRange: '443'
+    priority: 505
+    access: 'Allow'
+    direction: 'Inbound'
+    protocol: 'Tcp'
+  }
+}
+
+resource trafficManagertoVnetOutbound 'Microsoft.Network/networkSecurityGroups/securityRules@2021-02-01' = {
+  name: 'trafficManagertoVnetOutbound'
+  parent: networkSecurityGroup
+  properties: {
+    sourceAddressPrefix: 'AzureTrafficManager'
+    destinationAddressPrefix: 'VirtualNetwork'
+    sourcePortRange: '*'
+    destinationPortRange: '443'
+    priority: 600
+    access: 'Allow'
+    direction: 'Inbound'
+    protocol: 'Tcp'
+  }
+}
+
 resource apimManagementInbound 'Microsoft.Network/networkSecurityGroups/securityRules@2021-02-01' = {
   name: 'ApimManagementInbound'
   parent: networkSecurityGroup

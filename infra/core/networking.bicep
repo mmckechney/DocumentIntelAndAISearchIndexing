@@ -64,6 +64,28 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
           networkSecurityGroup: {
             id: networkSecurityGroup.id
           }
+          serviceEndpoints: [
+            {
+              service: 'Microsoft.EventHub'
+              locations: ['*']
+            }
+            {
+              service: 'Microsoft.KeyVault'
+              locations: ['*']
+            }
+            {
+              service: 'Microsoft.ServiceBus'
+              locations: ['*']
+            }
+            {
+              service: 'Microsoft.Sql'
+              locations: ['*']
+            }
+            {
+              service: 'Microsoft.Storage'
+              locations: ['*']
+            }
+          ]
         }
        }
        {

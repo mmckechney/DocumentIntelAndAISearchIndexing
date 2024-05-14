@@ -20,6 +20,7 @@ param
 	[ValidateSet('round-robin', 'priority')]
 	[string] $loadBalancingType = 'priority',
 	[string] $serviceBusSku = 'Standard',
+	[string] $deploymentName,
 	<#
 	.PARAMETER includeGeneralIndex
 	Include all indexed documents in an all-inclusive 'general' index.
@@ -32,6 +33,11 @@ param
 	[bool] $includeGeneralIndex = $true
 )
 
+
+if($deploymentName -eq "")
+{
+	$deploymentName = "deploy-$appName-$location"
+}
 $error.Clear()
 $ErrorActionPreference = 'Stop'
 
@@ -72,7 +78,7 @@ if($codeDeployOnly -eq $false)
 	}
 
 	Write-Host "Deploying resources to Azure" -ForegroundColor DarkCyan
-	$output = az deployment sub create --location $location  --template-file ./infra/main.bicep `
+	$output = az deployment sub create --name $deploymentName --location $location  --template-file ./infra/main.bicep `
 		--parameters ./infra/main.bicepparam `
 		--parameters location=$location `
 		appName=$appName `
