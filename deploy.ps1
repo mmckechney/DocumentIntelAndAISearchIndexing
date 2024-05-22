@@ -19,6 +19,7 @@ param
 	[Parameter(Mandatory=$true)]
 	[ValidateSet('round-robin', 'priority')]
 	[string] $loadBalancingType = 'priority',
+	[ValidateSet('Basic', 'Standard', 'Premium')]
 	[string] $serviceBusSku = 'Standard',
 	[string] $deploymentName,
 	<#

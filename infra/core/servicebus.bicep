@@ -10,6 +10,7 @@ param vnetName string = ''
 param subnetName string = ''
 
 var enablePartitioning = (serviceBusSku != 'Premium')
+var includeNetworking = (serviceBusSku == 'Premium')
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
@@ -70,13 +71,13 @@ resource serviceBusConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-0
   }
 }
 
-resource serviceBusNamespaceNetworkRuleSet 'Microsoft.ServiceBus/namespaces/networkRuleSets@2021-06-01-preview' = {
+resource serviceBusNamespaceNetworkRuleSet 'Microsoft.ServiceBus/namespaces/networkRuleSets@2021-06-01-preview' = if(includeNetworking) {
   parent: serviceBusNamespace
   name: 'default'
   properties: {
     defaultAction: 'Deny'
     trustedServiceAccessEnabled: true
-    virtualNetworkRules: [
+    virtualNetworkRules:  [
       {
         subnet: {
           id: resourceId('Microsoft.Network/virtualNetworks/subnets', vnetName, subnetName)
