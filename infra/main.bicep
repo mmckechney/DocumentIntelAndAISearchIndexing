@@ -389,6 +389,7 @@ module openAIApiKeyNamedValue 'apim/api-management-key-vault-named-value.bicep' 
 ]
 
 // https://learn.microsoft.com/en-us/semantic-kernel/deploy/use-ai-apis-with-api-management
+// GitHub location for API specs: https://github.com/Azure/azure-rest-api-specs/tree/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference
 module openAIApi 'apim/api-management-openai-api.bicep' = {
   name: '${apiManagement.name}-api-openai'
   scope: rg
@@ -398,7 +399,7 @@ module openAIApi 'apim/api-management-openai-api.bicep' = {
     path: '/openai'
     format: 'openapi-link'
     displayName: 'OpenAI'
-    value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2023-03-15-preview/inference.json'
+    value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-02-01/inference.json'
   }
 }
 
