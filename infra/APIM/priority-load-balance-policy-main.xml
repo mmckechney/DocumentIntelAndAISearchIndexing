@@ -1,5 +1,9 @@
 <policies>
     <inbound>
+        <azure-openai-emit-token-metric namespace="AzureOpenAI">   
+            <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+            <dimension name="API ID" />
+        </azure-openai-emit-token-metric> 
         <base />
         <!-- Getting the main variable where we keep the list of backends -->
         <cache-lookup-value key="listBackends" variable-name="listBackends" />
