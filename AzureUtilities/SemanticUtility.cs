@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.AzureAISearch;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Memory;
 using System;
 using System.Collections.Generic;
@@ -83,7 +83,7 @@ namespace AzureUtilities
 
          var memBuilder = new MemoryBuilder()
              .WithMemoryStore(store)
-             .WithAzureOpenAITextEmbeddingGeneration(deploymentName: embeddingDeploymentName, modelId: embeddingModel, endpoint: openAIEndpoint, apiKey: apiKey, httpClient: client)
+             .WithTextEmbeddingGeneration(new AzureOpenAITextEmbeddingGenerationService(deploymentName: embeddingDeploymentName, modelId: embeddingModel, endpoint: openAIEndpoint, apiKey: apiKey, httpClient: client))
              .WithLoggerFactory(logFactory);
 
          semanticMemory = memBuilder.Build();
