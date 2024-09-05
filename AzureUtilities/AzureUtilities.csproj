@@ -18,13 +18,13 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-     <PackageReference Include="Microsoft.SemanticKernel" Version="1.18.0-rc" />
-     <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.18.0-rc" />
-     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureAISearch" Version="1.18.0-alpha" />
-     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.18.0-rc" />
-     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.18.0-alpha" />
-     <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.18.0-rc" />
-     <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.18.0-rc" />
+     <PackageReference Include="Microsoft.SemanticKernel" Version="1.18.2" />
+     <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.18.2" />
+     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureAISearch" Version="1.18.2-alpha" />
+     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.18.2" />
+     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.18.2-alpha" />
+     <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.18.2" />
+     <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.18.2" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Prompts\**\*.yaml" />
