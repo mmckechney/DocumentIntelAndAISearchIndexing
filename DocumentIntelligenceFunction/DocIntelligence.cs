@@ -161,9 +161,7 @@ namespace DocumentIntelligenceFunction
 
             var pollyResult = await retryPolicy.ExecuteAndCaptureAsync(async token =>
             {
-               operation1 = await formRecogClient.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, Settings.DocumentProcessingModel,
-                  new AnalyzeDocumentContent() { UrlSource = fileUri });
-
+               operation1 = await formRecogClient.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, Settings.DocumentProcessingModel, fileUri);
             }, source.Token);
 
 
