@@ -163,7 +163,6 @@ module storage 'core/storage.bicep' = {
 		keyVaultName:	keyvaultName
 	}
 	dependsOn: [
-		networking
 		keyvault
 	]
 }
@@ -248,13 +247,9 @@ module functions 'functions/functions.bicep' = {
 	
 	}
 	dependsOn: [
-		networking
 		storage
-		keyvault
 		servicebus
 		appInsights
-		managedIdentity
-		apiManagement
 	]
 }
 
@@ -268,10 +263,6 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		functionPrincipalIds: functions.outputs.systemAssignedIdentities
 		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
 	}
-	dependsOn: [
-		managedIdentity
-		functions
-	]
 }
 
 module aiSearch 'core/aisearch.bicep' = {
@@ -296,7 +287,6 @@ module keyvaultSecrets 'core/keyvault-secrets.bicep' = {
 	}
 	dependsOn: [
 		keyvault
-		docIntelligence
 	]
 }
 
@@ -487,7 +477,6 @@ module apimLogger 'apim/api-management-logger.bicep' = {
 	}
 	dependsOn: [
 		appInsights
-		apiManagement
 	]
 }
 

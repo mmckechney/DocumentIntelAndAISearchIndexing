@@ -145,7 +145,11 @@ dotnet publish .
 $source = Join-Path -Path $pwd.Path -ChildPath $childPath
 if(Test-Path $zip) { Remove-Item $zip }
 [io.compression.zipfile]::CreateFromDirectory($source,$zip)
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=true
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=true
 az webapp deploy --name $funcQuestions --resource-group $resourceGroupName --src-path $zip --type zip
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=false
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=false
 Pop-Location
 
 if(!$?){ exit }
@@ -157,7 +161,11 @@ dotnet publish .
 $source = Join-Path -Path $pwd.Path -ChildPath $childPath
 if(Test-Path $zip) { Remove-Item $zip }
 [io.compression.zipfile]::CreateFromDirectory($source,$zip)
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=true
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=true
 az webapp deploy --name $funcProcess --resource-group $resourceGroupName --src-path $zip --type zip
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=false
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=false
 Pop-Location
 
 if(!$?){ exit }
@@ -170,7 +178,11 @@ $source = Join-Path -Path $pwd.Path -ChildPath $childPath
 $zip = $scriptDir + "build.zip"
 if(Test-Path $zip) { Remove-Item $zip }
 [io.compression.zipfile]::CreateFromDirectory($source,$zip)
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=true
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=true
 az webapp deploy --name $funcAiSearch --resource-group $resourceGroupName --src-path $zip --type zip
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=false
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=false
 Pop-Location
 
 if(!$?){ exit }
@@ -182,7 +194,11 @@ dotnet publish .
 $source = Join-Path -Path $pwd.Path -ChildPath $childPath
 if(Test-Path $zip) { Remove-Item $zip }
 [io.compression.zipfile]::CreateFromDirectory($source,$zip)
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=true
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=true
 az webapp deploy --name $funcMove --resource-group $resourceGroupName --src-path $zip --type zip
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=false
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=false
 Pop-Location
 
 if(!$?){ exit }
@@ -194,7 +210,11 @@ dotnet publish .
 $source = Join-Path -Path $pwd.Path -ChildPath $childPath
 if(Test-Path $zip) { Remove-Item $zip }
 [io.compression.zipfile]::CreateFromDirectory($source,$zip)
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=true
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=true
 az webapp deploy --name $funcQueue --resource-group $resourceGroupName --src-path $zip --type zip
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=false
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=false
 Pop-Location
 
 

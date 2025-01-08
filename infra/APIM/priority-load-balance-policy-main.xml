@@ -1,5 +1,9 @@
 <policies>
     <inbound>
+        <azure-openai-emit-token-metric namespace="AzureOpenAI">   
+            <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+            <dimension name="API ID" />
+        </azure-openai-emit-token-metric> 
         <base />
         <!-- Getting the main variable where we keep the list of backends -->
         <cache-lookup-value key="listBackends" variable-name="listBackends" />
@@ -18,9 +22,9 @@
                     // "retryAfter":   We use it to know when to mark this endpoint as healthy again after we received a 429 response
 
                     JArray backends = new JArray();
-                    backends.Add(new JObject() {{ "backend-id", "OPENAIEASTUS" }, { "priority", 1 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
-					backends.Add(new JObject() {{ "backend-id", "OPENAIEASTUS2" }, { "priority", 2 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
-					backends.Add(new JObject() {{ "backend-id", "OPENAICANADAEAST" }, { "priority", 2 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
+                    backends.Add(new JObject() {{ "backend-id", "OPENAIEASTUS2" }, { "priority", 1 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
+					backends.Add(new JObject() {{ "backend-id", "OPENAISWEDENCENTRAL" }, { "priority", 2 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
+					backends.Add(new JObject() {{ "backend-id", "OPENAIWESTUS3" }, { "priority", 2 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
                     return backends;   
                 }" />
                 <!-- And store the variable into cache again -->
