@@ -1,5 +1,6 @@
 ﻿using Azure;
 using Azure.AI.FormRecognizer.DocumentAnalysis;
+using Azure.Search.Documents.Indexes;
 using AzureUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -48,9 +49,11 @@ namespace DocumentQuestionsFunction
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
          services.AddSingleton<SemanticUtility>();
-         services.AddSingleton<AiSearch>();
+         services.AddSingleton<AiSearchHelper>();
          services.AddSingleton<Helper>();
-         services.AddHttpClient();
+         services.AddSingleton<StorageHelper>();
+         services.AddSingleton<ServiceBusHelper>();
+          services.AddHttpClient();
 
       }
 

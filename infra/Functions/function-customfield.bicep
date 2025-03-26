@@ -1,14 +1,13 @@
 param funcAppPlan string
 param location string = resourceGroup().location
-param processFunctionName string
+param customFieldFunctionName string
 param functionSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
-param processedQueueName string
-param docQueueName string
 param customFieldQueueName string
 param serviceBusNs string
 param formStorageAcctName string
+param toIndexQueueName string
 param managedIdentityId string
 
 param documentStorageContainer string
@@ -41,7 +40,7 @@ resource funcStorageAcct 'Microsoft.Storage/storageAccounts@2021-04-01'existing 
 var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${funcStorageAcct.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${funcStorageAcct.listKeys().keys[0].value}'
 
 resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
-  name: processFunctionName
+  name: customFieldFunctionName
   location: location
   kind: 'functionapp'
   identity: {
@@ -79,10 +78,6 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
           value: formStorageAcctName
         }
         {
-          name:  configKeys.DOCUMENT_INTELLIGENCE_MODEL_NAME
-          value: 'prebuilt-layout'
-        }
-        {
           name: configKeys.DOCUMENT_INTELLIGENCE_ENDPOINT
           value: frEndpointKvReference
         }
@@ -95,16 +90,12 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
           value: sbConnKvReference
         }
         {
-          name: configKeys.SERVICE_BUS_PROCESSED_QUEUE_NAME
-          value: processedQueueName
-        }
-        {
           name: configKeys.SERVICE_BUS_CUSTOMFIELD_QUEUE_NAME
           value: customFieldQueueName
         }
         {
-          name: configKeys.SERVICE_BUS_DOC_QUEUE_NAME
-          value: docQueueName 
+          name: configKeys.SERVICE_BUS_TOINDEX_QUEUE_NAME
+          value: toIndexQueueName
         }
         {
           name: configKeys.SERVICE_BUS_NAMESPACE_NAME

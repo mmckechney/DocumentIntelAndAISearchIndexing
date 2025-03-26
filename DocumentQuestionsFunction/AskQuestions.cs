@@ -16,12 +16,12 @@ namespace DocumentQuestionsFunction
    public class AskQuestions
    {
       private SemanticUtility semanticUtility;
-      AiSearch aiSearch;
+      AiSearchHelper aiSearch;
       ILogger<AskQuestions> log;
       IConfiguration config;
       Helper common;
 
-      public AskQuestions(ILogger<AskQuestions> log, IConfiguration config, Helper common, SemanticUtility semanticMemory, AiSearch aiSearch)
+      public AskQuestions(ILogger<AskQuestions> log, IConfiguration config, Helper common, SemanticUtility semanticMemory, AiSearchHelper aiSearch)
       {
          this.log = log;
          this.config = config;
@@ -41,7 +41,7 @@ namespace DocumentQuestionsFunction
 
          try
          {
-            (string filename, string question) = await common.GetFilenameAndQuery(req);
+            (string filename, string question, string customField) = await common.GetFilenameAndQuery(req);
 
             if(filename == "general" && string.IsNullOrWhiteSpace(question))
             {
@@ -56,18 +56,24 @@ namespace DocumentQuestionsFunction
                return listResp;
             }
 
-            var memories = await semanticUtility.SearchMemoryAsync(filename, question);
             string content = "";
-            await foreach (MemoryQueryResult memoryResult in memories)
+            var results = await aiSearch.SearchByCustomField(customField, question);
+            foreach(var result in results)
             {
-               log.LogDebug("Memory Result = " + memoryResult.Metadata.Description);
-               if (memoryResult.Metadata.Id.Contains("_") && filename != memoryResult.Metadata.Id.Substring(0, memoryResult.Metadata.Id.LastIndexOf('_')))
-               {
-                  filename = memoryResult.Metadata.Id.Substring(0, memoryResult.Metadata.Id.LastIndexOf('_'));
-                  content += $"\nDocument Name: {filename}\n";
-               }
-               content += memoryResult.Metadata.Description;
-            };
+               content += result.Description;
+            }
+            //var memories = await semanticUtility.SearchMemoryAsync(filename,customField, question);
+
+            //await foreach (MemoryQueryResult memoryResult in memories)
+            //{
+            //   log.LogDebug("Memory Result = " + memoryResult.Metadata.Description);
+            //   if (memoryResult.Metadata.Id.Contains("_") && filename != memoryResult.Metadata.Id.Substring(0, memoryResult.Metadata.Id.LastIndexOf('_')))
+            //   {
+            //      filename = memoryResult.Metadata.Id.Substring(0, memoryResult.Metadata.Id.LastIndexOf('_'));
+            //      content += $"\nDocument Name: {filename}\n";
+            //   }
+            //   content += memoryResult.Metadata.Description;
+            //};
             //Invoke Semantic Kernel to get answer
             var responseMessage = await semanticUtility.AskQuestion(question, content);
             var resp = req.CreateResponse(System.Net.HttpStatusCode.OK);

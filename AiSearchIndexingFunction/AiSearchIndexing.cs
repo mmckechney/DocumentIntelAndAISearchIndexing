@@ -16,15 +16,17 @@ namespace AiSearchIndexingFunction
    {
       private readonly ILogger<AiSearchIndexing> log;
       private readonly SemanticUtility semanticUtility;
-      public AiSearchIndexing(ILogger<AiSearchIndexing> logger, SemanticUtility semanticUtility)
+      private StorageHelper storageHelper;
+      public AiSearchIndexing(ILogger<AiSearchIndexing> logger, SemanticUtility semanticUtility, StorageHelper storageHelper)
       {
          log = logger;
          this.semanticUtility = semanticUtility;
+         this.storageHelper = storageHelper;
 
       }
 
       [Function("AiSearchIndexing")]
-      public async Task Run([ServiceBusTrigger("toindexqueue", Connection = "SERVICE_BUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task Run([ServiceBusTrigger("%SERVICE_BUS_TOINDEX_QUEUE_NAME%", Connection = "SERVICE_BUS_CONNECTION")] ServiceBusReceivedMessage message)
       {
          try
          {
@@ -51,7 +53,7 @@ namespace AiSearchIndexingFunction
       public async Task<bool> ProcessMessage(FileQueueMessage fileMessage)
       {
 
-         var contents = await GetFileContents(fileMessage);
+         var contents = await storageHelper.GetFileContents(Settings.ProcessResultsContainerName, fileMessage.FileName);
          if (string.IsNullOrEmpty(contents))
          {
             log.LogError($"No content found in file {fileMessage.FileName}.");
@@ -62,24 +64,11 @@ namespace AiSearchIndexingFunction
 
          var chunked = TextChunker.SplitPlainTextParagraphs(contentLines, semanticUtility.EmbeddingMaxTokens);
 
-         await semanticUtility.StoreMemoryAsync(Path.GetFileNameWithoutExtension(fileMessage.FileName), contentLines);
+         await semanticUtility.StoreMemoryAsync(Path.GetFileNameWithoutExtension(fileMessage.FileName),fileMessage.CustomIndexFieldValues, contentLines);
 
          return true;
 
       }
-
-      public async Task<string> GetFileContents(FileQueueMessage fileMessage)
-      {
-
-         var blobClient = Settings.ProcessResultsContainerClient.GetBlobClient(fileMessage.FileName);
-         using (var stream = await blobClient.OpenReadAsync())
-         using (var reader = new StreamReader(stream))
-         {
-            string contents = await reader.ReadToEndAsync();
-            return contents;
-         }
-      }
-
 
       private Dictionary<string, string> SplitDocumentIntoPagesAndParagraphs(AnalyzeResult result, string fileName)
       {

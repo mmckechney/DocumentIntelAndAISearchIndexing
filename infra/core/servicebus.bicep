@@ -1,8 +1,9 @@
 
 param serviceBusNs string
-param formQueueName string
+param docQueueName string
 param processedQueueName string
 param toIndexQueueName string
+param customFieldQueueName string
 param location string = resourceGroup().location
 param keyVaultName string
 param serviceBusSku string = 'Standard' 
@@ -25,8 +26,8 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
 
 }
 
-resource serviceBusFormQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-  name: formQueueName
+resource serviceBusDocQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: docQueueName
   parent: serviceBusNamespace
   properties: {
     enablePartitioning: enablePartitioning
@@ -51,6 +52,15 @@ resource serviceBusToIndexQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-
     maxSizeInMegabytes: 4096
   }
 }
+resource serviceBusCustomFieldQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: customFieldQueueName
+  parent: serviceBusNamespace
+  properties: {
+    enablePartitioning: enablePartitioning
+    maxSizeInMegabytes: 4096
+  }
+}
+
 
 resource serviceBusAuthorizationRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-10-01-preview' = {
   name: 'FormProcessFuncRule'

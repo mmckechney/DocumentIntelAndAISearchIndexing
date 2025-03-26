@@ -33,6 +33,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AiSearchIndexingFunction", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentQuestionsFunction", "DocumentQuestionsFunction\DocumentQuestionsFunction.csproj", "{59F1ED21-97D2-45C2-9C08-90D247B9078B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomFieldExtractionFunction", "CustomFieldExtractionFunction\CustomFieldExtractionFunction.csproj", "{EBF14E70-995B-84F6-1994-31808CEC229D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,10 @@ Global
 		{59F1ED21-97D2-45C2-9C08-90D247B9078B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59F1ED21-97D2-45C2-9C08-90D247B9078B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59F1ED21-97D2-45C2-9C08-90D247B9078B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

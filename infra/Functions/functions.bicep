@@ -2,6 +2,7 @@ param funcAppPlan string
 param location string = resourceGroup().location
 param processFunctionName string
 param aiSearchIndexFunctionName string
+param customFieldFunctionName string
 param functionSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
@@ -10,7 +11,8 @@ param serviceBusNs string
 param formStorageAcctName string
 param moveFunctionName string
 param queueFunctionName string
-param formQueueName string
+param customFieldQueueName string
+param docQueueName string
 param toIndexQueueName string
 param openAiEmbeddingModel string
 param aiSearchEndpoint string
@@ -55,6 +57,33 @@ module processFunction 'function-process.bicep' = {
     managedIdentityId: managedIdentityId
     appInsightsName: appInsightsName
     funcAppPlan: funcAppPlan
+    customFieldQueueName: customFieldQueueName
+    docQueueName: docQueueName
+  }
+  dependsOn: [
+    functionAppPlan
+    appInsights
+  ]
+}
+
+
+module customFieldFunction 'function-customfield.bicep' = {
+  name: processFunctionName
+  params: {
+    location: location
+    customFieldFunctionName: customFieldFunctionName
+    functionSubnetId: functionSubnetId
+    functionStorageAcctName: functionStorageAcctName
+    keyVaultUri: keyVaultUri
+    customFieldQueueName: customFieldQueueName
+    serviceBusNs: serviceBusNs
+    formStorageAcctName: formStorageAcctName
+    documentStorageContainer: documentStorageContainer
+    processResultsContainer: processResultsContainer
+    completedContainer: completedContainer
+    managedIdentityId: managedIdentityId
+    appInsightsName: appInsightsName
+    funcAppPlan: funcAppPlan
     toIndexQueueName: toIndexQueueName
   }
   dependsOn: [
@@ -62,6 +91,7 @@ module processFunction 'function-process.bicep' = {
     appInsights
   ]
 }
+
 module aiSearchFunction 'function-aisearch.bicep' = {
   name: aiSearchIndexFunctionName
   params: {
@@ -126,7 +156,7 @@ module queueFunction 'functions-queueing.bicep' = {
     functionStorageAcctName: functionStorageAcctName
     functionSubnetId: functionSubnetId
     documentStorageContainer: documentStorageContainer
-    formQueueName: formQueueName
+    docQueueName: docQueueName
     serviceBusNs: serviceBusNs
   }
   dependsOn: [

@@ -69,6 +69,7 @@ var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
 var apimsubnet = '${abbrs.virtualNetworkSubnet}${appName}-apim-${location}'
 var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
 
+var funcCustomField = '${abbrs.functionApp}${appName}-CustomField-${location}'
 var funcProcess = '${abbrs.functionApp}${appName}-Intelligence-${location}'
 var funcMove = '${abbrs.functionApp}${appName}-Mover-${location}'
 var funcQueue = '${abbrs.functionApp}${appName}-Queueing-${location}'
@@ -87,7 +88,8 @@ var documentStorageContainer = 'documents'
 var processResultsContainer = 'processresults'
 var completedContainer = 'completed'
 
-var formQueueName = 'docqueue'
+var customFieldQueueName = 'customfieldqueue'
+var docQueueName = 'docqueue'
 var processedQueueName = 'processedqueue'
 var toIndexQueueName = 'toindexqueue'
 
@@ -188,9 +190,10 @@ module servicebus 'core/servicebus.bicep' = {
 	params: {
 		serviceBusNs: serviceBusNs
 		location: location
-		formQueueName: formQueueName
+		docQueueName: docQueueName
 		processedQueueName: processedQueueName
 		toIndexQueueName: toIndexQueueName
+		customFieldQueueName: customFieldQueueName
 		keyVaultName: keyvaultName
 		subnetName: funcsubnet
 		vnetName: vnet
@@ -220,6 +223,8 @@ module functions 'functions/functions.bicep' = {
 	params: {
 		funcAppPlan: funcAppPlan
 		processFunctionName: funcProcess
+		customFieldQueueName: customFieldQueueName
+		customFieldFunctionName : funcCustomField
 		moveFunctionName: funcMove
 		queueFunctionName: funcQueue
 		formStorageAcctName: formStorageAcct
@@ -229,7 +234,7 @@ module functions 'functions/functions.bicep' = {
 		functionSubnetId: networking.outputs.functionSubnetId
 		keyVaultUri: keyvault.outputs.keyVaultUri
 		location: location
-		formQueueName: formQueueName
+		docQueueName: docQueueName
 		completedContainer: completedContainer
 		documentStorageContainer: documentStorageContainer
 		processResultsContainer: processResultsContainer

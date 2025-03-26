@@ -13,14 +13,16 @@ namespace ProcessedFileMover
    public class FileMover
    {
       private readonly ILogger<FileMover> logger;
+      private StorageHelper storageHelper;
 
-      public FileMover(ILogger<FileMover> logger)
+      public FileMover(ILogger<FileMover> logger, StorageHelper storageHelper)
       {
          this.logger = logger;
+         this.storageHelper = storageHelper;
       }
 
       [Function("FileMover")]
-      public async Task Run([ServiceBusTrigger("processedqueue", Connection = "SERVICE_BUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task Run([ServiceBusTrigger("%SERVICE_BUS_PROCESSED_QUEUE_NAME%", Connection = "SERVICE_BUS_CONNECTION")] ServiceBusReceivedMessage message)
       {
          var filemessage = message.As<FileQueueMessage>();
          logger.LogInformation($"Moving processed file {filemessage.FileName} to {Settings.ProcessResultsContainerName} container");
@@ -40,8 +42,8 @@ namespace ProcessedFileMover
       {
          try
          {
-            var sourceBlob = Settings.SourceContainerClient.GetBlobClient(sourceFileName);
-            var destBlob = Settings.CompletedContainerClient.GetBlobClient(sourceFileName);
+            var sourceBlob = storageHelper.GetBlobClient(Settings.SourceContainerName, sourceFileName); 
+            var destBlob = storageHelper.GetBlobClient(Settings.CompletedContainerName, sourceFileName); 
 
             var operation = await destBlob.StartCopyFromUriAsync(sourceBlob.Uri);
             operation.WaitForCompletion();
@@ -62,7 +64,8 @@ namespace ProcessedFileMover
       public async Task<bool> CleanupFolder()
       {
          List<string> lstBlobsToMove = new List<string>();
-         var blobList = Settings.SourceContainerClient.GetBlobsAsync(BlobTraits.Metadata);
+        
+         var blobList = storageHelper.GetContainerClient(Settings.SourceContainerName).GetBlobsAsync(BlobTraits.Metadata);
          await foreach (var blob in blobList)
          {
             if (blob.Metadata.ContainsKey("Processed"))

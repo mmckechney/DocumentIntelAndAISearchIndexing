@@ -1,4 +1,6 @@
-﻿using AzureUtilities;
+﻿using Azure;
+using Azure.AI.FormRecognizer.DocumentAnalysis;
+using AzureUtilities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -6,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace ProcessedFileMover
+namespace CustomFieldExtractionFunction
 {
    internal class Startup
    {
@@ -35,6 +37,7 @@ namespace ProcessedFileMover
               .Build();
 
          });
+         // builder.AddAzureStorage();
 
          builder.ConfigureServices(ConfigureServices);
 
@@ -45,10 +48,10 @@ namespace ProcessedFileMover
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
          services.AddSingleton<SemanticUtility>();
+         services.AddSingleton<Helper>();
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
          services.AddHttpClient();
-         services.AddApplicationInsightsTelemetryWorkerService();
 
       }
 

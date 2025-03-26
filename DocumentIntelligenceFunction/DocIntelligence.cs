@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,18 +23,20 @@ namespace DocumentIntelligenceFunction
    public class DocIntelligence
    {
       private readonly ILogger<DocIntelligence> log;
+      private StorageHelper storageHelper;
+      private ServiceBusHelper serviceBusHelper;
+      private List<DocAnalysisModel> intelClients = Settings.DocumentIntelligenceClients;
 
-      public DocIntelligence(ILogger<DocIntelligence> logger)
+      public DocIntelligence(ILogger<DocIntelligence> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper)
       {
-         log = logger;
+         this.log = logger;
+         this.storageHelper = storageHelper;
+         this.serviceBusHelper = serviceBusHelper;
       }
-      private ServiceBusSender serviceBusProcessedSender = Settings.ServiceBusProcessedSenderClient;
-      private ServiceBusSender serviceBusToIndexSender = Settings.ServiceBusToIndexSenderClient;
-      private List<DocAnalysisModel> formRecogClients = Settings.DocumentIntelligenceClients;
-      private BlobContainerClient processResultsContainerClient = Settings.ProcessResultsContainerClient;
-      private BlobContainerClient sourceContainerClient = Settings.SourceContainerClient;
+
+     
       [Function("DocIntelligence")]
-      public async Task Run([ServiceBusTrigger("docqueue", Connection = "SERVICE_BUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task Run([ServiceBusTrigger("%SERVICE_BUS_DOC_QUEUE_NAME%", Connection = "SERVICE_BUS_CONNECTION")] ServiceBusReceivedMessage message)
       {
          try
          {
@@ -107,7 +110,7 @@ namespace DocumentIntelligenceFunction
       {
          try
          {
-            var sourceBlob = Settings.SourceContainerClient.GetBlobClient(sourceFile);
+            var sourceBlob = storageHelper.GetBlobClient(Settings.SourceContainerName, sourceFile); // Settings.SourceContainerClient.GetBlobClient(sourceFile);
             return sourceBlob.Uri;
          }
          catch (Exception exe)
@@ -120,17 +123,17 @@ namespace DocumentIntelligenceFunction
       {
          try
          {
-            int clientCount = formRecogClients.Count;
+            int clientCount = intelClients.Count;
             if (index < clientCount)
             {
-               return formRecogClients.Where(i => i.Index == index).First();
+               return intelClients.Where(i => i.Index == index).First();
             }
             else
             {
                int mod = index % clientCount;
                if (mod < clientCount)
                {
-                  return formRecogClients.Where(i => i.Index == mod).First();
+                  return intelClients.Where(i => i.Index == mod).First();
                }
                else
                {
@@ -150,7 +153,7 @@ namespace DocumentIntelligenceFunction
          CancellationTokenSource source = new CancellationTokenSource();
          try
          {
-            var formRecogClient = GetDocIntelligenceClient(index);
+            var intelClient = GetDocIntelligenceClient(index);
 
 
             //Retry policy to back off if too many calls are made to the Document Intelligence
@@ -161,15 +164,15 @@ namespace DocumentIntelligenceFunction
 
             var pollyResult = await retryPolicy.ExecuteAndCaptureAsync(async token =>
             {
-               operation1 = await formRecogClient.DocumentIntelligenceClient.AnalyzeDocumentAsync(WaitUntil.Completed, Settings.DocumentProcessingModel, fileUri);
+               operation1 = await intelClient.DocumentIntelligenceClient.AnalyzeDocumentAsync(waitUntil: WaitUntil.Completed, modelId: Settings.DocumentProcessingModel, uriSource: fileUri);
             }, source.Token);
 
 
             if (pollyResult.Outcome == OutcomeType.Failure)
             {
                log.LogError($"Policy retries failed for {fileUri}.");
-               log.LogError($"Document Intelligence Endpoint Used: {formRecogClient.Endpoint}");
-               log.LogError($"Obfuscated Key: {formRecogClient.Key}");
+               log.LogError($"Document Intelligence Endpoint Used: {intelClient.Endpoint}");
+               log.LogError($"Obfuscated Key: {intelClient.Key}");
                log.LogError($"Document Model: {Settings.DocumentProcessingModel}");
                log.LogError($"Resulting exception: {pollyResult.FinalException}");
                return null;
@@ -228,11 +231,7 @@ namespace DocumentIntelligenceFunction
 
             //string reultsJson = JsonSerializer.Serialize(results, new JsonSerializerOptions() { WriteIndented = true });
             processedResultFileName = $"{Path.GetFileNameWithoutExtension(sourceFileName)}.txt";
-            Response<BlobContentInfo> resp;
-            using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(results.Content)))
-            {
-               resp = await processResultsContainerClient.UploadBlobAsync(processedResultFileName, ms);
-            }
+            Response<BlobContentInfo> resp = await storageHelper.UploadBlobAsync(Settings.ProcessResultsContainerName, processedResultFileName, results.Content);
             if (resp.GetRawResponse().Status >= 300)
             {
                log.LogError($"Error saving recognition results: {resp.GetRawResponse().ReasonPhrase}");
@@ -266,7 +265,7 @@ namespace DocumentIntelligenceFunction
       {
          try
          {
-            var sourceBlob = sourceContainerClient.GetBlobClient(sourceFileName);
+            var sourceBlob = storageHelper.GetBlobClient(Settings.SourceContainerName, sourceFileName); 
 
             var tags = new Dictionary<string, string>();
             tags.Add("Processed", "true");
@@ -287,10 +286,12 @@ namespace DocumentIntelligenceFunction
          try
          {
             var sbMessage = new FileQueueMessage() { FileName = sourceFileName, ContainerName = Settings.SourceContainerName }.AsMessage();
-            await serviceBusProcessedSender.SendMessageAsync(sbMessage);
+            await serviceBusHelper.SendMessageAsync(Settings.ProcessedQueueName, sbMessage);
+
 
             sbMessage = new FileQueueMessage() { FileName = processResultsFile, ContainerName = Settings.ProcessResultsContainerName }.AsMessage();
-            await serviceBusToIndexSender.SendMessageAsync(sbMessage);
+            await serviceBusHelper.SendMessageAsync(Settings.CustomFieldQueueName, sbMessage);
+
 
             return true;
 

@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace DocumentQuestionsFunction
+namespace CustomFieldExtractionFunction
 {
    public class Helper
    {
@@ -17,7 +17,7 @@ namespace DocumentQuestionsFunction
          this.config = config;
       }
 
-      public async Task<(string filename, string question, string customField)> GetFilenameAndQuery(HttpRequestData req)
+      public async Task<(string filename, string question)> GetFilenameAndQuery(HttpRequestData req)
       {
          string filename = req.Query["filename"];
          string question = req.Query["question"];
@@ -41,9 +41,8 @@ namespace DocumentQuestionsFunction
 
          log.LogInformation("filename = " + filename);
          log.LogInformation("question = " + question);
-         log.LogInformation("customfield = " + customField);
 
-         return (filename, question, customField);
+         return (filename, question);
       }
 
    }

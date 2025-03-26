@@ -5,7 +5,7 @@ param functionStorageAcctName string
 param serviceBusNs string
 param formStorageAcctName string
 param queueFunctionName string
-param formQueueName string
+param docQueueName string
 param managedIdentityId string
 
 param documentStorageContainer string
@@ -63,8 +63,8 @@ resource queueingFunction 'Microsoft.Web/sites@2021-01-01' = {
           value: serviceBusNs
         }
         {
-          name: configKeys.SERVICE_BUS_QUEUE_NAME
-          value: formQueueName
+          name: configKeys.SERVICE_BUS_DOC_QUEUE_NAME
+          value: docQueueName
         }
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'

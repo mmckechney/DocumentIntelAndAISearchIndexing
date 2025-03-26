@@ -113,6 +113,7 @@ else {
 	
 	$resourceGroupName ="rg-$appName-$location"
 	$funcProcess = "func-$appName-Intelligence-$location"
+	$funcCustomField = "func-$appName-CustomField-$location"
 	$funcMove = "func-$appName-Mover-$location"
 	$funcQueue = "func-$appName-Queueing-$location"
 	$funcAiSearch = "func-$appName-AiSearch-$location"
@@ -166,6 +167,22 @@ az resource update --resource-group $resourceGroupName --name scm --namespace Mi
 az webapp deploy --name $funcProcess --resource-group $resourceGroupName --src-path $zip --type zip
 az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=false
 az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=false
+Pop-Location
+
+if(!$?){ exit }
+
+Write-Host "Deploying Custom Field Extraction Function App" -ForegroundColor DarkCyan
+Push-Location -Path CustomFieldExtractionFunction
+#dotnet clean .
+dotnet publish .
+$source = Join-Path -Path $pwd.Path -ChildPath $childPath
+if(Test-Path $zip) { Remove-Item $zip }
+[io.compression.zipfile]::CreateFromDirectory($source,$zip)
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=true
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=true
+az webapp deploy --name $funcCustomField --resource-group $resourceGroupName --src-path $zip --type zip
+az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=false
+az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=false
 Pop-Location
 
 if(!$?){ exit }

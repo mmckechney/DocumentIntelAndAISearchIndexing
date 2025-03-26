@@ -6,7 +6,6 @@ namespace AzureUtilities
    {
       public int Index { get; set; }
       public DocumentIntelligenceClient DocumentIntelligenceClient { get; set; }
-      //  public DocumentAnalysisClient DocumentAnalysisClient { get; set; }
       public string Endpoint { get; set; } = string.Empty;
       private string _key = string.Empty;
       public string Key

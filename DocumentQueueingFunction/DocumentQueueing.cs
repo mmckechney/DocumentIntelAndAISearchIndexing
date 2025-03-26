@@ -16,10 +16,14 @@ namespace DocumentQueueingFunction
    public class FormQueue
    {
       private readonly ILogger<FormQueue> logger;
+      private StorageHelper storageHelper;
+      private ServiceBusHelper serviceBusHelper;
 
-      public FormQueue(ILogger<FormQueue> logger)
+      public FormQueue(ILogger<FormQueue> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper)
       {
          this.logger = logger;
+         this.storageHelper = storageHelper;
+         this.serviceBusHelper = serviceBusHelper;
       }
 
       [Function("DocumentQueueing")]
@@ -43,8 +47,8 @@ namespace DocumentQueueingFunction
             BlobContainerClient containerClient;
             ServiceBusSender sbSender;
 
-            containerClient = Settings.SourceContainerClient;
-            sbSender = Settings.ServiceBusSenderClient;
+            containerClient = storageHelper.GetContainerClient(Settings.SourceContainerName);
+            sbSender = serviceBusHelper.GetServiceBusSender(Settings.DocumentQueueName);
             logger.LogInformation($"Using storage container '{containerClient.Name}' as files source.");
             logger.LogInformation($"Sending messages to Service Bus Queue '{sbSender.EntityPath}'");
 

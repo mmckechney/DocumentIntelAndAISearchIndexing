@@ -10,6 +10,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Reflection;
 using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
+using System.Collections;
+using AzureUtilities.Models;
+using Azure.Search.Documents.Indexes;
 namespace AzureUtilities
 {
 #pragma warning disable SKEXP0052 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -77,7 +80,7 @@ namespace AzureUtilities
 
          //Build and configure Memory Store
          IMemoryStore store = new AzureAISearchMemoryStore(aISearchEndpoint, aISearchAdminKey);
-
+         
          client = new HttpClient();
          client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apimSubscriptionKey);
 
@@ -87,7 +90,6 @@ namespace AzureUtilities
              .WithLoggerFactory(logFactory);
 
          semanticMemory = memBuilder.Build();
-
 
          //Build and configure the kernel
          var kernelBuilder = Kernel.CreateBuilder();
@@ -115,8 +117,10 @@ namespace AzureUtilities
          initCalled = true;
 
       }
-      public async Task StoreMemoryAsync(string collectionName, Dictionary<string, string> docFile)
+      public async Task StoreMemoryAsync(string collectionName, List<string> customFields, Dictionary<string, string> docFile)
       {
+         var metadata = $"CustomField={string.Join(", ", customFields.ToArray())}"; 
+
          if (!initCalled) InitMemoryAndKernel();
          log.LogInformation($"Storing memory to AI Search collection '{collectionName}'...");
          var i = 0;
@@ -127,29 +131,31 @@ namespace AzureUtilities
                 externalSourceName: "BlobStorage",
                 externalId: entry.Key,
                 description: entry.Value,
+                additionalMetadata: metadata,
                 text: entry.Value);
 
             log.LogDebug($" #{++i} saved to {collectionName}.");
          }
       }
-      public async Task StoreMemoryAsync(string collectionName, List<string> paragraphs)
+      public async Task StoreMemoryAsync(string collectionName, List<string> customFields, List<string> paragraphs)
       {
          Dictionary<string, string> docFile = new();
          for (int i = 0; i < paragraphs.Count; i++)
          {
             docFile.Add($"{collectionName}_{i.ToString().PadLeft(4, '0')}", paragraphs[i]);
          }
-         await StoreMemoryAsync(collectionName, docFile);
+        // await StoreMemoryAsync(collectionName, customFields, docFile);
 
          if (includeGeneralIndex)
          {
-            await StoreMemoryAsync("general", docFile);
+            await StoreMemoryAsync("general", customFields, docFile);
          }
       }
-      public async Task<IAsyncEnumerable<MemoryQueryResult>> SearchMemoryAsync(string collectionName, string query)
+      public async Task<IAsyncEnumerable<MemoryQueryResult>> SearchMemoryAsync(string collectionName, string customField, string query)
       {
          if (!initCalled) InitMemoryAndKernel();
          log.LogDebug("\nQuery: " + query + "\n");
+
          var memoryResults = semanticMemory.SearchAsync(collectionName, query, limit: 30, minRelevanceScore: 0.5, withEmbeddings: true);
          int i = 0;
          await foreach (MemoryQueryResult memoryResult in memoryResults)
@@ -183,6 +189,33 @@ namespace AzureUtilities
             yield return item.ToString();
          }
       }
+
+      public async Task<CustomFields?> ExtractCustomField(string documentContent)
+      {
+         CustomFields? customFieldsObj = new();
+         if (!initCalled) InitMemoryAndKernel();
+         log.LogDebug("Extracting custom fields from document...");
+         var result = await kernel.InvokeAsync("YAMLPlugins", "ExtractCustomFields", new() { { "content", documentContent } });
+         var customFieldsString = result.GetValue<string>();
+         try
+         {
+            customFieldsObj = System.Text.Json.JsonSerializer.Deserialize<CustomFields>(customFieldsString);
+            if (customFieldsObj != null)
+            {
+               foreach (var field in customFieldsObj)
+               {
+                  log.LogDebug($"Field: {field}");
+               }
+            }
+         }
+         catch (Exception ex)
+         {
+            log.LogError($"Error deserializing custom fields: {ex.Message}");
+
+         }
+         return customFieldsObj;
+      }
+
 
 
    }
