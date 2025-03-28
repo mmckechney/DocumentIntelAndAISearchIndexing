@@ -15,7 +15,7 @@ param chatModelVersion string
 
 param embeddingMaxTokens int 
 
-param includeGeneralIndex bool = true
+param aiIndexName string
 
 param apiManagementPublisherEmail string
 param apiManagementPublisherName string
@@ -90,7 +90,7 @@ var completedContainer = 'completed'
 
 var customFieldQueueName = 'customfieldqueue'
 var docQueueName = 'docqueue'
-var processedQueueName = 'processedqueue'
+var moveQueueName = 'movequeue'
 var toIndexQueueName = 'toindexqueue'
 
 var openAiApiName = 'openai'
@@ -191,7 +191,7 @@ module servicebus 'core/servicebus.bicep' = {
 		serviceBusNs: serviceBusNs
 		location: location
 		docQueueName: docQueueName
-		processedQueueName: processedQueueName
+		moveQueueName: moveQueueName
 		toIndexQueueName: toIndexQueueName
 		customFieldQueueName: customFieldQueueName
 		keyVaultName: keyvaultName
@@ -229,7 +229,7 @@ module functions 'functions/functions.bicep' = {
 		queueFunctionName: funcQueue
 		formStorageAcctName: formStorageAcct
 		functionStorageAcctName: funcStorageAcct
-		processedQueueName: processedQueueName
+		moveQueueName: moveQueueName
 		serviceBusNs: serviceBusNs
 		functionSubnetId: networking.outputs.functionSubnetId
 		keyVaultUri: keyvault.outputs.keyVaultUri
@@ -243,7 +243,7 @@ module functions 'functions/functions.bicep' = {
 		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
 		openAiEmbeddingModel: azureOpenAIEmbeddingModel
 		appInsightsName: appInsightsName
-		includeGeneralIndex: includeGeneralIndex
+		aiIndexName: aiIndexName
 		managedIdentityId: managedIdentity.outputs.id
 		azureOpenAiEmbeddingMaxTokens: embeddingMaxTokens
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
@@ -318,13 +318,13 @@ module apiManagement 'apim/api-management.bicep' = {
 
 module openAI 'openai/openai.bicep' = [
   for openAIInstance in openAIInstances: {
-    name: !empty(openAIInstance.name)
+    name: !empty(openAIInstance.?name)
       ? openAIInstance.name!
       : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
     scope: rg
     params: {
 			managedIdentityId: managedIdentity.outputs.id
-      name: !empty(openAIInstance.name)
+      name: !empty(openAIInstance.?name)
         ? openAIInstance.name!
         : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
       location: openAIInstance.location
@@ -338,7 +338,7 @@ module openAI 'openai/openai.bicep' = [
           }
           sku: {
             name: 'Standard'
-            capacity: 1
+            capacity: 49
           }
         }
         {
@@ -350,7 +350,7 @@ module openAI 'openai/openai.bicep' = [
           }
           sku: {
             name: 'Standard'
-            capacity: 1
+            capacity: 100
           }
         }
       ]
@@ -492,6 +492,7 @@ output moveFunctionName string = funcMove
 output queueFunctionName string = funcQueue	
 output aiSearchIndexFunctionName string = aiSearchIndexFunctionName
 output questionsFunctionName string = askQuestionsFunctionName
+output customFieldFunctionName string = funcCustomField
 
 
 output openAINames array = [for i in range(0, length(openAIInstances)): openAI[i].outputs.name]

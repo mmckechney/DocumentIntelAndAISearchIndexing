@@ -4,23 +4,20 @@ param processFunctionName string
 param functionSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
-param processedQueueName string
 param docQueueName string
 param customFieldQueueName string
 param serviceBusNs string
 param formStorageAcctName string
 param managedIdentityId string
-
 param documentStorageContainer string
 param processResultsContainer string
-param completedContainer string
 param appInsightsName string
 
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
-var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICE_BUS_CONNECTION}/)'
+var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
 var frEndpointKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_ENDPOINT}/)'
 var frKeyKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_KEY}/)'
 
@@ -60,22 +57,18 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
         {
-          name: configKeys.DOCUMENT_SOURCE_CONTAINER_NAME
+          name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer
         }
         {
-          name: configKeys.DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME
+          name: configKeys.STORAGE_PROCESS_RESULTS_CONTAINER_NAME
           value: processResultsContainer
         }
         {
-          name: configKeys.DOCUMENT_COMPLETED_CONTAINER_NAME
-          value: completedContainer
-        }
-        {
-          name: configKeys.DOCUMENT_STORAGE_ACCOUNT_NAME
+          name: configKeys.STORAGE_ACCOUNT_NAME
           value: formStorageAcctName
         }
         {
@@ -91,23 +84,19 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
           value: frKeyKvReference
         }
         {
-          name: configKeys.SERVICE_BUS_CONNECTION
+          name: configKeys.SERVICEBUS_CONNECTION
           value: sbConnKvReference
         }
         {
-          name: configKeys.SERVICE_BUS_PROCESSED_QUEUE_NAME
-          value: processedQueueName
-        }
-        {
-          name: configKeys.SERVICE_BUS_CUSTOMFIELD_QUEUE_NAME
+          name: configKeys.SERVICEBUS_CUSTOMFIELD_QUEUE_NAME
           value: customFieldQueueName
         }
         {
-          name: configKeys.SERVICE_BUS_DOC_QUEUE_NAME
+          name: configKeys.SERVICEBUS_DOC_QUEUE_NAME
           value: docQueueName 
         }
         {
-          name: configKeys.SERVICE_BUS_NAMESPACE_NAME
+          name: configKeys.SERVICEBUS_NAMESPACE_NAME
           value: serviceBusNs
         }
         {

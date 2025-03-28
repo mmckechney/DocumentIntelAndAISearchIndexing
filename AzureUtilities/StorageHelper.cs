@@ -1,19 +1,20 @@
 ﻿using Azure;
-using Azure.Security.KeyVault.Secrets;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Logging;
 using System.Text;
-namespace AzureUtilities
+namespace HighVolumeProcessing.UtilityLibrary
 {
    public class StorageHelper
    {
       private readonly ILogger<StorageHelper> logger;
       private Dictionary<string, BlobContainerClient> blobClients = new();
       private BlobServiceClient serviceClient = null;
-      public StorageHelper(ILogger<StorageHelper> logger)
+      Settings settings;
+      public StorageHelper(ILogger<StorageHelper> logger,Settings settings)
       {
          this.logger = logger;
+         this.settings = settings;
 
       }
 
@@ -45,24 +46,42 @@ namespace AzureUtilities
             return contents;
          }
       }
+
+      private object lockObject = new object();
       public BlobContainerClient GetContainerClient(string containerName)
       {
-         var key = $"{containerName}-{Settings.StorageAccountName}";
-         if (blobClients.ContainsKey(key))
+         lock (lockObject)
          {
-            return blobClients[key];
-         }
-         else
-         {
-            if(serviceClient == null)
+            var key = $"{containerName}-{settings.StorageAccountName}";
+            if (blobClients.ContainsKey(key))
             {
-               serviceClient = CreateStorageClient(Settings.StorageAccountName);
+               return blobClients[key];
             }
+            else
+            {
 
-            var client = CreateBlobContainerClient(containerName, serviceClient);
-            blobClients.Add(key, client);
-            return client;
+
+               if (serviceClient == null)
+               {
+                  serviceClient = CreateStorageClient(settings.StorageAccountName);
+               }
+
+               var client = CreateBlobContainerClient(containerName, serviceClient);
+               try
+               {
+
+                  blobClients.Add(key, client);
+               }
+
+               catch (Exception exe)
+               {
+                  logger.LogError($"Error adding client '{key}' to BlobClient collection: {exe.Message}.{Environment.NewLine}{string.Join(",", blobClients?.Select(c => c.Key).ToArray())}");
+               }
+               return client;
+
+            }
          }
+         
       }
 
       private BlobServiceClient CreateStorageClient(string storageAccountName)
@@ -76,25 +95,6 @@ namespace AzureUtilities
          var container = serviceClient.GetBlobContainerClient(containerName);
          return container;
       }
-      //private BlobContainerClient CreateBlobContainerClient(string containerName, string storageAccountName)
-      //{
-      //   var serviceClient = new BlobServiceClient(new Uri($"https://{storageAccountName}.blob.core.windows.net"), AadHelper.TokenCredential);
-      //   return CreateBlobContainerClient(containerName, serviceClient);
-      //}
-
-      //public async Task<string> GetStorageConnectionString(string keyVaultName, string storageAcctName)
-      //{
-      //   CancellationTokenSource src = new CancellationTokenSource();
-
-      //   SecretClient secretClient = new SecretClient(new Uri($"https://{keyVaultName}.vault.azure.net"), AadHelper.TokenCredential);
-      //   var secret = await secretClient.GetSecretAsync("STORAGE-KEY");
-      //   var key = secret.Value.Value;
-      //   var connectionStr = $"DefaultEndpointsProtocol=https;AccountName={storageAcctName};AccountKey={key};EndpointSuffix=core.windows.net";
-      //   return connectionStr;
-
-
-      //}
-
 
    }
 }

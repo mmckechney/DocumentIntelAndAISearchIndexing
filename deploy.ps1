@@ -5,6 +5,17 @@ param
     [string] $appName,
 	[Parameter(Mandatory=$true)]
 	[string] $location,
+	[Parameter(Mandatory=$true)]
+	[ValidateRange(1, 10)]
+	[int] $docIntelligenceInstanceCount = 1,
+	[Parameter(Mandatory=$true)]
+	[ValidateSet('round-robin', 'priority')]
+	[string] $loadBalancingType = 'priority',
+	[ValidateSet('Full', 'CodeOnly', 'SettingsOnly')]
+	[string] $deployAction = 'Full',
+	[string] $aiIndexName = 'general',
+	[ValidateSet('Basic', 'Standard', 'Premium')]
+	[string] $serviceBusSku = 'Standard',
 	[string] $azureOpenAiEmbeddingModel,
 	[string] $embeddingModelVersion,
 	[ValidateRange(1000, 8191)]
@@ -12,26 +23,7 @@ param
 	[string] $azureOpenAiChatModel,
 	[string] $chatModelVersion,
 	[string] $myPublicIp, 
-	[Parameter(Mandatory=$true)]
-	[ValidateRange(1, 10)]
-	[int] $docIntelligenceInstanceCount = 1,
-	[bool] $codeDeployOnly = $false,
-	[Parameter(Mandatory=$true)]
-	[ValidateSet('round-robin', 'priority')]
-	[string] $loadBalancingType = 'priority',
-	[ValidateSet('Basic', 'Standard', 'Premium')]
-	[string] $serviceBusSku = 'Standard',
-	[string] $deploymentName,
-	<#
-	.PARAMETER includeGeneralIndex
-	Include all indexed documents in an all-inclusive 'general' index.
-
-	.DESCRIPTION
-	Specifies whether to include all indexed documents in an all-inclusive 'general' index. 
-	If set to $true, all indexed documents will be included in the 'general' index and their named index. 
-	If set to $false, documents will be included in their own named index.
-	#>
-	[bool] $includeGeneralIndex = $true
+	[string] $deploymentName
 )
 
 
@@ -57,7 +49,7 @@ Write-Host "Current User Object Id: $currentUserObjectId" -ForegroundColor Green
 
 if(!$?){ exit }
 
-if($codeDeployOnly -eq $false)
+if($deployAction-eq "Full")
 {
 
 	if($loadBalancingType -eq "priority")
@@ -86,7 +78,7 @@ if($codeDeployOnly -eq $false)
 		myPublicIp=$myPublicIp `
 		docIntelligenceInstanceCount=$docIntelligenceInstanceCount `
 		currentUserObjectId=$currentUserObjectId  `
-		includeGeneralIndex=$includeGeneralIndex `
+		aiIndexName=$aiIndexName `
 		loadBalancingType=$loadBalancingType `
 		serviceBusSku=$serviceBusSku 
 
@@ -106,6 +98,7 @@ if($codeDeployOnly -eq $false)
 	$funcMove = $outputObj.properties.outputs.moveFunctionName.value
 	$funcQueue = $outputObj.properties.outputs.queueFunctionName.value
 	$funcQuestions = $outputObj.properties.outputs.questionsFunctionName.value
+	$funcCustomField = $outputObj.properties.outputs.customFieldFunctionName.value
 
 	if(!$?){ exit }
 }
@@ -124,6 +117,7 @@ if(!$?){ exit }
 Write-Host "Resource Group Name: $resourceGroupName" -ForegroundColor Green
 Write-Host "Queueing Function: $funcQueue" -ForegroundColor Green
 Write-Host "Doc Intel Processing Function: $funcProcess" -ForegroundColor Green
+Write-Host "Custom Field Extraction Function: $funcCustomField" -ForegroundColor Green
 Write-Host "AI Embedding and Search Function: $funcAiSearch" -ForegroundColor Green
 Write-Host "File Moving Function: $funcMove" -ForegroundColor Green
 
@@ -132,106 +126,101 @@ if(!$?){ exit }
 ## Code Deployment
 ###########################
 
+#create an array of object where each object has function name, path, and zip file name
 $scriptDir = Split-Path $script:MyInvocation.MyCommand.Path
-#dotnet clean -c release
-#dotnet clean -c debug
-$childPath = "bin/Release/net8.0/publish"
-$zip = $scriptDir + "build.zip"
+
+$functionApps = @(
+	@{ name = $funcQueue; projectPath = "DocumentQueueingFunction"; zipFile = "$($scriptDir)\DocumentQueueingFunction.zip"; localPort=7100 },
+	@{ name = $funcProcess; projectPath = "DocumentIntelligenceFunction"; zipFile = "$($scriptDir)\DocumentIntelligenceFunction.zip" ; localPort=7101},
+	@{ name = $funcCustomField; projectPath = "CustomFieldExtractionFunction"; zipFile = "$($scriptDir)\CustomFieldExtractionFunction.zip" ; localPort=7102},
+	@{ name = $funcAiSearch; projectPath = "AiSearchIndexingFunction"; zipFile = "$($scriptDir)\AiSearchIndexingFunction.zip"; localPort=7103 },
+	@{ name = $funcQuestions; projectPath = "DocumentQuestionsFunction"; zipFile = "$($scriptDir)\DocumentQuestionsFunction.zip" ; localPort=7104},
+	@{ name = $funcMove; projectPath = "ProcessedFileMover"; zipFile = "$($scriptDir)\ProcessedFileMover.zip" ; localPort=7105}
+	
+)
+
+if($deployAction -eq "Full" -or $deployAction -eq "CodeOnly")
+{
+	$functionApps | ForEach-Object {
+		$functionName = $_.name
+		$functionPath = $_.projectPath
+		$zipFileName = $_.zipFile
+
+		Write-Host ""
+		Write-Host "Building and Zipping publish package for $functionName Function App to $zipFileName" -ForegroundColor DarkCyan
+		Push-Location -Path $functionPath
+			dotnet publish .
+			$source = Join-Path -Path $pwd.Path -ChildPath "bin/Release/net8.0/publish"
+			if(Test-Path $zipFileName) { Remove-Item $zipFileName }
+			[io.compression.zipfile]::CreateFromDirectory($source,$zipFileName)
+		Pop-Location
+		if(!$?){ exit }
+	}
+
+	$functionApps | ForEach-Object {
+		$functionName = $_.name
+		$zipFileName = $_.zipFile
+
+		Write-Host ""
+		Write-Host "Updating publish policy to allow basic credentals for $functionName..." -ForegroundColor DarkCyan
+		$tmp = az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$functionName --set properties.allow=true
+		$tmp = az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$functionName --set properties.allow=true
+		
+		Write-Host "Deploying $functionName Function App from $zipFileName package" -ForegroundColor DarkCyan
+		az webapp deploy --name $functionName --resource-group $resourceGroupName --src-path $zipFileName --type zip
+		
+		Write-Host "Resetting publish policy for $functionName..." -ForegroundColor DarkCyan
+		$tmp = az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$functionName --set properties.allow=false
+		$tmp = az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$functionName --set properties.allow=false
+
+		if(!$?){ exit }
+	}
+
+}
 
 
-Write-Host "Deploying Ask Questions Function App" -ForegroundColor DarkCyan
-Push-Location -Path DocumentQuestionsFunction
-#dotnet clean .
-dotnet publish .
-$source = Join-Path -Path $pwd.Path -ChildPath $childPath
-if(Test-Path $zip) { Remove-Item $zip }
-[io.compression.zipfile]::CreateFromDirectory($source,$zip)
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=true
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=true
-az webapp deploy --name $funcQuestions --resource-group $resourceGroupName --src-path $zip --type zip
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=false
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQuestions --set properties.allow=false
-Pop-Location
+$functionApps | ForEach-Object {
+	$functionName = $_.name
+	$functionPath = $_.projectPath
+	$port = $_.localPort
 
-if(!$?){ exit }
 
-Write-Host "Deploying Document Intelligence Function App" -ForegroundColor DarkCyan
-Push-Location -Path DocumentIntelligenceFunction
-#dotnet clean .
-dotnet publish .
-$source = Join-Path -Path $pwd.Path -ChildPath $childPath
-if(Test-Path $zip) { Remove-Item $zip }
-[io.compression.zipfile]::CreateFromDirectory($source,$zip)
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=true
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=true
-az webapp deploy --name $funcProcess --resource-group $resourceGroupName --src-path $zip --type zip
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=false
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcProcess --set properties.allow=false
-Pop-Location
+	Write-Host ""
+	Write-Host "Creating local settings file for $functionPath folder" -ForegroundColor DarkCyan
+	Push-Location -Path $functionPath
+		$appSettings = az functionapp config appsettings list -n $functionName -g $resourceGroupName
+		$jsonObject = $appSettings | ConvertFrom-Json  
+	  
+		# Create a new object for the output format  
+		$outputObject = @{  
+			IsEncrypted = $false  
+			Values = @{} 
+			Host = @{  
+				"LocalHttpPort" = $port  
+			}
+			Logging = @{  
+				"LogLevel" = @{  
+					"Default" = "Debug"  
+					"Host" = "Debug"  
+				}  
+			}
 
-if(!$?){ exit }
+		}  
+	  
+		# Loop through each item in the JSON array and add it to the 'Values' dictionary  
+		foreach ($item in $jsonObject) {  
+			$outputObject.Values[$item.name] = $item.value  
+		}  
 
-Write-Host "Deploying Custom Field Extraction Function App" -ForegroundColor DarkCyan
-Push-Location -Path CustomFieldExtractionFunction
-#dotnet clean .
-dotnet publish .
-$source = Join-Path -Path $pwd.Path -ChildPath $childPath
-if(Test-Path $zip) { Remove-Item $zip }
-[io.compression.zipfile]::CreateFromDirectory($source,$zip)
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=true
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=true
-az webapp deploy --name $funcCustomField --resource-group $resourceGroupName --src-path $zip --type zip
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=false
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcCustomField --set properties.allow=false
-Pop-Location
-
-if(!$?){ exit }
-
-Write-Host "Deploying AI Search Indexing Function App" -ForegroundColor DarkCyan
-Push-Location -Path .\AiSearchIndexingFunction
-#dotnet clean .
-dotnet publish .
-$source = Join-Path -Path $pwd.Path -ChildPath $childPath
-$zip = $scriptDir + "build.zip"
-if(Test-Path $zip) { Remove-Item $zip }
-[io.compression.zipfile]::CreateFromDirectory($source,$zip)
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=true
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=true
-az webapp deploy --name $funcAiSearch --resource-group $resourceGroupName --src-path $zip --type zip
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=false
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcAiSearch --set properties.allow=false
-Pop-Location
-
-if(!$?){ exit }
-
-Write-Host "Deploying File Mover Function App" -ForegroundColor DarkCyan
-Push-Location -Path ProcessedFileMover
-#dotnet clean .
-dotnet publish .
-$source = Join-Path -Path $pwd.Path -ChildPath $childPath
-if(Test-Path $zip) { Remove-Item $zip }
-[io.compression.zipfile]::CreateFromDirectory($source,$zip)
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=true
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=true
-az webapp deploy --name $funcMove --resource-group $resourceGroupName --src-path $zip --type zip
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=false
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcMove --set properties.allow=false
-Pop-Location
-
-if(!$?){ exit }
-
-Write-Host "Deploying Document Queueing Function App" -ForegroundColor DarkCyan
-Push-Location -Path DocumentQueueingFunction
-#dotnet clean .
-dotnet publish .
-$source = Join-Path -Path $pwd.Path -ChildPath $childPath
-if(Test-Path $zip) { Remove-Item $zip }
-[io.compression.zipfile]::CreateFromDirectory($source,$zip)
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=true
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=true
-az webapp deploy --name $funcQueue --resource-group $resourceGroupName --src-path $zip --type zip
-az resource update --resource-group $resourceGroupName --name ftp --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=false
-az resource update --resource-group $resourceGroupName --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/$funcQueue --set properties.allow=false
-Pop-Location
-
+		# Convert the output object to JSON  
+		$jsonOutput = $outputObject | ConvertTo-Json -Depth 100  
+		
+		# Write the output JSON to a file  
+		$jsonOutputPath = 'local.settings.json'  
+		$jsonOutput | Set-Content -Path $jsonOutputPath  
+		
+		Write-Host "Local settings file created for $functionPath folder" -ForegroundColor DarkCyan
+	Pop-Location
+	if(!$?){ exit }
+}
 

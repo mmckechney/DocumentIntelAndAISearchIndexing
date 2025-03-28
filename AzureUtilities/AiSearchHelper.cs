@@ -1,18 +1,15 @@
-﻿using Azure.Search.Documents.Indexes;
-using Azure;
+﻿using Azure;
+using Azure.Search.Documents;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Indexes.Models;
+using Azure.Search.Documents.Models;
+using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using Azure.Search.Documents;
-using Azure.Search.Documents.Models;
-using Azure.Search.Documents.Indexes.Models;
-using AzureUtilities.Models;
 
-namespace AzureUtilities
+namespace HighVolumeProcessing.UtilityLibrary
 {
    public class AiSearchHelper
    {
@@ -20,37 +17,90 @@ namespace AzureUtilities
       SearchIndexClient client;
       ILogger<AiSearchHelper> log;
       IConfiguration config;
-      public AiSearchHelper(ILogger<AiSearchHelper> log, IConfiguration config)
+      SkHelper semanticUtility;
+      Settings settings;
+      public AiSearchHelper(ILogger<AiSearchHelper> log, IConfiguration config, SkHelper semanticUtility, Settings settings)
       {
          this.log = log;
          this.config = config;
-         var aISearchEndpoint = config["AZURE_AISEARCH_ENDPOINT"] ?? throw new ArgumentException("Missing AZURE_AISEARCH_ENDPOINT in configuration.");
-         var aISearchAdminKey = config["AZURE_AISEARCH_ADMIN_KEY"] ?? throw new ArgumentException("Missing AZURE_AISEARCH_ADMIN_KEY in configuration.");
+         this.semanticUtility = semanticUtility;
+         this.settings = settings;
+         var aISearchEndpoint = settings.AiSearchEndpoint ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_AISEARCH_ENDPOINT} in configuration.");
+         var aISearchAdminKey = settings.AiSearchAdminKey ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_AISEARCH_ADMIN_KEY} in configuration.");
 
 
          // Create a client
          AzureKeyCredential credential = new AzureKeyCredential(aISearchAdminKey);
          client = new SearchIndexClient(new Uri(aISearchEndpoint), credential);
-         CreateCustomFieldIndex();
+         CreateCustomFieldIndex().Wait();
 
       }
-      public async Task<List<string>> ListAvailableIndexes()
+      public async Task<List<string>> ListAvailableIndexes(bool quoted = true)
       {
          List<string> names = new();
          await foreach (var page in client.GetIndexNamesAsync())
          {
-            names.Add($"\"{page}\"");
+            if (quoted)
+            {
+               names.Add($"\"{page}\"");
+            }
+            else
+            {
+               names.Add($"{page}");
+            }
          }
          return names;
       }
 
-      public async Task<List<CustomFieldIndexModel>> SearchByCustomField(string customFieldValue, string query)
+      public async Task<bool> AddToIndexAsync(List<string> customFieldValues, List<string> chunkedText, string fileName)
       {
-         var searchClient = client.GetSearchClient("general");
+         var searchClient = client.GetSearchClient(settings.AiSearchIndexName);
+         var embeddings = await semanticUtility.GetEmbeddingAsync(chunkedText, fileName);
 
+         if (embeddings == null)
+         {
+            log.LogError($"Unable to add file contents from {fileName} to the AI Search index {settings.AiSearchIndexName}");
+            return false;
+         }
+         if (customFieldValues == null) customFieldValues = new List<string>();
 
-         string customFieldQuery = "CustomField/any(c: c eq 'desired_value')";
-         string textQuery = "text to match with cosine similarity";
+         var batch = IndexDocumentsBatch.Create(
+            IndexDocumentsAction.Upload(new CustomFieldIndexModel
+            {
+               Id = ComputeSha1Hash($"{fileName}{DateTime.Now.Ticks}"),
+               FileName = fileName,
+               Text = string.Join(Environment.NewLine, chunkedText),
+               CustomField = customFieldValues,
+               Embedding = embeddings
+
+            }));
+
+         try
+         {
+            await searchClient.IndexDocumentsAsync(batch);
+            return true;
+         }
+         catch (Exception ex)
+         {
+            log.LogError($"Failed to index document {fileName}: {ex.Message}");
+            return false;
+         }
+      }
+
+      public async Task<List<CustomFieldIndexModel>> SearchByCustomField(string fileName, string customFieldValue, string query)
+      {
+         string customFieldQuery = string.Empty;
+         var searchClient = client.GetSearchClient(settings.AiSearchIndexName);
+         if (!string.IsNullOrWhiteSpace(customFieldValue))
+         {
+            customFieldQuery = $"CustomField/any(c: c eq '{customFieldValue}')";
+         }
+
+         var andS = customFieldQuery.Length > 0 ? " and " : string.Empty;
+         if (!string.IsNullOrEmpty(fileName))
+         {
+            customFieldQuery += $"{andS} FileName eq '{fileName}'";
+         }
 
          // Create the search options  
          var options = new SearchOptions
@@ -61,31 +111,92 @@ namespace AzureUtilities
 
          List<CustomFieldIndexModel> values = new();
          // Perform the search  
-         SearchResults<CustomFieldIndexModel> response = await searchClient.SearchAsync<CustomFieldIndexModel>(textQuery, options);
+         SearchResults<CustomFieldIndexModel> response = await searchClient.SearchAsync<CustomFieldIndexModel>(query, options);
 
          // Process the results  
          await foreach (SearchResult<CustomFieldIndexModel> result in response.GetResultsAsync())
          {
             values.Add(result.Document);
             log.LogInformation($"Id: {result.Document.Id}");
+            log.LogInformation($"Id: {result.Document.FileName}");
             log.LogInformation($"Text: {result.Document.Text}");
             log.LogInformation($"Description: {result.Document.Description}");
          }
 
-
          return values;
+      }
+
+
+      private bool indexConfimed = false;
+      private async Task CreateCustomFieldIndex()
+      {
+         if (indexConfimed) return;
+
+         var indexes = await this.ListAvailableIndexes(false);
+         if (indexes.Contains(settings.AiSearchIndexName))
+         {
+            indexConfimed = true;
+            return;
+         }
+         var fields = new FieldBuilder().Build(typeof(CustomFieldIndexModel));
+         (var vectorSearchProfile, var algoConfig) = CreateVectorProfileAndAlgo();
+         SearchIndex index = new SearchIndex(settings.AiSearchIndexName)
+         {
+            Fields = fields,
+            VectorSearch = new VectorSearch()
+
+         };
+
+         index.VectorSearch.Profiles.Add(vectorSearchProfile);
+         index.VectorSearch.Algorithms.Add(algoConfig);
+
+         client.CreateIndex(index);
+         log.LogInformation($"Index {settings.AiSearchIndexName} created or updated successfully.");
+
+
 
       }
 
-      private void CreateCustomFieldIndex()
+      private (VectorSearchProfile, VectorSearchAlgorithmConfiguration) CreateVectorProfileAndAlgo()
       {
-         SearchIndex index = new SearchIndex("general")
+         var algoName = "searchAlgorithm";
+         var vectorSearchAlgorithmConfig = new HnswAlgorithmConfiguration(name: algoName)
          {
-            Fields = new FieldBuilder().Build(typeof(CustomFieldIndexModel))
+
+            Parameters = new HnswParameters
+            {
+               M = 4,
+               EfConstruction = 400,
+               EfSearch = 500,
+               Metric = "cosine"
+            }
          };
 
-         client.CreateOrUpdateIndex(index);
-         log.LogInformation("Index created or updated successfully.");
+         var vectorSearchProfile = new VectorSearchProfile(
+            name: Settings.VectorSearchProfileName,
+            algorithmConfigurationName: algoName);
+
+
+
+         return (vectorSearchProfile, vectorSearchAlgorithmConfig);
+
+      }
+
+      private string ComputeSha1Hash(string input)
+      {
+         using (SHA1 sha1 = SHA1.Create())
+         {
+            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+            byte[] hashBytes = sha1.ComputeHash(inputBytes);
+
+            // Convert the byte array to a hexadecimal string
+            StringBuilder sb = new StringBuilder();
+            foreach (byte b in hashBytes)
+            {
+               sb.Append(b.ToString("x2"));
+            }
+            return sb.ToString();
+         }
       }
    }
 }

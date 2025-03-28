@@ -6,7 +6,7 @@ param customFieldFunctionName string
 param functionSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
-param processedQueueName string
+param moveQueueName string
 param serviceBusNs string
 param formStorageAcctName string
 param moveFunctionName string
@@ -23,7 +23,7 @@ param documentStorageContainer string
 param processResultsContainer string
 param completedContainer string
 param appInsightsName string
-param includeGeneralIndex bool = true
+param aiIndexName string
 param openAiChatModel string
 param askQuestionsFunctionName string
 
@@ -48,12 +48,10 @@ module processFunction 'function-process.bicep' = {
     functionSubnetId: functionSubnetId
     functionStorageAcctName: functionStorageAcctName
     keyVaultUri: keyVaultUri
-    processedQueueName: processedQueueName
     serviceBusNs: serviceBusNs
     formStorageAcctName: formStorageAcctName
     documentStorageContainer: documentStorageContainer
     processResultsContainer: processResultsContainer
-    completedContainer: completedContainer
     managedIdentityId: managedIdentityId
     appInsightsName: appInsightsName
     funcAppPlan: funcAppPlan
@@ -68,7 +66,7 @@ module processFunction 'function-process.bicep' = {
 
 
 module customFieldFunction 'function-customfield.bicep' = {
-  name: processFunctionName
+  name: customFieldFunctionName
   params: {
     location: location
     customFieldFunctionName: customFieldFunctionName
@@ -80,11 +78,16 @@ module customFieldFunction 'function-customfield.bicep' = {
     formStorageAcctName: formStorageAcctName
     documentStorageContainer: documentStorageContainer
     processResultsContainer: processResultsContainer
-    completedContainer: completedContainer
     managedIdentityId: managedIdentityId
     appInsightsName: appInsightsName
     funcAppPlan: funcAppPlan
     toIndexQueueName: toIndexQueueName
+    aiSearchEndpoint: aiSearchEndpoint
+    openAiEndpoint: openAiEndpoint
+    azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
+    openAiEmbeddingModel: openAiEmbeddingModel
+    openAiChatModel: openAiChatModel
+
   }
   dependsOn: [
     functionAppPlan
@@ -111,8 +114,9 @@ module aiSearchFunction 'function-aisearch.bicep' = {
     processResultsContainer: processResultsContainer
     serviceBusNs: serviceBusNs
     toIndexQueueName: toIndexQueueName
-    includeGeneralIndex: includeGeneralIndex
+    aiIndexName: aiIndexName
     openAiChatModel: openAiChatModel
+    moveQueueName: moveQueueName
 
   }
   dependsOn: [
@@ -136,7 +140,7 @@ module moveFunction 'function-move.bicep' = {
     processResultsContainer: processResultsContainer
     completedContainer: completedContainer
     documentStorageContainer: documentStorageContainer
-    processedQueueName: processedQueueName
+    moveQueueName: moveQueueName
   }
   dependsOn: [
     functionAppPlan
@@ -195,6 +199,7 @@ output systemAssignedIdentities array = [
   moveFunction.outputs.systemAssignedIdentity
   queueFunction.outputs.systemAssignedIdentity
   askQuestions.outputs.systemAssignedIdentity
+  customFieldFunction.outputs.systemAssignedIdentity
 
   
 ]

@@ -1,7 +1,7 @@
 ﻿using Azure.Core;
 using Azure.Identity;
 
-namespace AzureUtilities
+namespace HighVolumeProcessing.UtilityLibrary
 {
    public class AadHelper
    {

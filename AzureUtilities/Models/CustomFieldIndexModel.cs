@@ -1,23 +1,21 @@
-﻿using Azure.Search.Documents.Indexes.Models;
-using Azure.Search.Documents.Indexes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Indexes.Models;
 
-namespace AzureUtilities.Models
+namespace HighVolumeProcessing.UtilityLibrary.Models
 {
-    public class CustomFieldIndexModel
-    {
+   public class CustomFieldIndexModel
+   {
       [SimpleField(IsKey = true, IsFilterable = true, IsSortable = false, IsFacetable = false)]
       public string Id { get; set; }
 
-      [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false, SearchAnalyzerName =  "StandardLucene")]
-      public IList<double> Embedding { get; set; } // Assuming it's a collection of strings  
+      [VectorSearchField(VectorSearchDimensions = 1536, VectorSearchProfileName = Settings.VectorSearchProfileName)]
+      public IList<Single> Embedding { get; set; } // Assuming it's a collection of strings  
 
-      [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false, SearchAnalyzerName = "StandardLucene")]
+      [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false, SearchAnalyzerName = "standard.lucene", IndexAnalyzerName = "standard.lucene")]
       public string Text { get; set; }
+
+      [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false)]
+      public string FileName { get; set; }
 
       [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false)]
       public string Description { get; set; }
@@ -31,8 +29,8 @@ namespace AzureUtilities.Models
       [SimpleField(IsFilterable = true, IsSortable = false, IsFacetable = false)]
       public bool IsReference { get; set; }
 
-      [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false, SearchAnalyzerName = "StandardLucene")]
-      public IList<string> CustomField { get; set; } 
+      [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false, SearchAnalyzerName = "standard.lucene", IndexAnalyzerName = "standard.lucene")]
+      public IList<string> CustomField { get; set; }
    }
 }
 

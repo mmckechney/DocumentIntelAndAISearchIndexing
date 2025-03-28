@@ -11,18 +11,12 @@ template: |
    Return a list of loads in the following JSON format - 
       [ "load1",
          "load2",
-         ... 
+         "etc.."
       ] 
 
-   
-    
-
-
-  Document Content:
-   {{content}}
   </message>
   <message role="user">
-    {{question}}
+    {{content}}
   </message>
   <message role="system">JSON list of loads</message>
 template_format: handlebars

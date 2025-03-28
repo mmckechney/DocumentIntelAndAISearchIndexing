@@ -52,7 +52,7 @@ resource askQuestions 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'

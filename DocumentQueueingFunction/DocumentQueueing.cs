@@ -1,57 +1,52 @@
-using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using AzureUtilities;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+using HighVolumeProcessing.UtilityLibrary; 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DocumentQueueingFunction
+namespace HighVolumeProcessing.DocumentQueueingFunction
 {
-   public class FormQueue
+   public class DocumentQueueing
    {
-      private readonly ILogger<FormQueue> logger;
+      private readonly ILogger<DocumentQueueing> logger;
       private StorageHelper storageHelper;
       private ServiceBusHelper serviceBusHelper;
-
-      public FormQueue(ILogger<FormQueue> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper)
+      private Settings settings;
+      public DocumentQueueing(ILogger<DocumentQueueing> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings)
       {
          this.logger = logger;
          this.storageHelper = storageHelper;
          this.serviceBusHelper = serviceBusHelper;
+         this.settings = settings;
       }
 
       [Function("DocumentQueueing")]
-      public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequest req)
+      public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequestData req)
       {
          int fileCounter = 0;
          logger.LogInformation("Request received to queue documents");
          var cancelSource = new CancellationTokenSource();
          bool force = false;
-         bool.TryParse(req.Query["force"], out force);
+         bool.TryParse(req?.Query["force"], out force);
 
          DateTime queuedDate = DateTime.MinValue;
-         DateTime.TryParse(req.Query["queuedDate"], out queuedDate);
+         DateTime.TryParse(req?.Query["queuedDate"], out queuedDate);
 
          List<Task> metaDataTasks = new List<Task>();
 
-         logger.LogInformation($"Processing sessings: Force re-queue: '{force.ToString()}',  Re-queue document previously queued before: '{queuedDate}");
+         logger.LogInformation($"Processing settings: Force re-queue: '{force.ToString()}',  Re-queue document previously queued before: '{queuedDate}'");
 
          try
          {
             BlobContainerClient containerClient;
-            ServiceBusSender sbSender;
 
-            containerClient = storageHelper.GetContainerClient(Settings.SourceContainerName);
-            sbSender = serviceBusHelper.GetServiceBusSender(Settings.DocumentQueueName);
+            containerClient = storageHelper.GetContainerClient(settings.SourceContainerName);
             logger.LogInformation($"Using storage container '{containerClient.Name}' as files source.");
-            logger.LogInformation($"Sending messages to Service Bus Queue '{sbSender.EntityPath}'");
-
 
             var blobList = containerClient.GetBlobsAsync(BlobTraits.Metadata);
             int counter = 0;
@@ -85,9 +80,10 @@ namespace DocumentQueueingFunction
                if (counter > 9) counter = 0;
                logger.LogDebug($"Found file  {blob.Name}");
 
-               var sbMessage = new FileQueueMessage() { FileName = blob.Name, ContainerName = containerClient.Name, RecognizerIndex = counter }.AsMessage();
+               var sbMessage = new FileQueueMessage() { SourceFileName = blob.Name, ContainerName = containerClient.Name, RecognizerIndex = counter }.AsMessage();
 
-               await sbSender.SendMessageAsync(sbMessage);
+               await serviceBusHelper.SendMessageAsync(settings.DocumentQueueName, sbMessage);
+
                logger.LogInformation($"Queued file {blob.Name} for processing from storage container '{containerClient.Name}' ");
                fileCounter++;
                counter++;
@@ -110,12 +106,16 @@ namespace DocumentQueueingFunction
                await waiting;
             }
 
-            return new OkObjectResult($"Queued {fileCounter} files");
+            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
+            await response.WriteStringAsync($"Queued {fileCounter} files");
+            return response;
          }
          catch (Exception exe)
          {
             logger.LogError($"Failed to queue files: {exe.ToString()}");
-            return new BadRequestObjectResult(exe.Message);
+            var response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+            await response.WriteStringAsync(exe.Message);
+            return response;
          }
       }
       public async Task UpdateBlobMetaData(string blobName, BlobContainerClient containerClient, string key, string value, int retry = 0)

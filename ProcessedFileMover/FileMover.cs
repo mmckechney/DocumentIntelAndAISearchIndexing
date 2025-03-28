@@ -1,6 +1,6 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs.Models;
-using AzureUtilities;
+using HighVolumeProcessing.UtilityLibrary; 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System;
@@ -8,32 +8,34 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace ProcessedFileMover
+namespace HighVolumeProcessing.ProcessedFileMover
 {
    public class FileMover
    {
-      private readonly ILogger<FileMover> logger;
+      private readonly ILogger<FileMover> log;
       private StorageHelper storageHelper;
-
-      public FileMover(ILogger<FileMover> logger, StorageHelper storageHelper)
+      private Settings settings;
+      public FileMover(ILogger<FileMover> logger, StorageHelper storageHelper, Settings settings)
       {
-         this.logger = logger;
+         this.log = logger;
          this.storageHelper = storageHelper;
+         this.settings = settings;
       }
 
       [Function("FileMover")]
-      public async Task Run([ServiceBusTrigger("%SERVICE_BUS_PROCESSED_QUEUE_NAME%", Connection = "SERVICE_BUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task Run([ServiceBusTrigger("%SERVICEBUS_MOVE_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
       {
-         var filemessage = message.As<FileQueueMessage>();
-         logger.LogInformation($"Moving processed file {filemessage.FileName} to {Settings.ProcessResultsContainerName} container");
-         bool success = await MoveOriginalFileToProcessed(filemessage.FileName);
+         var fileMessage = message.As<FileQueueMessage>();
+         log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
+
+         bool success = await MoveOriginalFileToProcessed(fileMessage.SourceFileName);
          if (success)
          {
-            logger.LogInformation($"Successfully move file {filemessage.FileName} to {Settings.ProcessResultsContainerName} container");
+            log.LogInformation($"Successfully move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
          }
          else
          {
-            logger.LogInformation($"Failed move file {filemessage.FileName} to {Settings.ProcessResultsContainerName} container");
+            log.LogInformation($"Failed move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
          }
 
       }
@@ -42,8 +44,8 @@ namespace ProcessedFileMover
       {
          try
          {
-            var sourceBlob = storageHelper.GetBlobClient(Settings.SourceContainerName, sourceFileName); 
-            var destBlob = storageHelper.GetBlobClient(Settings.CompletedContainerName, sourceFileName); 
+            var sourceBlob = storageHelper.GetBlobClient(settings.SourceContainerName, sourceFileName);
+            var destBlob = storageHelper.GetBlobClient(settings.CompletedContainerName, sourceFileName);
 
             var operation = await destBlob.StartCopyFromUriAsync(sourceBlob.Uri);
             operation.WaitForCompletion();
@@ -56,7 +58,7 @@ namespace ProcessedFileMover
          }
          catch (Exception exe)
          {
-            logger.LogError(exe.ToString());
+            log.LogError(exe.ToString());
             return false;
          }
       }
@@ -64,8 +66,8 @@ namespace ProcessedFileMover
       public async Task<bool> CleanupFolder()
       {
          List<string> lstBlobsToMove = new List<string>();
-        
-         var blobList = storageHelper.GetContainerClient(Settings.SourceContainerName).GetBlobsAsync(BlobTraits.Metadata);
+
+         var blobList = storageHelper.GetContainerClient(settings.SourceContainerName).GetBlobsAsync(BlobTraits.Metadata);
          await foreach (var blob in blobList)
          {
             if (blob.Metadata.ContainsKey("Processed"))
@@ -85,11 +87,11 @@ namespace ProcessedFileMover
                 bool success = await MoveOriginalFileToProcessed(blobName);
                 if (success)
                 {
-                   logger.LogInformation($"Successfully moved file '{blobName}'");
+                   log.LogInformation($"Successfully moved file '{blobName}'");
                 }
                 else
                 {
-                   logger.LogInformation($"File '{blobName}' was not moved!");
+                   log.LogInformation($"File '{blobName}' was not moved!");
                 }
              });
 

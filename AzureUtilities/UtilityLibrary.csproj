@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+     <RootNamespace>HighVolumeProcessing.UtilityLibrary</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,4 +30,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Prompts\**\*.yaml" />
  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Prompts\ExtractCustomFields.yaml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

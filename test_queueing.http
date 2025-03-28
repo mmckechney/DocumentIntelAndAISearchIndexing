@@ -1,0 +1,13 @@
+### Force queuing of files in the storage account
+GET http://localhost:7100/api/DocumentQueueing?force=true
+
+### Test the questions
+POST http://localhost:7104/api/AskQuestions
+Content-Type: application/json
+
+{
+  "question": "please summarize this document with a few sentences and a bulleted list",
+  "customField": "ABC-20231010-001",
+  "filename": ""
+}
+

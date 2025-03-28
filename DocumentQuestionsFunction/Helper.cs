@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace DocumentQuestionsFunction
+namespace HighVolumeProcessing.DocumentQuestionsFunction
 {
    public class Helper
    {
@@ -29,11 +29,7 @@ namespace DocumentQuestionsFunction
          question = question ?? data?.question;
          customField = customField ?? data?.customField;
 
-         if (string.IsNullOrWhiteSpace(filename))
-         {
-            filename = "general";
-         }
-         else
+         if (!string.IsNullOrWhiteSpace(filename))
          {
             filename = Path.GetFileNameWithoutExtension(filename);
          }

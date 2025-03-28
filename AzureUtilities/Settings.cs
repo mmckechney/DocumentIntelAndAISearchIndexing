@@ -1,214 +1,362 @@
 ﻿using Azure;
 using Azure.AI.DocumentIntelligence;
-using Azure.Messaging.ServiceBus;
-using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using System.Runtime.CompilerServices;
+using HighVolumeProcessing.UtilityLibrary.Models;
 
-namespace AzureUtilities
+namespace HighVolumeProcessing.UtilityLibrary
 {
    public class Settings
    {
-      static Settings()
+      public Settings(ILogger<Settings> settingsLogger, IConfiguration config)
       {
-         settingsLogger = new LoggerFactory().CreateLogger<Settings>();
+         this.settingsLogger = settingsLogger;
+         this._config = config;
       }
-      private static ILogger<Settings> settingsLogger;
-      private static string _endpoint = string.Empty;
-      private static List<string> _keys = new List<string>();
-      private static string _docQueueName = string.Empty;
-      private static string _processedQueueName = string.Empty;
-      private static string _sourceContainerName = string.Empty;
-      private static string _toIndexQueueName = string.Empty;
-      private static string _customFieldQueueName = string.Empty;
-      private static string _processResultsContainerName = string.Empty;
-      private static string _completedContainerName = string.Empty;
-      private static string _storageAccountName = string.Empty;
-      private static string _documentProcessingModel = string.Empty;
-      private static string _serviceBusNamespaceName = string.Empty;
 
-      private static List<DocAnalysisModel> _docIntelClients = new List<DocAnalysisModel>();
+      private ILogger<Settings> settingsLogger;
+      private IConfiguration _config;
 
-      public static string DocIntelEndpoint
+      public const string VectorSearchProfileName = "vectorSearch";
+      private const string defaultAiIndexName = "general";
+
+      private string _aiSearchEndpoint = string.Empty;
+      public string AiSearchEndpoint
       {
          get
          {
-            if (string.IsNullOrWhiteSpace(_endpoint))
+            if (string.IsNullOrEmpty(_aiSearchEndpoint))
             {
-               _endpoint = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_ENDPOINT");
+               _aiSearchEndpoint = GetSettingsValue(ConfigKeys.AZURE_AISEARCH_ENDPOINT);
             }
-            return _endpoint;
-         }
-      }
-      public static List<string> Keys
-      {
-         get
-         {
-            if (_keys.Count == 0)
-            {
-               var tmp = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_KEY");
-               if (!string.IsNullOrWhiteSpace(tmp))
-               {
-                  _keys.AddRange(tmp.Split('|', StringSplitOptions.RemoveEmptyEntries));
-               }
-               else
-               {
-                  settingsLogger.LogError("DOCUMENT_INTELLIGENCE_KEY is empty");
-               }
-            }
-            return _keys;
-         }
-      }
-      public static string DocumentQueueName
-      {
-         get
-         {
-            if (string.IsNullOrEmpty(_docQueueName))
-            {
-               _docQueueName = Environment.GetEnvironmentVariable("SERVICE_BUS_DOC_QUEUE_NAME");
-               if (string.IsNullOrEmpty(_docQueueName)) settingsLogger.LogError("SERVICE_BUS_DOC_QUEUE_NAME setting is empty!");
-            }
-            return _docQueueName;
+            return _aiSearchEndpoint;
          }
       }
 
-      public static string ProcessedQueueName
+      private string _AiSearchAdminKey = string.Empty;
+      public string AiSearchAdminKey
       {
          get
          {
-            if (string.IsNullOrEmpty(_processedQueueName))
+            if (string.IsNullOrEmpty(_AiSearchAdminKey))
             {
-               _processedQueueName = Environment.GetEnvironmentVariable("SERVICE_BUS_PROCESSED_QUEUE_NAME");
-               if (string.IsNullOrEmpty(_processedQueueName)) settingsLogger.LogError("SERVICE_BUS_PROCESSED_QUEUE_NAME setting is empty!");
+               _AiSearchAdminKey = GetSettingsValue(ConfigKeys.AZURE_AISEARCH_ADMIN_KEY);
             }
-            return _processedQueueName;
+            return _AiSearchAdminKey;
          }
       }
 
-      public static string CustomFieldQueueName
+      private string _AiSearchIndexName = string.Empty;
+      public string AiSearchIndexName
       {
          get
          {
-            if (string.IsNullOrEmpty(_customFieldQueueName))
+            if (string.IsNullOrEmpty(_AiSearchIndexName))
             {
-               _processedQueueName = Environment.GetEnvironmentVariable("SERVICE_BUS_CUSTOMFIELD_QUEUE_NAME");
-               if (string.IsNullOrEmpty(_customFieldQueueName)) settingsLogger.LogError("SERVICE_BUS_CUSTOMFIELD_QUEUE_NAME setting is empty!");
+               _AiSearchIndexName = GetSettingsValue(ConfigKeys.AZURE_AISEARCH_INDEXNAME, defaultAiIndexName);
             }
-            return _customFieldQueueName;
+            return _AiSearchIndexName;
          }
       }
 
-      public static string ToIndexQueueName
+      private string _apimSubscriptionKey = string.Empty;
+      public string ApimSubscriptionKey
       {
          get
          {
-            if (string.IsNullOrEmpty(_toIndexQueueName))
+            if (string.IsNullOrEmpty(_apimSubscriptionKey))
             {
-               _toIndexQueueName = Environment.GetEnvironmentVariable("SERVICE_BUS_TOINDEX_QUEUE_NAME");
-               if (string.IsNullOrEmpty(_toIndexQueueName)) settingsLogger.LogError("SERVICE_BUS_TOINDEX_QUEUE_NAME setting is empty!");
+               _apimSubscriptionKey = GetSettingsValue(ConfigKeys.APIM_SUBSCRIPTION_KEY);
             }
-            return _toIndexQueueName;
+            return _apimSubscriptionKey;
          }
       }
-      public static string SourceContainerName
+
+      private string _azureOpenAiChatDeployment = string.Empty;
+      public string AzureOpenAiChatDeployment
       {
          get
          {
-            if (string.IsNullOrEmpty(_sourceContainerName))
+            if (string.IsNullOrEmpty(_azureOpenAiChatDeployment))
             {
-               _sourceContainerName = Environment.GetEnvironmentVariable("DOCUMENT_SOURCE_CONTAINER_NAME");
-               if (string.IsNullOrEmpty(_sourceContainerName)) settingsLogger.LogError("DOCUMENT_SOURCE_CONTAINER_NAME setting is empty!");
+               _azureOpenAiChatDeployment = GetSettingsValue(ConfigKeys.AZURE_OPENAI_CHAT_DEPLOYMENT);
             }
-            return _sourceContainerName;
-
+            return _azureOpenAiChatDeployment;
          }
       }
 
-      public static string ProcessResultsContainerName
+      private string _azureOpenAiChatModel = string.Empty;
+      public string AzureOpenAiChatModel
       {
          get
          {
-            if (string.IsNullOrEmpty(_processResultsContainerName))
+            if (string.IsNullOrEmpty(_azureOpenAiChatModel))
             {
-               _processResultsContainerName = Environment.GetEnvironmentVariable("DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME");
-               if (string.IsNullOrEmpty(_processResultsContainerName)) settingsLogger.LogError("DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME setting is empty!");
+               _azureOpenAiChatModel = GetSettingsValue(ConfigKeys.AZURE_OPENAI_CHAT_MODEL);
             }
-            return _processResultsContainerName;
-
+            return _azureOpenAiChatModel;
          }
       }
-      public static string CompletedContainerName
+
+      private string _azureOpenAiEmbeddingDeployment = string.Empty;
+      public string AzureOpenAiEmbeddingDeployment
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_azureOpenAiEmbeddingDeployment))
+            {
+               _azureOpenAiEmbeddingDeployment = GetSettingsValue(ConfigKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT);
+            }
+            return _azureOpenAiEmbeddingDeployment;
+         }
+      }
+
+      private string _azureOpenAiEmbeddingModel = string.Empty;
+      public string AzureOpenAiEmbeddingModel
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_azureOpenAiEmbeddingModel))
+            {
+               _azureOpenAiEmbeddingModel = GetSettingsValue(ConfigKeys.AZURE_OPENAI_EMBEDDING_MODEL);
+            }
+            return _azureOpenAiEmbeddingModel;
+         }
+      }
+
+      private string _azureOpenAiEndpoint = string.Empty;
+      public string AzureOpenAiEndpoint
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_azureOpenAiEndpoint))
+            {
+               _azureOpenAiEndpoint = GetSettingsValue(ConfigKeys.AZURE_OPENAI_ENDPOINT);
+            }
+            return _azureOpenAiEndpoint;
+         }
+      }
+
+      private string _completedContainerName = string.Empty;
+      public string CompletedContainerName
       {
          get
          {
             if (string.IsNullOrEmpty(_completedContainerName))
             {
-               _completedContainerName = Environment.GetEnvironmentVariable("DOCUMENT_COMPLETED_CONTAINER_NAME");
-               if (string.IsNullOrEmpty(_completedContainerName)) settingsLogger.LogError("DOCUMENT_COMPLETED_CONTAINER_NAME setting is empty!");
+               _completedContainerName = GetSettingsValue(ConfigKeys.STORAGE_COMPLETED_CONTAINER_NAME);
             }
             return _completedContainerName;
-
          }
       }
-      public static string StorageAccountName
+
+      private string _customFieldQueueName = string.Empty;
+      public string CustomFieldQueueName
       {
          get
          {
-            if (string.IsNullOrEmpty(_storageAccountName))
+            if (string.IsNullOrEmpty(_customFieldQueueName))
             {
-               _storageAccountName = Environment.GetEnvironmentVariable("DOCUMENT_STORAGE_ACCOUNT_NAME");
-               if (string.IsNullOrEmpty(_storageAccountName)) settingsLogger.LogError("DOCUMENT_STORAGE_ACCOUNT_NAME setting is empty!");
+               _customFieldQueueName = GetSettingsValue(ConfigKeys.SERVICEBUS_CUSTOMFIELD_QUEUE_NAME);
             }
-            return _storageAccountName;
-
+            return _customFieldQueueName;
          }
       }
-      public static string DocumentProcessingModel
+
+      private string _docQueueName = string.Empty;
+      public string DocumentQueueName
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_docQueueName))
+            {
+               _docQueueName = GetSettingsValue(ConfigKeys.SERVICEBUS_DOC_QUEUE_NAME);
+            }
+            return _docQueueName;
+         }
+      }
+
+      private object lockObject = new object();
+      private List<DocAnalysisModel> _docIntelClients = new List<DocAnalysisModel>();
+      public List<DocAnalysisModel> DocumentIntelligenceClients
+      {
+         get
+         {
+            lock (lockObject)
+            {
+               if (_docIntelClients.Count == 0)
+               {
+
+                  int index = 0;
+                  foreach (var key in Keys)
+                  {
+                     var credential = new AzureKeyCredential(key);
+                     var intelClient = new DocumentIntelligenceClient(new Uri(DocIntelEndpoint), credential);
+                     _docIntelClients.Add(new() { DocumentIntelligenceClient = intelClient, Endpoint = DocIntelEndpoint, Key = key, Index = index });
+                     index++;
+                  }
+               }
+            }
+            return _docIntelClients;
+         }
+      }
+
+      private string _documentProcessingModel = string.Empty;
+      public string DocumentProcessingModel
       {
          get
          {
             if (string.IsNullOrEmpty(_documentProcessingModel))
             {
-               _documentProcessingModel = Environment.GetEnvironmentVariable("DOCUMENT_INTELLIGENCE_MODEL_NAME");
-               if (string.IsNullOrWhiteSpace(_documentProcessingModel)) _documentProcessingModel = "prebuilt-layout";
+               _documentProcessingModel = GetSettingsValue(ConfigKeys.DOCUMENT_INTELLIGENCE_MODEL_NAME);
             }
             return _documentProcessingModel;
-
          }
       }
-      public static string ServiceBusNamespaceName
+
+      private string _endpoint = string.Empty;
+      public string DocIntelEndpoint
+      {
+         get
+         {
+            if (string.IsNullOrWhiteSpace(_endpoint))
+            {
+               _endpoint = GetSettingsValue(ConfigKeys.DOCUMENT_INTELLIGENCE_ENDPOINT);
+            }
+            return _endpoint;
+         }
+      }
+
+      private int embeddingMaxTokens = 0;
+      private int embeddingMaxTokensDefault = 8191; // Default value for max tokens
+      public int EmbeddingMaxTokens
+      {
+         get
+         {
+            if (embeddingMaxTokens == 0)
+            {
+               int.TryParse(GetSettingsValue(ConfigKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS, embeddingMaxTokensDefault.ToString()), out embeddingMaxTokens);
+            }
+            return embeddingMaxTokens;
+         }
+      }
+
+      private List<string> _keys = new List<string>();
+      public List<string> Keys
+      {
+         get
+         {
+            lock (lockObject)
+            {
+               if (_keys.Count == 0)
+               {
+                  var tmp = GetSettingsValue(ConfigKeys.DOCUMENT_INTELLIGENCE_KEY);
+                  if (!string.IsNullOrWhiteSpace(tmp))
+                  {
+                     _keys.AddRange(tmp.Split('|', StringSplitOptions.RemoveEmptyEntries));
+                  }
+               }
+            }
+            return _keys;
+         }
+      }
+
+      private string _processResultsContainerName = string.Empty;
+      public string ProcessResultsContainerName
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_processResultsContainerName))
+            {
+               _processResultsContainerName = GetSettingsValue(ConfigKeys.STORAGE_PROCESS_RESULTS_CONTAINER_NAME);
+            }
+            return _processResultsContainerName;
+         }
+      }
+
+      private string _moveQueueName = string.Empty;
+      public string MoveQueueName
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_moveQueueName))
+            {
+               _moveQueueName = GetSettingsValue(ConfigKeys.SERVICEBUS_MOVE_QUEUE_NAME);
+            }
+            return _moveQueueName;
+         }
+      }
+
+      private string _serviceBusNamespaceName = string.Empty;
+      public string ServiceBusNamespaceName
       {
          get
          {
             if (string.IsNullOrEmpty(_serviceBusNamespaceName))
             {
-               _serviceBusNamespaceName = Environment.GetEnvironmentVariable("SERVICE_BUS_NAMESPACE_NAME");
-               if (string.IsNullOrEmpty(_serviceBusNamespaceName)) settingsLogger.LogError("SERVICE_BUS_NAMESPACE_NAME setting is empty!");
+               _serviceBusNamespaceName = GetSettingsValue(ConfigKeys.SERVICEBUS_NAMESPACE_NAME);
             }
             return _serviceBusNamespaceName;
-
          }
       }
 
-     
-
-      public static List<DocAnalysisModel> DocumentIntelligenceClients
+      private string _sourceContainerName = string.Empty;
+      public string SourceContainerName
       {
          get
          {
-            if (_docIntelClients.Count == 0)
+            if (string.IsNullOrEmpty(_sourceContainerName))
             {
-               int index = 0;
-               foreach (var key in Keys)
-               {
-                  var credential = new AzureKeyCredential(key);
-                  //var docIntelClient = new DocumentAnalysisClient(new Uri(Settings.Endpoint), credential);
-                  var intelClient = new DocumentIntelligenceClient(new Uri(DocIntelEndpoint), credential);
-                  _docIntelClients.Add(new() { DocumentIntelligenceClient = intelClient, Endpoint = Settings.DocIntelEndpoint, Key = key, Index = index });
-                  index++;
-               }
+               _sourceContainerName = GetSettingsValue(ConfigKeys.STORAGE_SOURCE_CONTAINER_NAME); ;
             }
-            return _docIntelClients;
+            return _sourceContainerName;
          }
+      }
+
+      private string _storageAccountName = string.Empty;
+      public string StorageAccountName
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_storageAccountName))
+            {
+               _storageAccountName = GetSettingsValue(ConfigKeys.STORAGE_ACCOUNT_NAME);
+            }
+            return _storageAccountName;
+         }
+      }
+
+      private string _toIndexQueueName = string.Empty;
+      public string ToIndexQueueName
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_toIndexQueueName))
+            {
+               _toIndexQueueName = GetSettingsValue(ConfigKeys.SERVICEBUS_TOINDEX_QUEUE_NAME);
+            }
+            return _toIndexQueueName;
+         }
+      }
+
+      private string GetSettingsValue(string variableName, string? defaultValue = null)
+      {
+         var value = _config[variableName];
+         if(string.IsNullOrWhiteSpace(value))
+         {
+            if(string.IsNullOrWhiteSpace(defaultValue))
+            {
+               settingsLogger.LogError($"Setting variable {variableName} is Empty!");
+            }
+            else
+            {
+               settingsLogger.LogWarning($"Setting variable {variableName} is empty. Using default value of '{defaultValue}'!");
+               value = defaultValue;
+            }
+         }
+         
+         return value;
       }
    }
 }

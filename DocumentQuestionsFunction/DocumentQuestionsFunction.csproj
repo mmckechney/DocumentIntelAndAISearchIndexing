@@ -3,6 +3,7 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<AzureFunctionsVersion>v4</AzureFunctionsVersion>
 		<OutputType>Exe</OutputType>
+       <RootNamespace>HighVolumeProcessing.DocumentQuestionsFunction</RootNamespace>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Azure.Identity" Version="1.13.2" />
@@ -17,7 +18,7 @@
 		<PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.1" />
    </ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\AzureUtilities\AzureUtilities.csproj" />
+	  <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="appsettings.json">

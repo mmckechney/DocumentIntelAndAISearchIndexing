@@ -1,6 +1,6 @@
 ﻿using Azure.AI.DocumentIntelligence;
 
-namespace AzureUtilities
+namespace HighVolumeProcessing.UtilityLibrary.Models
 {
    public class DocAnalysisModel
    {

@@ -1,4 +1,4 @@
-﻿using AzureUtilities;
+﻿using HighVolumeProcessing.UtilityLibrary; 
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
 
-namespace DocumentIntelligenceFunction
+namespace HighVolumeProcessing.DocumentIntelligenceFunction
 {
    internal class Startup
    {
@@ -45,9 +45,10 @@ namespace DocumentIntelligenceFunction
 
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
-         services.AddSingleton<SemanticUtility>();
+         services.AddSingleton<SkHelper>();
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
+         services.AddSingleton<Settings>();
          services.AddHttpClient();
          services.AddApplicationInsightsTelemetryWorkerService();
          services.ConfigureFunctionsApplicationInsights();

@@ -12,18 +12,22 @@ param managedIdentityId string
 
 param documentStorageContainer string
 param processResultsContainer string
-param completedContainer string
 param appInsightsName string
+
+param openAiEmbeddingModel string
+param openAiEndpoint string
+param azureOpenAiEmbeddingMaxTokens int = 8091
+param openAiChatModel string
+
+param aiSearchEndpoint string
 
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
-var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICE_BUS_CONNECTION}/)'
-var frEndpointKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_ENDPOINT}/)'
-var frKeyKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_KEY}/)'
-
-
+var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
+var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY}/)'
+var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.APIM_SUBSCRIPTION_KEY}/)' 
 
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' existing = {
@@ -59,46 +63,70 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
         {
-          name: configKeys.DOCUMENT_SOURCE_CONTAINER_NAME
+          name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer
         }
         {
-          name: configKeys.DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME
+          name: configKeys.STORAGE_PROCESS_RESULTS_CONTAINER_NAME
           value: processResultsContainer
         }
         {
-          name: configKeys.DOCUMENT_COMPLETED_CONTAINER_NAME
-          value: completedContainer
-        }
-        {
-          name: configKeys.DOCUMENT_STORAGE_ACCOUNT_NAME
+          name: configKeys.STORAGE_ACCOUNT_NAME
           value: formStorageAcctName
         }
         {
-          name: configKeys.DOCUMENT_INTELLIGENCE_ENDPOINT
-          value: frEndpointKvReference
+          name: configKeys.AZURE_OPENAI_ENDPOINT
+          value: openAiEndpoint
         }
         {
-          name: configKeys.DOCUMENT_INTELLIGENCE_KEY
-          value: frKeyKvReference
+          name: configKeys.AZURE_OPENAI_EMBEDDING_MODEL
+          value: openAiEmbeddingModel
         }
         {
-          name: configKeys.SERVICE_BUS_CONNECTION
+          name: configKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+          value: openAiEmbeddingModel  
+        }
+        {
+          name: configKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS
+          value: string(azureOpenAiEmbeddingMaxTokens)
+        }
+        {
+          name: configKeys.AZURE_OPENAI_CHAT_MODEL
+          value: openAiChatModel
+        }
+        {
+          name: configKeys.AZURE_OPENAI_CHAT_DEPLOYMENT
+          value: openAiChatModel
+        }
+        {
+          name: configKeys.AZURE_AISEARCH_ENDPOINT
+          value: aiSearchEndpoint
+        }
+        {
+          name: configKeys.AZURE_AISEARCH_ADMIN_KEY
+          value: aiSearchKvReference  
+        }
+        {
+          name: configKeys.APIM_SUBSCRIPTION_KEY
+          value: apimSubscriptionKeyKvReference
+        }
+        {
+          name: configKeys.SERVICEBUS_CONNECTION
           value: sbConnKvReference
         }
         {
-          name: configKeys.SERVICE_BUS_CUSTOMFIELD_QUEUE_NAME
+          name: configKeys.SERVICEBUS_CUSTOMFIELD_QUEUE_NAME
           value: customFieldQueueName
         }
         {
-          name: configKeys.SERVICE_BUS_TOINDEX_QUEUE_NAME
+          name: configKeys.SERVICEBUS_TOINDEX_QUEUE_NAME
           value: toIndexQueueName
         }
         {
-          name: configKeys.SERVICE_BUS_NAMESPACE_NAME
+          name: configKeys.SERVICEBUS_NAMESPACE_NAME
           value: serviceBusNs
         }
         {

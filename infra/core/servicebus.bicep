@@ -1,7 +1,7 @@
 
 param serviceBusNs string
 param docQueueName string
-param processedQueueName string
+param moveQueueName string
 param toIndexQueueName string
 param customFieldQueueName string
 param location string = resourceGroup().location
@@ -12,6 +12,7 @@ param subnetName string = ''
 
 var enablePartitioning = (serviceBusSku != 'Premium')
 var includeNetworking = (serviceBusSku == 'Premium')
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
@@ -35,8 +36,8 @@ resource serviceBusDocQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-p
   }
 }
 
-resource serviceBusProcessedQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-  name: processedQueueName
+resource serviceBusMoveQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: moveQueueName
   parent: serviceBusNamespace
   properties: {
     enablePartitioning: enablePartitioning
@@ -74,7 +75,7 @@ resource serviceBusAuthorizationRule 'Microsoft.ServiceBus/namespaces/Authorizat
 }
 
 resource serviceBusConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'SERVICE-BUS-CONNECTION'
+  name: keyVaultKeys.SERVICEBUS_CONNECTION
   parent: keyVault
   properties: {
     value: serviceBusAuthorizationRule.listKeys().primaryConnectionString

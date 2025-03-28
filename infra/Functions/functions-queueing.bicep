@@ -48,22 +48,22 @@ resource queueingFunction 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
         {
-          name: configKeys.DOCUMENT_SOURCE_CONTAINER_NAME
+          name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer
         }
         {
-          name: configKeys.DOCUMENT_STORAGE_ACCOUNT_NAME
+          name: configKeys.STORAGE_ACCOUNT_NAME
           value: formStorageAcctName
         }
         {
-          name: configKeys.SERVICE_BUS_NAMESPACE_NAME
+          name: configKeys.SERVICEBUS_NAMESPACE_NAME
           value: serviceBusNs
         }
         {
-          name: configKeys.SERVICE_BUS_DOC_QUEUE_NAME
+          name: configKeys.SERVICEBUS_DOC_QUEUE_NAME
           value: docQueueName
         }
         {

@@ -3,6 +3,7 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<AzureFunctionsVersion>v4</AzureFunctionsVersion>
 		<OutputType>Exe</OutputType>
+      <RootNamespace>HighVolumeProcessing.CustomFieldExtractionFunction</RootNamespace>
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="Azure.Identity" Version="1.13.2" />
@@ -22,7 +23,7 @@
 
    </ItemGroup>
 	<ItemGroup>
-	  <ProjectReference Include="..\AzureUtilities\AzureUtilities.csproj" />
+	  <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="appsettings.json">

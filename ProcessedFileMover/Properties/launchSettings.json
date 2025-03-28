@@ -3,10 +3,7 @@
     "ProcessedFileMover": {
       "commandName": "Project",
       "environmentVariables": {
-        "FORM_RECOGNIZER_SOURCE_CONTAINER_NAME": "incoming",
-        "FORM_RECOGNIZER_PROCESSED_CONTAINER_NAME": "processed",
-        "FORM_RECOGNIZER_STORAGE_ACCOUNT_NAME": "",
-        "SERVICE_BUS_CONNECTION": ""
+
       }
     }
   }

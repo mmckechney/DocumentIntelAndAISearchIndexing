@@ -1,15 +1,7 @@
 {
   "profiles": {
-    "FormProcessorFunction": {
-      "commandName": "Project",
-      "environmentVariables": {
-        "FORM_RECOGNIZER_SOURCE_CONTAINER_NAME": "incoming",
-        "FORM_RECOGNIZER_PROCESSED_CONTAINER_NAME": "processed",
-        "FORM_RECOGNIZER_OUTPUT_CONTAINER_NAME": "output",
-        "FORM_RECOGNIZER_STORAGE_ACCOUNT_NAME": "storhtfr5demoeastus001",
-        "SERVICE_BUS_NAMESPACE_NAME": "svcb-htfr5-demo-eastus-001",
-        "SERVICE_BUS_QUEUE_NAME": "formqueue"
-      }
+    "DocumentQueueing": {
+      "commandName": "Project"
     }
   }
 }
