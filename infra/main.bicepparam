@@ -5,6 +5,7 @@ param currentUserObjectId = ''
 param myPublicIp = ''
 param loadBalancingType = 'round-robin'
 param serviceBusSku = 'Standard'
+param aiIndexName = ''
 
 param docIntelligenceInstanceCount = 2
 

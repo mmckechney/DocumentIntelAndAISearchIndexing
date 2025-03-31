@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using HighVolumeProcessing.UtilityLibrary.Models;
 
 namespace HighVolumeProcessing.ProcessedFileMover
 {

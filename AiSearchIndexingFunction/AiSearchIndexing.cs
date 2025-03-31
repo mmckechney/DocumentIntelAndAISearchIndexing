@@ -1,12 +1,10 @@
-using Azure.AI.DocumentIntelligence;
 using Azure.Messaging.ServiceBus;
-using HighVolumeProcessing.UtilityLibrary; 
+using HighVolumeProcessing.UtilityLibrary;
+using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel.Text;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 

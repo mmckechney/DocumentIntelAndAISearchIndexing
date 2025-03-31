@@ -7,12 +7,16 @@ param formStorageAcctName string
 param queueFunctionName string
 param docQueueName string
 param managedIdentityId string
-
+param keyVaultUri string
 param documentStorageContainer string
 param appInsightsName string
+param cosmosDbName string
+param cosmosContainerName string
 
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' existing = {
   name: appInsightsName
@@ -50,6 +54,18 @@ resource queueingFunction 'Microsoft.Web/sites@2021-01-01' = {
       netFrameworkVersion: 'v8.0'
       remoteDebuggingEnabled: false
       appSettings: [
+        {
+          name:configKeys.COSMOS_CONNECTION
+          value: cosmosKvReference
+        }
+        {
+          name : configKeys.COSMOS_DB_NAME 
+          value: cosmosDbName
+        }
+        {
+          name : configKeys.COSMOS_CONTAINER_NAME 
+          value: cosmosContainerName
+        }
         {
           name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer

@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-
+using HighVolumeProcessing.UtilityLibrary.Models;
 namespace HighVolumeProcessing.DocumentQueueingFunction
 {
    public class DocumentQueueing

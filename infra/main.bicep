@@ -84,6 +84,10 @@ var logAnalyticsName = '${abbrs.logAnalyticsWorkspace}${appName}-${location}'
 var managedIdentityName = '${abbrs.managedIdentity}${appName}-${location}'
 var apiManagementName = '${abbrs.apiManagementService}${appName}-${location}'
 
+var cosmosDbName = 'documentIndexing'
+var cosmosContainerName = 'processTracker'
+var cosmosDbAccountName = toLower('${abbrs.cosmosDBNoSQL}${appName}-${location}')
+
 var documentStorageContainer = 'documents'
 var processResultsContainer = 'processresults'
 var completedContainer = 'completed'
@@ -120,6 +124,24 @@ module networkSecurityGroup 'core/networksecuritygroup.bicep' = {
 	}
 }
 
+module cosmosDb 'core/cosmos.bicep' = {
+	name: 'cosmosDb'
+	scope: rg
+	params: {
+		databaseName: cosmosDbName
+		cosmosContainerName: cosmosContainerName
+		cosmosDbAccountName: cosmosDbAccountName
+		location: location
+		keyVaultName: keyvaultName
+		vnetName: vnet
+		subnetName: subnet
+		myPublicIp: myPublicIp
+	}
+	dependsOn: [
+		keyvault
+		networking
+	]
+}
 module networking 'core/networking.bicep' = {
 	name: 'networking'
 	scope: rg
@@ -249,12 +271,15 @@ module functions 'functions/functions.bicep' = {
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
 		openAiChatModel: azureOpenAIChatModel
 		askQuestionsFunctionName: askQuestionsFunctionName
+		cosmosDbName: cosmosDbName
+		cosmosContainerName: cosmosContainerName
 	
 	}
 	dependsOn: [
 		storage
 		servicebus
 		appInsights
+		cosmosDb
 	]
 }
 

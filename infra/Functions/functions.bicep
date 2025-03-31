@@ -26,6 +26,8 @@ param appInsightsName string
 param aiIndexName string
 param openAiChatModel string
 param askQuestionsFunctionName string
+param cosmosDbName string
+param cosmosContainerName string
 
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02'existing = {
@@ -57,6 +59,8 @@ module processFunction 'function-process.bicep' = {
     funcAppPlan: funcAppPlan
     customFieldQueueName: customFieldQueueName
     docQueueName: docQueueName
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
@@ -87,6 +91,8 @@ module customFieldFunction 'function-customfield.bicep' = {
     azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
     openAiEmbeddingModel: openAiEmbeddingModel
     openAiChatModel: openAiChatModel
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
 
   }
   dependsOn: [
@@ -117,7 +123,8 @@ module aiSearchFunction 'function-aisearch.bicep' = {
     aiIndexName: aiIndexName
     openAiChatModel: openAiChatModel
     moveQueueName: moveQueueName
-
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
@@ -141,6 +148,8 @@ module moveFunction 'function-move.bicep' = {
     completedContainer: completedContainer
     documentStorageContainer: documentStorageContainer
     moveQueueName: moveQueueName
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
@@ -162,6 +171,9 @@ module queueFunction 'functions-queueing.bicep' = {
     documentStorageContainer: documentStorageContainer
     docQueueName: docQueueName
     serviceBusNs: serviceBusNs
+    keyVaultUri: keyVaultUri
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
@@ -185,6 +197,8 @@ module askQuestions 'function-askquestions.bicep' = {
     functionStorageAcctName: functionStorageAcctName
     functionSubnetId: functionSubnetId
     openAiChatModel: openAiChatModel
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
 
   }
   dependsOn: [

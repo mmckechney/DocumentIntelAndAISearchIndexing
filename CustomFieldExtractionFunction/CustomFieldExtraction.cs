@@ -4,6 +4,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
+using HighVolumeProcessing.UtilityLibrary.Models;
 
 namespace HighVolumeProcessing.CustomFieldExtractionFunction
 {

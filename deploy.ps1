@@ -90,6 +90,8 @@ if($deployAction-eq "Full")
 		exit
 	}
 
+exit
+
 	$outputObj = $output | ConvertFrom-Json -Depth 10
 	# Write-Host $outputObj -ForegroundColor Cyan
 	$resourceGroupName = $outputObj.properties.outputs.resourceGroupName.value

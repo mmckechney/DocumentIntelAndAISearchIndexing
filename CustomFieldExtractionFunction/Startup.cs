@@ -49,6 +49,7 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
          services.AddSingleton<Settings>();
+         services.AddSingleton<CosmosDbHelper>();
          services.AddHttpClient();
 
       }

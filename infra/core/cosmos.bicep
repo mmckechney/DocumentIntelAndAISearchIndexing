@@ -1,162 +1,96 @@
-param resource_location string 
-param databaseAccounts_getorganized_acct_name string 
+@description('The name of the Cosmos DB account')
+param cosmosDbAccountName string
 
-//Cosmos Resources
-resource cosmosGremlinAccount 'Microsoft.DocumentDB/databaseAccounts@2022-08-15' = {
-  name: databaseAccounts_getorganized_acct_name
-  location: resource_location
-  tags: {
-    defaultExperience: 'Gremlin (graph)'
-    'hidden-cosmos-mmspecial': ''
-  }
+@description('The location of the Cosmos DB account')
+param location string = resourceGroup().location
+
+@description('The name of the database to create')
+param databaseName string
+param cosmosContainerName string
+
+@description('The name of the Key Vault')
+param keyVaultName string
+
+@description('The name of the Virtual Network')
+param vnetName string
+
+@description('The name of the subnet for the service endpoint')
+param subnetName string
+
+param myPublicIp string = ''
+
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
+
+resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
+  name: keyVaultName
+}
+
+resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
+  name: vnetName
+}
+
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2021-05-01' existing = {
+  parent: vnet
+  name: subnetName
+}
+
+resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
+  name: cosmosDbAccountName
+  location: location
   kind: 'GlobalDocumentDB'
-  identity: {
-    type: 'None'
-  }
   properties: {
-    publicNetworkAccess: 'Enabled'
-   
-    analyticalStorageConfiguration: {
-      schemaType: 'WellDefined'
-    }
     databaseAccountOfferType: 'Standard'
     locations: [
       {
-        locationName: resource_location
+        locationName: location
+        failoverPriority: 0
       }
     ]
     capabilities: [
       {
-        name: 'EnableGremlin'
-      }
-      {
         name: 'EnableServerless'
       }
     ]
-    ipRules: [
-      {
-        ipAddressOrRange: '52.226.97.243'
-      }
-      {
-        ipAddressOrRange: '52.226.98.174'
-      }
-      {
-        ipAddressOrRange: '52.226.98.238'
-      }
-      {
-        ipAddressOrRange: '52.149.189.29'
-      }
-      {
-        ipAddressOrRange: '52.226.99.134'
-      }
-      {
-        ipAddressOrRange: '52.226.99.209'
-      }
-      {
-        ipAddressOrRange: '52.226.99.242'
-      }
-      {
-        ipAddressOrRange: '52.191.99.38'
-      }
-      {
-        ipAddressOrRange: '52.226.100.78'
-      }
-      {
-        ipAddressOrRange: '52.226.100.110'
-      }
-      {
-        ipAddressOrRange: '52.226.100.182'
-      }
-      {
-        ipAddressOrRange: '52.226.101.48'
-      }
-      {
-        ipAddressOrRange: '52.226.101.73'
-      }
-      {
-        ipAddressOrRange: '52.226.101.85'
-      }
-      {
-        ipAddressOrRange: '52.226.101.228'
-      }
-      {
-        ipAddressOrRange: '52.226.102.12'
-      }
-      {
-        ipAddressOrRange: '52.226.102.146'
-      }
-      {
-        ipAddressOrRange: '52.151.243.222'
-      }
-      {
-        ipAddressOrRange: '52.226.103.13'
-      }
-      {
-        ipAddressOrRange: '52.226.103.16'
-      }
-      {
-        ipAddressOrRange: '52.226.103.215'
-      }
-      {
-        ipAddressOrRange: '52.224.133.159'
-      }
-      {
-        ipAddressOrRange: '52.249.240.7'
-      }
-      {
-        ipAddressOrRange: '52.249.241.81'
-      }
-      {
-        ipAddressOrRange: '52.249.241.150'
-      }
-      {
-        ipAddressOrRange: '52.249.241.156'
-      }
-      {
-        ipAddressOrRange: '52.249.241.206'
-      }
-      {
-        ipAddressOrRange: '52.188.94.243'
-      }
-      {
-        ipAddressOrRange: '52.249.241.252'
-      }
-      {
-        ipAddressOrRange: '52.249.242.105'
-      }
-      {
-        ipAddressOrRange: '20.49.104.46'
-      }
-      {
-        ipAddressOrRange: '8.9.81.236'
-      }
-        
-    ]
-    backupPolicy: {
-      type: 'Periodic'
-      periodicModeProperties: {
-        backupIntervalInMinutes: 240
-        backupRetentionIntervalInHours: 8
-        backupStorageRedundancy: 'Geo'
-      }
+    consistencyPolicy: {
+      defaultConsistencyLevel: 'Session'
     }
-   }
+    publicNetworkAccess: 'Enabled' // Enable public access for VNet Service Endpoints
+    isVirtualNetworkFilterEnabled: true
+    virtualNetworkRules: [
+      {
+        id: subnet.id
+        ignoreMissingVNetServiceEndpoint: false
+      }
+    ]
+    ipRules: !empty(myPublicIp) ? [
+      {
+        ipAddressOrRange: myPublicIp
+      }
+    ] : []
+    enableFreeTier: false
+  }
 }
-resource getOrganizedDatabase 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases@2022-08-15' = {
-  parent: cosmosGremlinAccount
-  name: 'GetOrganized-Db'
+
+resource cosmosDbDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2021-10-15' = {
+  parent: cosmosDbAccount
+  name: databaseName
   properties: {
     resource: {
-      id: 'GetOrganized-Db'
+      id: databaseName
     }
   }
 }
-resource getOrganizedGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabases/graphs@2022-08-15' = {
-  parent: getOrganizedDatabase
-  name: 'GetOrganized-graph'
+
+resource cosmosDbContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2021-10-15' = {
+  parent: cosmosDbDatabase
+  name: cosmosContainerName
   properties: {
     resource: {
-      id: 'GetOrganized-graph'
+      id: cosmosContainerName
+      partitionKey: {
+        paths: ['/partitionKey'] // Define the partition key path
+        kind: 'Hash'
+      }
       indexingPolicy: {
         indexingMode: 'consistent'
         automatic: true
@@ -171,22 +105,17 @@ resource getOrganizedGraph 'Microsoft.DocumentDB/databaseAccounts/gremlinDatabas
           }
         ]
       }
-      partitionKey: {
-        paths: [
-          '/name'
-        ]
-        kind: 'Hash'
-      }
-      uniqueKeyPolicy: {
-        uniqueKeys: []
-      }
-      conflictResolutionPolicy: {
-        mode: 'LastWriterWins'
-        conflictResolutionPath: '/_ts'
-      }
     }
   }
 }
 
-output cosmosResourceId string = cosmosGremlinAccount.id
-output cosmosApiVersion string = cosmosGremlinAccount.apiVersion
+resource adminKey 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
+  parent: keyVault
+  name: keyVaultKeys.COSMOS_CONNECTION
+  properties: {
+    value: cosmosDbAccount.listConnectionStrings().connectionStrings[0].connectionString
+  }
+}
+
+output cosmosDbAccountName string = cosmosDbAccount.name
+output cosmosDbDatabaseName string = cosmosDbDatabase.name

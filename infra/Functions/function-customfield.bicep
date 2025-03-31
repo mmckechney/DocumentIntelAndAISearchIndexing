@@ -20,11 +20,13 @@ param azureOpenAiEmbeddingMaxTokens int = 8091
 param openAiChatModel string
 
 param aiSearchEndpoint string
-
+param cosmosDbName string
+param cosmosContainerName string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
 var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
 var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY}/)'
 var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.APIM_SUBSCRIPTION_KEY}/)' 
@@ -65,6 +67,18 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
       netFrameworkVersion: 'v8.0'
       remoteDebuggingEnabled: false
       appSettings: [
+        {
+          name:configKeys.COSMOS_CONNECTION
+          value: cosmosKvReference
+        }
+        {
+          name : configKeys.COSMOS_DB_NAME 
+          value: cosmosDbName
+        }
+        {
+          name : configKeys.COSMOS_CONTAINER_NAME 
+          value: cosmosContainerName
+        }
         {
           name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer
@@ -116,6 +130,10 @@ resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
         {
           name: configKeys.SERVICEBUS_CONNECTION
           value: sbConnKvReference
+        }
+        {
+          name: configKeys.SERVICEBUS_DOC_QUEUE_NAME
+          value: 'customfield-docs'
         }
         {
           name: configKeys.SERVICEBUS_CUSTOMFIELD_QUEUE_NAME

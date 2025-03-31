@@ -1,4 +1,5 @@
-﻿using HighVolumeProcessing.UtilityLibrary; 
+﻿using HighVolumeProcessing.UtilityLibrary;
+using Microsoft.Azure.Amqp.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -48,6 +49,7 @@ namespace HighVolumeProcessing.ProcessedFileMover
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
          services.AddSingleton<Settings>();
+         services.AddSingleton<CosmosDbHelper>();
          services.AddHttpClient();
          services.AddApplicationInsightsTelemetryWorkerService();
 

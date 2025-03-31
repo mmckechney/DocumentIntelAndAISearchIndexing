@@ -12,10 +12,13 @@ param documentStorageContainer string
 param processResultsContainer string
 param completedContainer string
 param appInsightsName string
+param cosmosDbName string
+param cosmosContainerName string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
 var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
 
 
@@ -57,6 +60,18 @@ resource moveFunction 'Microsoft.Web/sites@2021-01-01' = {
       netFrameworkVersion: 'v8.0'
       remoteDebuggingEnabled: false
       appSettings: [
+        {
+          name:configKeys.COSMOS_CONNECTION
+          value: cosmosKvReference
+        }
+        {
+          name : configKeys.COSMOS_DB_NAME 
+          value: cosmosDbName
+        }
+        {
+          name : configKeys.COSMOS_CONTAINER_NAME 
+          value: cosmosContainerName
+        }
         {
           name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer

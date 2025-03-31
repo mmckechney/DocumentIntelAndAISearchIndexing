@@ -21,6 +21,46 @@ namespace HighVolumeProcessing.UtilityLibrary
       public const string VectorSearchProfileName = "vectorSearch";
       private const string defaultAiIndexName = "general";
 
+      private string _cosmosDbConnectionString = string.Empty;
+      public string CosmosDbConnectionString
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_cosmosDbConnectionString))
+            {
+               _cosmosDbConnectionString = GetSettingsValue(ConfigKeys.COSMOS_CONNECTION);
+            }
+            return _cosmosDbConnectionString;
+         }
+      }
+
+      private string _cosmosDbName = string.Empty;
+      public string CosmosDbName
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_cosmosDbName))
+            {
+               _cosmosDbName = GetSettingsValue(ConfigKeys.COSMOS_DB_NAME);
+            }
+            return _cosmosDbName;
+         }
+      }
+
+
+      private string _cosmosConstainerName = string.Empty;
+      public string CosmosConstainerName
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_cosmosConstainerName))
+            {
+               _cosmosConstainerName = GetSettingsValue(ConfigKeys.COSMOS_CONTAINER_NAME);
+            }
+            return _cosmosConstainerName;
+         }
+      }
+
       private string _aiSearchEndpoint = string.Empty;
       public string AiSearchEndpoint
       {
