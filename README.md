@@ -20,27 +20,31 @@ This solution leverages the following Azure services:
 - **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - the Azure AI Service API that will perform the semantic embedding calculations of the extracted text.
 - **[Azure API Management](https://learn.microsoft.com/en-us/azure/api-management/)** - used to load balance across multiple Azure OpenAI instances
 - **[Azure AI Search](https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search)** - the Azure AI Service that will index the extracted text for search and analysis.
+
 - **[Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction)** with three containers
   - `documents` - starting location to perform your bulk upload of documents to be processed
   - `processresults`  - the extracted text output from the Document Intelligence service
   - `completed` - location where the original documents are moved to once successfully processed by Document Intelligence
-- **[Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/)** with three queues
+four
+- **[Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/)** with four queues
   - `docqueue` - this contains the messages for the files that need to be processed by the Document Intelligence service
+  - `customfieldqueue` - this contains messages for the files that need to have custom field extraction compelted
   - `toindexqueue` - this contains the messages for the files that have been processed by the Document Intelligence service and the reults are ready to be indexed by Azure AI Search
-  - `processedqueue` - this contains the messages for the files that have been processed by the Document Intelligence service and are ready to be moved to the `completed` blob container
+  - `movequeue` - this contains the messages for the files that have been processed by the Document Intelligence service and are ready to be moved to the `completed` blob container
 - **[Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-overview?pivots=programming-language-csharp)**
   - `DocumentQueueing` - identifies the files in the `document` blob container and send a claim check message (containing the file name) to the `docqueue` queue. This function is triggered by an HTTP call, but could also be modified to use a Blob Trigger
-  - `DocumentIntelligence` - processes the message in `docqueue` to Document Intelligence, then updates Blob metadata as "processed" and create new message in `toindexqueue` and `processedqueue` \
+  - `DocumentIntelligence` - processes the message in `docqueue` to Document Intelligence, then updates Blob metadata as "processed" and create new message in `customfieldqueue` \
     This function employs scale limiting and [Polly](https://github.com/App-vNext/Polly) retries with back off for Document Intelligence (too many requests) replies to balance maximum throughput and overloading the API endpoint
-  - `AiSearcIndexing` - processes messages in the `toindexqueue` to get embeddings of the extracted text from Azure Open AI and saves those embeddings to Azure AI Search
-  - `FileMover` - processes messages in the `processedqueue` to move files from `document` to `completed` blob
+  - `CustomFieldExtraction` - processes messages in the `customfieldqueue` to use Azure Open AI to extract custom fields based on the `AzureUtilities/Prompts/ExtractCustomFields.yaml` prompt description. Once complete, create new message in `toindexqueue`
+  - `AiSearchIndexing` - processes messages in the `toindexqueue` to get embeddings of the extracted text from Azure Open AI and saves those embeddings to Azure AI Search.  Once complete, create new message in `movequeue`
+  - `FileMover` - processes messages in the `movequeue` to move files from `document` to `completed` blob containers
   - `AskQuestions` - simple HTTP function to demonstrate RAG retrieval by allowing you to ask questions on the indexed documents
 
 ### Multiple Document Intelligence endpoints
 
 To further allow for high throughput, the `DocumentIntelligence` function can distribute processing between 1-10 separate Document Intelligence accounts. This is managed by the `docqueue` funtion automatically adding a `RecognizerIndex` value of 0-9 when queueing the files for processing. 
 
-The DocumentIntelligence function will distribute the files to the appropriate account (regardless of the number of Document Intelligence accounts actually provisioned). 
+The DocumentIntelligence function will distribute the files to the appropriate account (regardless of the number of Document Intelligence accounts actually provisioned).
 
 To configure multiple Document Intelligence accounts with the script below, add a value between 1-10 for the `-docIntelligenceInstanceCount` (default is 1). To configure manually, you will need to add all of the Document Intelligence account keys to the Azure Key Vault's `DOCUMENT-INTELLIGENCE-KEY` secret -- _pipe separated_
 
