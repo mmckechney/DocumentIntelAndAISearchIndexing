@@ -1,4 +1,4 @@
-# High Throughput Azure AI Document Intelligence with AI Search Indexing
+# High Volume Azure AI Document Intelligence with AI Search Indexing
 
 This repository is offered to demonstrate a set of resources that will allow you to leverage [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/?view=doc-intel-4.0.0) for high throughput of processing documents stored in Azure Blob Storage to extract text. It then utilized Semantic Kernel, Azure OpenAI and Azure AI Search to index the contents of these documents. The solution can be used to process documents in a variety of formats, including Office documents, PDF, PNG, and JPEG.
 
