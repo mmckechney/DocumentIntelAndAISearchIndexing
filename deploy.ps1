@@ -1,6 +1,8 @@
 #az login
 param
 (
+	[ValidateSet('Full', 'InfraOnly','CodeOnly', 'SettingsOnly')]
+	[string] $deployAction = 'Full',
 	[Parameter(Mandatory=$true)]
     [string] $appName,
 	[Parameter(Mandatory=$true)]
@@ -11,8 +13,6 @@ param
 	[Parameter(Mandatory=$true)]
 	[ValidateSet('round-robin', 'priority')]
 	[string] $loadBalancingType = 'priority',
-	[ValidateSet('Full', 'CodeOnly', 'SettingsOnly')]
-	[string] $deployAction = 'Full',
 	[string] $aiIndexName = 'general',
 	[ValidateSet('Basic', 'Standard', 'Premium')]
 	[string] $serviceBusSku = 'Standard',
@@ -49,9 +49,8 @@ Write-Host "Current User Object Id: $currentUserObjectId" -ForegroundColor Green
 
 if(!$?){ exit }
 
-if($deployAction-eq "Full")
+if($deployAction-eq "Full" -or $deployAction -eq "InfraOnly")
 {
-
 	if($loadBalancingType -eq "priority")
 	{
 		Write-Host "Building priority load balancing policy" -ForegroundColor DarkCyan
@@ -139,7 +138,7 @@ $functionApps = @(
 	
 )
 
-if($deployAction -eq "Full" -or $deployAction -eq "CodeOnly")
+if(($deployAction -eq "Full" -or $deployAction -eq "CodeOnly") -and $deployAction -ne "InfraOnly" )
 {
 	$functionApps | ForEach-Object {
 		$functionName = $_.name
@@ -178,42 +177,44 @@ if($deployAction -eq "Full" -or $deployAction -eq "CodeOnly")
 
 }
 
+if($deployAction -ne "InfraOnly" )
+{
+	$functionApps | ForEach-Object {
+		$functionName = $_.name
+		$functionPath = $_.projectPath
+		$port = $_.localPort
 
-$functionApps | ForEach-Object {
-	$functionName = $_.name
-	$functionPath = $_.projectPath
-	$port = $_.localPort
 
-
-	Write-Host ""
-	Write-Host "Creating local settings file for $functionPath folder" -ForegroundColor DarkCyan
-	Push-Location -Path $functionPath
-		$appSettings = az functionapp config appsettings list -n $functionName -g $resourceGroupName
-		$jsonObject = $appSettings | ConvertFrom-Json  
-	  
-		# Create a new object for the output format  
-		$outputObject = @{  
-			IsEncrypted = $false  
-			Values = @{} 
-			Host = @{  
-				"LocalHttpPort" = $port  
-			}
-		}  
-	  
-		# Loop through each item in the JSON array and add it to the 'Values' dictionary  
-		foreach ($item in $jsonObject) {  
-			$outputObject.Values[$item.name] = $item.value  
-		}  
-
-		# Convert the output object to JSON  
-		$jsonOutput = $outputObject | ConvertTo-Json -Depth 100  
+		Write-Host ""
+		Write-Host "Creating local settings file for $functionPath folder" -ForegroundColor DarkCyan
+		Push-Location -Path $functionPath
+			$appSettings = az functionapp config appsettings list -n $functionName -g $resourceGroupName
+			$jsonObject = $appSettings | ConvertFrom-Json  
 		
-		# Write the output JSON to a file  
-		$jsonOutputPath = 'local.settings.json'  
-		$jsonOutput | Set-Content -Path $jsonOutputPath  
+			# Create a new object for the output format  
+			$outputObject = @{  
+				IsEncrypted = $false  
+				Values = @{} 
+				Host = @{  
+					"LocalHttpPort" = $port  
+				}
+			}  
 		
-		Write-Host "Local settings file created for $functionPath folder" -ForegroundColor DarkCyan
-	Pop-Location
-	if(!$?){ exit }
+			# Loop through each item in the JSON array and add it to the 'Values' dictionary  
+			foreach ($item in $jsonObject) {  
+				$outputObject.Values[$item.name] = $item.value  
+			}  
+
+			# Convert the output object to JSON  
+			$jsonOutput = $outputObject | ConvertTo-Json -Depth 100  
+			
+			# Write the output JSON to a file  
+			$jsonOutputPath = 'local.settings.json'  
+			$jsonOutput | Set-Content -Path $jsonOutputPath  
+			
+			Write-Host "Local settings file created for $functionPath folder" -ForegroundColor DarkCyan
+		Pop-Location
+		if(!$?){ exit }
+	}
 }
 

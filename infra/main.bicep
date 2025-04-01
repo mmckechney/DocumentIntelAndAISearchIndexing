@@ -131,6 +131,8 @@ module cosmosDb 'core/cosmos.bicep' = {
 		databaseName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
 		cosmosDbAccountName: cosmosDbAccountName
+		functionSubnetId: networking.outputs.functionSubnetId
+		apimSubnetId: networking.outputs.apimSubnetId
 		location: location
 		keyVaultName: keyvaultName
 		vnetName: vnet
@@ -139,7 +141,6 @@ module cosmosDb 'core/cosmos.bicep' = {
 	}
 	dependsOn: [
 		keyvault
-		networking
 	]
 }
 module networking 'core/networking.bicep' = {

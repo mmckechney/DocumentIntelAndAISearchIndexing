@@ -18,6 +18,8 @@ param vnetName string
 param subnetName string
 
 param myPublicIp string = ''
+param functionSubnetId string
+param apimSubnetId string
 
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
@@ -59,6 +61,14 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
     virtualNetworkRules: [
       {
         id: subnet.id
+        ignoreMissingVNetServiceEndpoint: false
+      }
+      {
+        id: functionSubnetId
+        ignoreMissingVNetServiceEndpoint: false
+      }
+      {
+        id: apimSubnetId
         ignoreMissingVNetServiceEndpoint: false
       }
     ]

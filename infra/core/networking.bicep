@@ -51,6 +51,10 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
                 location
               ]
             }
+            {
+              service: 'Microsoft.AzureCosmosDB'
+              locations: ['*']
+            }
           ]
           networkSecurityGroup: {
             id: networkSecurityGroup.id
@@ -83,6 +87,10 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
             }
             {
               service: 'Microsoft.Storage'
+              locations: ['*']
+            }
+            {
+              service: 'Microsoft.AzureCosmosDB'
               locations: ['*']
             }
           ]
