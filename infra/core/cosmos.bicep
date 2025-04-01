@@ -88,7 +88,7 @@ resource cosmosDbContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/c
     resource: {
       id: cosmosContainerName
       partitionKey: {
-        paths: ['/partitionKey'] // Define the partition key path
+        paths: ['/id'] // Define the partition key path
         kind: 'Hash'
       }
       indexingPolicy: {

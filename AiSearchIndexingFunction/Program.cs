@@ -50,6 +50,7 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
          services.AddSingleton<Settings>();
+         services.AddSingleton<Tracker<AiSearchIndexing>>();
          services.AddSingleton<CosmosDbHelper>();
          services.AddHttpClient();
 

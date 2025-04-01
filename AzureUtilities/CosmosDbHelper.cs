@@ -16,6 +16,7 @@ namespace HighVolumeProcessing.UtilityLibrary
       private Settings settings;
       private CosmosClient? _client;
       private Container? _container;
+      private Database? _database;
       public CosmosDbHelper(ILogger<CosmosDbHelper> log, IConfiguration config, Settings settings)
       {
          this.log = log;
@@ -25,22 +26,49 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       
       
-      public CosmosClient Client
+      internal CosmosClient Client
       {
          get
          {
             if (_client == null)
             {
-               var connectionString = settings.CosmosDbConnectionString;
-               _client = new CosmosClient(connectionString);
+               try
+               {
+                  var connectionString = settings.CosmosDbConnectionString;
+                  _client = new CosmosClient(connectionString);
+               }
+               catch(Exception ex)
+               {
+                  log.LogError($"Issue creating CosmosClient: {ex.Message}");
+               }
             }
             return _client;
          }
       }
 
       
+      internal Database Database
+      {
+         get
+         {
+            if (_database == null)
+            {
+               try
+               {
+                  _database = Client.CreateDatabaseIfNotExistsAsync(settings.CosmosDbName).GetAwaiter().GetResult();
+               }
+               catch (Exception ex)
+               {
+                  log.LogError($"Issue creating Cosmos Database: {ex.Message}");
+               }
+            }
+            return _database;
+         }
+      }
 
-      public Container CosmosContainer
+
+
+      internal Container CosmosContainer
       {
          get
          {
@@ -48,13 +76,13 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                try
                {
-                  var database = Client.CreateDatabaseIfNotExistsAsync(settings.CosmosDbName).GetAwaiter().GetResult();
-                  var container = database.Database.CreateContainerIfNotExistsAsync(settings.CosmosConstainerName, "/id").GetAwaiter().GetResult();
+                  
+                  var container = Database.CreateContainerIfNotExistsAsync(settings.CosmosConstainerName, "/id").GetAwaiter().GetResult();
                   _container = container;
                }
                catch (Exception ex)
                {
-                  log.LogError(ex, "Error creating Cosmos DB container");
+                  log.LogError($"Issue creating Cosmos Container: {ex.Message}");
                   throw;
                }
             }
@@ -63,21 +91,50 @@ namespace HighVolumeProcessing.UtilityLibrary
       }
 
 
-      public async Task<ItemResponse<hpM.FileQueueMessage>> UpsertItemAsync(string databaseName, string containerName, hpM.FileQueueMessage item)
+      internal async Task<hpM.FileQueueMessage> UpsertRecord(hpM.FileQueueMessage item)
       {
          try
          {
-            if(item.Id == null)
+            if (string.IsNullOrWhiteSpace(item.id))
             {
-               item.Id = Guid.NewGuid().ToString();
+               item.id = Guid.NewGuid().ToString();
+               var response = await CosmosContainer.UpsertItemAsync(item);
+               return response.Resource;
             }
-            var response = await CosmosContainer.UpsertItemAsync(item);
-            return response;
+            else
+            {
+               var retrieved = await GetTrackingRecord(item);
+               retrieved.UpdateFromMessage(item);
+               var response = await CosmosContainer.UpsertItemAsync(retrieved);
+               return response.Resource;
+            }
+
          }
          catch (Exception ex)
          {
-            log.LogError(ex, "Error creating item in Cosmos DB");
-            throw;
+            log.LogError($"Error upserting tracking record for {item.ToString()}. [{ex.Message}]");
+            return item; ;
+         }
+      }
+
+
+      internal async Task<hpM.FileQueueMessage> GetTrackingRecord(hpM.FileQueueMessage item)
+      {
+         try
+         {
+            //retrieve item from cosmos
+
+            if(item.id == null) {
+               item.id = Guid.NewGuid().ToString();
+            }
+            var response = await CosmosContainer.ReadItemAsync<hpM.FileQueueMessage>(item.id, new PartitionKey(item.id));
+            return response.Resource;
+         
+         }
+         catch (Exception ex)
+         {
+            log.LogError($"Error retrieving Tracking information for {item.ToString()}. ({ex.Message})");
+            return item;
          }
       }
    }

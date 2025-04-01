@@ -109,7 +109,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       public async Task<string> AskQuestion(string question, string documentContent)
       {
-         if (!initCalled) InitKernel();
+         if (kernel == null) InitKernel();
          log.LogInformation("Asking question about document...");
          var result = await kernel.InvokeAsync("YAMLPlugins", "AskQuestions", new() { { "question", question }, { "content", documentContent } });
          return result.GetValue<string>();
@@ -117,7 +117,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       public async IAsyncEnumerable<string> AskQuestionStreaming(string question, string documentContent)
       {
-         if (!initCalled) InitKernel();
+         if (kernel == null) InitKernel();
          log.LogDebug("Asking question about document...");
          var result = kernel.InvokeStreamingAsync("YAMLPlugins", "AskQuestions", new() { { "question", question }, { "content", documentContent } });
          await foreach (var item in result)
@@ -128,13 +128,12 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       public async Task<CustomFields?> ExtractCustomField(string documentContent)
       {
-         if (!initCalled) InitKernel();
+         if (kernel == null) InitKernel();
          var chunked = TextChunker.SplitPlainTextParagraphs(documentContent.Split('\n'), settings.EmbeddingMaxTokens);
          string customFieldsString;
          CustomFields? customFieldsObj = new();
          try
          {
-            if (!initCalled) InitKernel();
             foreach (var chunk in chunked)
             {
                log.LogInformation("Extracting custom fields from document...");
@@ -172,7 +171,7 @@ namespace HighVolumeProcessing.UtilityLibrary
       {
          try
          {
-            if (!initCalled) InitKernel();
+            if (kernel == null) InitKernel();
             log.LogInformation($"Getting embedding for {fileName}...");
 
             var embeddings = (await this.TextEmbeddingGenerationService.GenerateEmbeddingsAsync(content))

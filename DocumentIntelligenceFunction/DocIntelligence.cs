@@ -24,23 +24,24 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
       private StorageHelper storageHelper;
       private ServiceBusHelper serviceBusHelper;
       private Settings settings;
-
-      public DocIntelligence(ILogger<DocIntelligence> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings)
+      private Tracker<DocIntelligence> tracker;
+      public DocIntelligence(ILogger<DocIntelligence> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<DocIntelligence> tracker)
       {
          this.log = logger;
          this.storageHelper = storageHelper;
          this.serviceBusHelper = serviceBusHelper;
          
          this.settings = settings;
+         this.tracker = tracker;
       }
 
 
       [Function("DocIntelligence")]
       public async Task Run([ServiceBusTrigger("%SERVICEBUS_DOC_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
       {
+         var fileMessage = message.As<FileQueueMessage>();
          try
          {
-            var fileMessage = message.As<FileQueueMessage>();
             log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
 
             bool success = await ProcessMessage(fileMessage);
@@ -52,6 +53,7 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
          catch (Exception exe)
          {
             log.LogError(exe.ToString());
+            await tracker.TrackAndUpdate(fileMessage, $"Failure in DocIntelligence: {exe.Message}");
             throw;
 
          }
@@ -62,6 +64,7 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
 
          try
          {
+            fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
             var uri = GetSourceFileUrl(fileMessage.SourceFileName);
             var recogOutput = await ProcessDocumentIntelligence(uri, fileMessage.RecognizerIndex);
             if (recogOutput == null)
@@ -83,8 +86,12 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
 
             fileMessage.CloneWithOverrides(containerName: settings.ProcessResultsContainerName, processedFileName: processResultsFileName).AsMessage();
 
-            var sbMessage = fileMessage.CloneWithOverrides(containerName: settings.ProcessResultsContainerName, processedFileName: processResultsFileName).AsMessage();
+            var newMsg = fileMessage.CloneWithOverrides(containerName: settings.ProcessResultsContainerName, processedFileName: processResultsFileName);
+            newMsg = await tracker.TrackAndUpdate(newMsg, $"Sending to {settings.CustomFieldQueueName}");
+
+            var sbMessage = newMsg.AsMessage();
             await serviceBusHelper.SendMessageAsync(settings.CustomFieldQueueName, sbMessage);
+            newMsg = await tracker.TrackAndUpdate(newMsg, $"Sent to {settings.CustomFieldQueueName}");
 
             return true;
          }

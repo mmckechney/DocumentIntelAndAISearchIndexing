@@ -14,15 +14,17 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
    public class DocumentQueueing
    {
       private readonly ILogger<DocumentQueueing> logger;
+      Tracker<DocumentQueueing> tracker;
       private StorageHelper storageHelper;
       private ServiceBusHelper serviceBusHelper;
       private Settings settings;
-      public DocumentQueueing(ILogger<DocumentQueueing> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings)
+      public DocumentQueueing(ILogger<DocumentQueueing> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<DocumentQueueing> tracker)
       {
          this.logger = logger;
          this.storageHelper = storageHelper;
          this.serviceBusHelper = serviceBusHelper;
          this.settings = settings;
+         this.tracker = tracker;
       }
 
       [Function("DocumentQueueing")]
@@ -80,10 +82,12 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
                if (counter > 9) counter = 0;
                logger.LogDebug($"Found file  {blob.Name}");
 
-               var sbMessage = new FileQueueMessage() { SourceFileName = blob.Name, ContainerName = containerClient.Name, RecognizerIndex = counter }.AsMessage();
-
+               var fileMsg = new FileQueueMessage() { SourceFileName = blob.Name, ContainerName = containerClient.Name, RecognizerIndex = counter };
+               fileMsg = await tracker.TrackAndUpdate(fileMsg, $"Sending to {settings.DocumentQueueName}");
+               var sbMessage = fileMsg.AsMessage();
                await serviceBusHelper.SendMessageAsync(settings.DocumentQueueName, sbMessage);
 
+               fileMsg = await tracker.TrackAndUpdate(fileMsg, $"Sent to {settings.DocumentQueueName}");
                logger.LogInformation($"Queued file {blob.Name} for processing from storage container '{containerClient.Name}' ");
                fileCounter++;
                counter++;

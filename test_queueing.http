@@ -7,7 +7,7 @@ Content-Type: application/json
 
 {
   "question": "please summarize this document with a few sentences and a bulleted list",
-  "customField": "ABC-20231010-001",
-  "filename": ""
+  "customField": "",
+  "filename": "ABC Trucking"
 }
 

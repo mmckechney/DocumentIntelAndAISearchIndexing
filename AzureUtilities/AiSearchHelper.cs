@@ -99,16 +99,18 @@ namespace HighVolumeProcessing.UtilityLibrary
          var andS = customFieldQuery.Length > 0 ? " and " : string.Empty;
          if (!string.IsNullOrEmpty(fileName))
          {
-            customFieldQuery += $"{andS} FileName eq '{fileName}'";
+            customFieldQuery += $"{andS} search.ismatch('{fileName}', 'FileName')";
          }
 
+         log.LogDebug($"Custom field query: {customFieldQuery}");
+         
          // Create the search options  
          var options = new SearchOptions
          {
             Filter = customFieldQuery,
             IncludeTotalCount = true
          };
-
+ 
          List<CustomFieldIndexModel> values = new();
          // Perform the search  
          SearchResults<CustomFieldIndexModel> response = await searchClient.SearchAsync<CustomFieldIndexModel>(query, options);

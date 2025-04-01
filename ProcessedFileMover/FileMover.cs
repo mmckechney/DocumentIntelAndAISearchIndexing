@@ -15,11 +15,13 @@ namespace HighVolumeProcessing.ProcessedFileMover
       private readonly ILogger<FileMover> log;
       private StorageHelper storageHelper;
       private Settings settings;
-      public FileMover(ILogger<FileMover> logger, StorageHelper storageHelper, Settings settings)
+      private Tracker<FileMover> tracker;
+      public FileMover(ILogger<FileMover> logger, StorageHelper storageHelper, Settings settings, Tracker<FileMover> tracker)
       {
          this.log = logger;
          this.storageHelper = storageHelper;
          this.settings = settings;
+         this.tracker = tracker;
       }
 
       [Function("FileMover")]
@@ -28,19 +30,22 @@ namespace HighVolumeProcessing.ProcessedFileMover
          var fileMessage = message.As<FileQueueMessage>();
          log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
 
-         bool success = await MoveOriginalFileToProcessed(fileMessage.SourceFileName);
+         await tracker.TrackAndUpdate(fileMessage, "Moving original file");
+         bool success = await MoveOriginalFileToCompleted(fileMessage.SourceFileName);
          if (success)
          {
             log.LogInformation($"Successfully move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
+            await tracker.TrackAndUpdate(fileMessage, "Successfully moved original file");
          }
          else
          {
             log.LogInformation($"Failed move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
+            await tracker.TrackAndUpdate(fileMessage, "Failed to move original file");
          }
 
       }
 
-      public async Task<bool> MoveOriginalFileToProcessed(string sourceFileName)
+      public async Task<bool> MoveOriginalFileToCompleted(string sourceFileName)
       {
          try
          {
@@ -84,7 +89,7 @@ namespace HighVolumeProcessing.ProcessedFileMover
              new ParallelOptions() { MaxDegreeOfParallelism = 20 },
              async (blobName, cancelationToken) =>
              {
-                bool success = await MoveOriginalFileToProcessed(blobName);
+                bool success = await MoveOriginalFileToCompleted(blobName);
                 if (success)
                 {
                    log.LogInformation($"Successfully moved file '{blobName}'");

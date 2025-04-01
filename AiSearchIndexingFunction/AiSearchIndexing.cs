@@ -18,7 +18,8 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
       private AiSearchHelper aiSearchHelper;
       Settings settings;
       ServiceBusHelper serviceBusHelper;
-      public AiSearchIndexing(ILogger<AiSearchIndexing> logger, SkHelper semanticUtility, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, AiSearchHelper aiSearchHelper, Settings settings)
+      Tracker<AiSearchIndexing> tracker;
+      public AiSearchIndexing(ILogger<AiSearchIndexing> logger, SkHelper semanticUtility, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, AiSearchHelper aiSearchHelper, Settings settings, Tracker<AiSearchIndexing> tracker)
       {
          log = logger;
          this.semanticUtility = semanticUtility;
@@ -26,15 +27,16 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
          this.aiSearchHelper = aiSearchHelper;
          this.settings = settings;
          this.serviceBusHelper = serviceBusHelper;
+         this.tracker = tracker;
 
       }
 
       [Function("AiSearchIndexing")]
       public async Task Run([ServiceBusTrigger("%SERVICEBUS_TOINDEX_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
       {
+         var fileMessage = message.As<FileQueueMessage>();
          try
          {
-            var fileMessage = message.As<FileQueueMessage>();
             log.LogInformation($"AiSearchIndexing triggered with message -- {fileMessage.ToString()}");
             bool success = await ProcessMessage(fileMessage);
             if (!success)
@@ -45,6 +47,7 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
          catch (Exception exe)
          {
             log.LogError(exe.Message);
+            tracker.TrackAndUpdate(fileMessage, $"Failure in AiSearchIndexing: {exe.Message}").Wait();
             throw;
 
          }
@@ -52,7 +55,7 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
       }
       public async Task<bool> ProcessMessage(FileQueueMessage fileMessage)
       {
-
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
          var contents = await storageHelper.GetFileContents(settings.ProcessResultsContainerName, fileMessage.ProcessedFileName);
          if (string.IsNullOrEmpty(contents))
          {
@@ -64,10 +67,13 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
 
          var chunked = TextChunker.SplitPlainTextParagraphs(contentLines, settings.EmbeddingMaxTokens);
 
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, "Adding to Index");
          bool success = await aiSearchHelper.AddToIndexAsync(fileMessage.CustomIndexFieldValues, chunked, fileMessage.ProcessedFileName);
 
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sending to {settings.MoveQueueName}");
          var sbMessage = fileMessage.CloneWithOverrides().AsMessage();
          await serviceBusHelper.SendMessageAsync(settings.MoveQueueName, sbMessage);
+         await tracker.TrackAndUpdate(fileMessage, $"Sent to {settings.MoveQueueName}");
 
          return success;
 

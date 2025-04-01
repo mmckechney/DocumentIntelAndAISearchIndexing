@@ -49,6 +49,7 @@ namespace HighVolumeProcessing.ProcessedFileMover
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
          services.AddSingleton<Settings>();
+         services.AddSingleton<Tracker<FileMover>>();
          services.AddSingleton<CosmosDbHelper>();
          services.AddHttpClient();
          services.AddApplicationInsightsTelemetryWorkerService();

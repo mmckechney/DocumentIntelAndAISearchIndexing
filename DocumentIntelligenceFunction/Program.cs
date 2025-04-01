@@ -49,6 +49,7 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
          services.AddSingleton<Settings>();
+         services.AddSingleton<Tracker<DocIntelligence>>();
          services.AddSingleton<CosmosDbHelper>();
          services.AddHttpClient();
          services.AddApplicationInsightsTelemetryWorkerService();

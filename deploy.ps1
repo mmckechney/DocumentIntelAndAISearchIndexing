@@ -90,8 +90,6 @@ if($deployAction-eq "Full")
 		exit
 	}
 
-exit
-
 	$outputObj = $output | ConvertFrom-Json -Depth 10
 	# Write-Host $outputObj -ForegroundColor Cyan
 	$resourceGroupName = $outputObj.properties.outputs.resourceGroupName.value
@@ -200,13 +198,6 @@ $functionApps | ForEach-Object {
 			Host = @{  
 				"LocalHttpPort" = $port  
 			}
-			Logging = @{  
-				"LogLevel" = @{  
-					"Default" = "Debug"  
-					"Host" = "Debug"  
-				}  
-			}
-
 		}  
 	  
 		# Loop through each item in the JSON array and add it to the 'Values' dictionary  

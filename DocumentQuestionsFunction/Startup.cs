@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace HighVolumeProcessing.DocumentQuestionsFunction
@@ -51,7 +52,6 @@ namespace HighVolumeProcessing.DocumentQuestionsFunction
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
          services.AddSingleton<Settings>();
-         services.AddSingleton<CosmosDbHelper>();
          services.AddHttpClient();
 
       }
