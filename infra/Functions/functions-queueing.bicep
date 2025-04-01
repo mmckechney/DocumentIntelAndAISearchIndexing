@@ -5,14 +5,18 @@ param functionStorageAcctName string
 param serviceBusNs string
 param formStorageAcctName string
 param queueFunctionName string
-param formQueueName string
+param docQueueName string
 param managedIdentityId string
-
+param keyVaultUri string
 param documentStorageContainer string
 param appInsightsName string
+param cosmosDbName string
+param cosmosContainerName string
 
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' existing = {
   name: appInsightsName
@@ -48,23 +52,35 @@ resource queueingFunction 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
         {
-          name: configKeys.DOCUMENT_SOURCE_CONTAINER_NAME
+          name:configKeys.COSMOS_CONNECTION
+          value: cosmosKvReference
+        }
+        {
+          name : configKeys.COSMOS_DB_NAME 
+          value: cosmosDbName
+        }
+        {
+          name : configKeys.COSMOS_CONTAINER_NAME 
+          value: cosmosContainerName
+        }
+        {
+          name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer
         }
         {
-          name: configKeys.DOCUMENT_STORAGE_ACCOUNT_NAME
+          name: configKeys.STORAGE_ACCOUNT_NAME
           value: formStorageAcctName
         }
         {
-          name: configKeys.SERVICE_BUS_NAMESPACE_NAME
+          name: configKeys.SERVICEBUS_NAMESPACE_NAME
           value: serviceBusNs
         }
         {
-          name: configKeys.SERVICE_BUS_QUEUE_NAME
-          value: formQueueName
+          name: configKeys.SERVICEBUS_DOC_QUEUE_NAME
+          value: docQueueName
         }
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'

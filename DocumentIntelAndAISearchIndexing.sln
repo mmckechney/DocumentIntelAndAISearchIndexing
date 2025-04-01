@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32210.308
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AzureUtilities", "AzureUtilities\AzureUtilities.csproj", "{F693BF9B-0161-43A8-AB02-01FA1B3745C8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UtilityLibrary", "AzureUtilities\UtilityLibrary.csproj", "{F693BF9B-0161-43A8-AB02-01FA1B3745C8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentIntelligenceFunction", "DocumentIntelligenceFunction\DocumentIntelligenceFunction.csproj", "{9C1EE723-B68C-43F5-8208-799641570737}"
 EndProject
@@ -21,6 +21,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DF045F00-9739-4BA0-BAAD-974ACCA1F640}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		test_queueing.http = test_queueing.http
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{950B2665-0C0C-4AEF-8CDC-854EC57550A2}"
@@ -32,6 +33,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AiSearchIndexingFunction", "AiSearchIndexingFunction\AiSearchIndexingFunction.csproj", "{FDA33053-11D3-4DC3-ADC5-4D0AFAB08BE2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentQuestionsFunction", "DocumentQuestionsFunction\DocumentQuestionsFunction.csproj", "{59F1ED21-97D2-45C2-9C08-90D247B9078B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomFieldExtractionFunction", "CustomFieldExtractionFunction\CustomFieldExtractionFunction.csproj", "{EBF14E70-995B-84F6-1994-31808CEC229D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,6 +66,10 @@ Global
 		{59F1ED21-97D2-45C2-9C08-90D247B9078B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59F1ED21-97D2-45C2-9C08-90D247B9078B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59F1ED21-97D2-45C2-9C08-90D247B9078B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EBF14E70-995B-84F6-1994-31808CEC229D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

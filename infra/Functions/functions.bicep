@@ -2,15 +2,17 @@ param funcAppPlan string
 param location string = resourceGroup().location
 param processFunctionName string
 param aiSearchIndexFunctionName string
+param customFieldFunctionName string
 param functionSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
-param processedQueueName string
+param moveQueueName string
 param serviceBusNs string
 param formStorageAcctName string
 param moveFunctionName string
 param queueFunctionName string
-param formQueueName string
+param customFieldQueueName string
+param docQueueName string
 param toIndexQueueName string
 param openAiEmbeddingModel string
 param aiSearchEndpoint string
@@ -21,9 +23,11 @@ param documentStorageContainer string
 param processResultsContainer string
 param completedContainer string
 param appInsightsName string
-param includeGeneralIndex bool = true
+param aiIndexName string
 param openAiChatModel string
 param askQuestionsFunctionName string
+param cosmosDbName string
+param cosmosContainerName string
 
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02'existing = {
@@ -46,22 +50,57 @@ module processFunction 'function-process.bicep' = {
     functionSubnetId: functionSubnetId
     functionStorageAcctName: functionStorageAcctName
     keyVaultUri: keyVaultUri
-    processedQueueName: processedQueueName
     serviceBusNs: serviceBusNs
     formStorageAcctName: formStorageAcctName
     documentStorageContainer: documentStorageContainer
     processResultsContainer: processResultsContainer
-    completedContainer: completedContainer
     managedIdentityId: managedIdentityId
     appInsightsName: appInsightsName
     funcAppPlan: funcAppPlan
-    toIndexQueueName: toIndexQueueName
+    customFieldQueueName: customFieldQueueName
+    docQueueName: docQueueName
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
     appInsights
   ]
 }
+
+
+module customFieldFunction 'function-customfield.bicep' = {
+  name: customFieldFunctionName
+  params: {
+    location: location
+    customFieldFunctionName: customFieldFunctionName
+    functionSubnetId: functionSubnetId
+    functionStorageAcctName: functionStorageAcctName
+    keyVaultUri: keyVaultUri
+    customFieldQueueName: customFieldQueueName
+    serviceBusNs: serviceBusNs
+    formStorageAcctName: formStorageAcctName
+    documentStorageContainer: documentStorageContainer
+    processResultsContainer: processResultsContainer
+    managedIdentityId: managedIdentityId
+    appInsightsName: appInsightsName
+    funcAppPlan: funcAppPlan
+    toIndexQueueName: toIndexQueueName
+    aiSearchEndpoint: aiSearchEndpoint
+    openAiEndpoint: openAiEndpoint
+    azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
+    openAiEmbeddingModel: openAiEmbeddingModel
+    openAiChatModel: openAiChatModel
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
+
+  }
+  dependsOn: [
+    functionAppPlan
+    appInsights
+  ]
+}
+
 module aiSearchFunction 'function-aisearch.bicep' = {
   name: aiSearchIndexFunctionName
   params: {
@@ -81,9 +120,11 @@ module aiSearchFunction 'function-aisearch.bicep' = {
     processResultsContainer: processResultsContainer
     serviceBusNs: serviceBusNs
     toIndexQueueName: toIndexQueueName
-    includeGeneralIndex: includeGeneralIndex
+    aiIndexName: aiIndexName
     openAiChatModel: openAiChatModel
-
+    moveQueueName: moveQueueName
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
@@ -106,7 +147,9 @@ module moveFunction 'function-move.bicep' = {
     processResultsContainer: processResultsContainer
     completedContainer: completedContainer
     documentStorageContainer: documentStorageContainer
-    processedQueueName: processedQueueName
+    moveQueueName: moveQueueName
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
@@ -126,8 +169,11 @@ module queueFunction 'functions-queueing.bicep' = {
     functionStorageAcctName: functionStorageAcctName
     functionSubnetId: functionSubnetId
     documentStorageContainer: documentStorageContainer
-    formQueueName: formQueueName
+    docQueueName: docQueueName
     serviceBusNs: serviceBusNs
+    keyVaultUri: keyVaultUri
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
   }
   dependsOn: [
     functionAppPlan
@@ -151,6 +197,8 @@ module askQuestions 'function-askquestions.bicep' = {
     functionStorageAcctName: functionStorageAcctName
     functionSubnetId: functionSubnetId
     openAiChatModel: openAiChatModel
+    cosmosDbName: cosmosDbName
+    cosmosContainerName:cosmosContainerName
 
   }
   dependsOn: [
@@ -165,6 +213,7 @@ output systemAssignedIdentities array = [
   moveFunction.outputs.systemAssignedIdentity
   queueFunction.outputs.systemAssignedIdentity
   askQuestions.outputs.systemAssignedIdentity
+  customFieldFunction.outputs.systemAssignedIdentity
 
   
 ]

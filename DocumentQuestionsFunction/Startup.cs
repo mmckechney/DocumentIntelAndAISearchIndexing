@@ -1,14 +1,13 @@
-﻿using Azure;
-using Azure.AI.FormRecognizer.DocumentAnalysis;
-using AzureUtilities;
+﻿using HighVolumeProcessing.UtilityLibrary; 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
-namespace DocumentQuestionsFunction
+namespace HighVolumeProcessing.DocumentQuestionsFunction
 {
    internal class Startup
    {
@@ -47,9 +46,12 @@ namespace DocumentQuestionsFunction
 
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
-         services.AddSingleton<SemanticUtility>();
-         services.AddSingleton<AiSearch>();
+         services.AddSingleton<SkHelper>();
+         services.AddSingleton<AiSearchHelper>();
          services.AddSingleton<Helper>();
+         services.AddSingleton<StorageHelper>();
+         services.AddSingleton<ServiceBusHelper>();
+         services.AddSingleton<Settings>();
          services.AddHttpClient();
 
       }

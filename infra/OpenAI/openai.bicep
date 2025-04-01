@@ -57,10 +57,10 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01
   parent: cognitiveServices
   name: deployment.name
   properties: {
-    model: contains(deployment, 'model') ? deployment.model : null
-    raiPolicyName: contains(deployment, 'raiPolicyName') ? deployment.raiPolicyName : null
+    model: deployment.?model ?? null
+    raiPolicyName: deployment.?raiPolicyName ?? null
   }
-  sku: contains(deployment, 'sku') ? deployment.sku : {
+  sku: deployment.?sku ?? {
     name: 'Standard'
     capacity: 20
   }

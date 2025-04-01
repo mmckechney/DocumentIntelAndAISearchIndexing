@@ -11,11 +11,13 @@ param azureOpenAiEmbeddingMaxTokens int = 8091
 param managedIdentityId string
 param openAiChatModel string
 param appInsightsName string
-
+param cosmosDbName string
+param cosmosContainerName string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
 var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY}/)'
 var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.APIM_SUBSCRIPTION_KEY}/)' 
 
@@ -52,8 +54,20 @@ resource askQuestions 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
+        {
+          name:configKeys.COSMOS_CONNECTION
+          value: cosmosKvReference
+        }
+        {
+          name : configKeys.COSMOS_DB_NAME 
+          value: cosmosDbName
+        }
+        {
+          name : configKeys.COSMOS_CONTAINER_NAME 
+          value: cosmosContainerName
+        }
         {
           name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
           value: storageConnectionString

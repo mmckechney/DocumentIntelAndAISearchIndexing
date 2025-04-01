@@ -1,7 +1,7 @@
 ﻿using Azure.Messaging.ServiceBus;
 using System.Text;
 using System.Text.Json;
-namespace AzureUtilities
+namespace HighVolumeProcessing.UtilityLibrary
 {
 
    public static class Extensions
@@ -21,6 +21,13 @@ namespace AzureUtilities
       public static bool Any(this IList<ServiceBusReceivedMessage> collection)
       {
          return collection != null && collection.Count > 0;
+      }
+      public static string CleanJson(this string obj)
+      {
+         if (string.IsNullOrWhiteSpace(obj)) return obj;
+
+         var tmp = obj.Replace("```json", "").Replace("```", "");
+         return tmp;
       }
    }
 }

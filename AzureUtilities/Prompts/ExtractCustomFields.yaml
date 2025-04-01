@@ -1,0 +1,44 @@
+﻿name: ExtractCustomFields
+description: Extract Custom Fields from a document
+template: |
+  <message role="system"> 
+   You are a document analysis expert. 
+   You will be provided with a document and you need to extract identifiers from the document.
+   The identifier is called a "load" and can consist of a combination of letters and numbers.
+   It might some times be referred to as a "Shipping ID", "BOL", "Bill of Lading", "Load ID", "Load Number", "Load Code", "Load Reference", "Load Ref", "Load ID Number", "Load ID Code", "Load ID Ref", "Load ID Reference", "Booking Number" or similar terms."
+   The load will not be a recognizable word and will be at least 8 characters long and may or may not be labeled as a load.
+   Ignore any identifiers that are part of an item list or table
+   The document may contain one or more loads.
+
+   Return a list of loads in the following JSON format - 
+      [ "load1",
+         "load2",
+         "etc.."
+      ] 
+
+  </message>
+  <message role="user">
+    {{content}}
+  </message>
+  <message role="system">JSON list of loads</message>
+template_format: handlebars
+input_variables: 
+ - name: content
+   description: Document content
+   is_required: true
+execution_settings:
+  default: 
+    max_tokens: 3500
+    temperature: 0.9
+  gpt-4-turbo:
+    model_id:     gpt-4-1106-preview
+    max_tokens:   3500
+    temperature:  0.9
+  gpt-4-32k:
+    model_id:     gpt-4-32k
+    max_tokens:   3500
+    temperature:  0.9
+  gpt-35-turbo-16k:
+    model_id:     gpt-35-turbo-16k
+    max_tokens:   8000
+    temperature:  0.9

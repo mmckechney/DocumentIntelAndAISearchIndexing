@@ -13,15 +13,19 @@ param openAiEndpoint string
 param azureOpenAiEmbeddingMaxTokens int = 8091
 param managedIdentityId string
 param openAiChatModel string
+param moveQueueName string
 
 param processResultsContainer string
 param appInsightsName string
-param includeGeneralIndex bool = true
+param aiIndexName string
+param cosmosDbName string
+param cosmosContainerName string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
-var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICE_BUS_CONNECTION}/)'
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
+var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
 var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY}/)'
 var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.APIM_SUBSCRIPTION_KEY}/)' 
 
@@ -58,26 +62,42 @@ resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
         {
-          name: configKeys.DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME
-          value: processResultsContainer
+          name:configKeys.COSMOS_CONNECTION
+          value: cosmosKvReference
         }
         {
-          name: configKeys.DOCUMENT_STORAGE_ACCOUNT_NAME
+          name : configKeys.COSMOS_DB_NAME 
+          value: cosmosDbName
+        }
+        {
+          name : configKeys.COSMOS_CONTAINER_NAME 
+          value: cosmosContainerName
+        }
+        {
+          name: configKeys.STORAGE_ACCOUNT_NAME
           value: formStorageAcctName
         }
         {
-          name: configKeys.SERVICE_BUS_CONNECTION
+          name: configKeys.SERVICEBUS_CONNECTION
           value: sbConnKvReference
         }
         {
-          name: configKeys.SERVICE_BUS_TOINDEX_QUEUE_NAME
+          name: configKeys.STORAGE_PROCESS_RESULTS_CONTAINER_NAME
+          value: processResultsContainer
+        }
+        {
+          name: configKeys.SERVICEBUS_TOINDEX_QUEUE_NAME
           value: toIndexQueueName
         }
         {
-          name: configKeys.SERVICE_BUS_NAMESPACE_NAME
+          name: configKeys.SERVICEBUS_MOVE_QUEUE_NAME
+          value: moveQueueName
+        }
+        {
+          name: configKeys.SERVICEBUS_NAMESPACE_NAME
           value: serviceBusNs
         }
         {
@@ -137,8 +157,8 @@ resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
           value: appInsights.properties.ConnectionString
         }
         {
-          name: configKeys.AZURE_AISEARCH_INCLUDE_GENERAL_INDEX
-          value: includeGeneralIndex ? 'true' : 'false'
+          name: configKeys.AZURE_AISEARCH_INDEX_NAME
+          value: aiIndexName
         }
         {
           name: configKeys.APIM_SUBSCRIPTION_KEY

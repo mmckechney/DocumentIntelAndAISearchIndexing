@@ -15,7 +15,7 @@ param chatModelVersion string
 
 param embeddingMaxTokens int 
 
-param includeGeneralIndex bool = true
+param aiIndexName string
 
 param apiManagementPublisherEmail string
 param apiManagementPublisherName string
@@ -69,6 +69,7 @@ var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
 var apimsubnet = '${abbrs.virtualNetworkSubnet}${appName}-apim-${location}'
 var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
 
+var funcCustomField = '${abbrs.functionApp}${appName}-CustomField-${location}'
 var funcProcess = '${abbrs.functionApp}${appName}-Intelligence-${location}'
 var funcMove = '${abbrs.functionApp}${appName}-Mover-${location}'
 var funcQueue = '${abbrs.functionApp}${appName}-Queueing-${location}'
@@ -83,12 +84,17 @@ var logAnalyticsName = '${abbrs.logAnalyticsWorkspace}${appName}-${location}'
 var managedIdentityName = '${abbrs.managedIdentity}${appName}-${location}'
 var apiManagementName = '${abbrs.apiManagementService}${appName}-${location}'
 
+var cosmosDbName = 'documentIndexing'
+var cosmosContainerName = 'processTracker'
+var cosmosDbAccountName = toLower('${abbrs.cosmosDBNoSQL}${appName}-${location}')
+
 var documentStorageContainer = 'documents'
 var processResultsContainer = 'processresults'
 var completedContainer = 'completed'
 
-var formQueueName = 'docqueue'
-var processedQueueName = 'processedqueue'
+var customFieldQueueName = 'customfieldqueue'
+var docQueueName = 'docqueue'
+var moveQueueName = 'movequeue'
 var toIndexQueueName = 'toindexqueue'
 
 var openAiApiName = 'openai'
@@ -118,6 +124,25 @@ module networkSecurityGroup 'core/networksecuritygroup.bicep' = {
 	}
 }
 
+module cosmosDb 'core/cosmos.bicep' = {
+	name: 'cosmosDb'
+	scope: rg
+	params: {
+		databaseName: cosmosDbName
+		cosmosContainerName: cosmosContainerName
+		cosmosDbAccountName: cosmosDbAccountName
+		functionSubnetId: networking.outputs.functionSubnetId
+		apimSubnetId: networking.outputs.apimSubnetId
+		location: location
+		keyVaultName: keyvaultName
+		vnetName: vnet
+		subnetName: subnet
+		myPublicIp: myPublicIp
+	}
+	dependsOn: [
+		keyvault
+	]
+}
 module networking 'core/networking.bicep' = {
 	name: 'networking'
 	scope: rg
@@ -188,9 +213,10 @@ module servicebus 'core/servicebus.bicep' = {
 	params: {
 		serviceBusNs: serviceBusNs
 		location: location
-		formQueueName: formQueueName
-		processedQueueName: processedQueueName
+		docQueueName: docQueueName
+		moveQueueName: moveQueueName
 		toIndexQueueName: toIndexQueueName
+		customFieldQueueName: customFieldQueueName
 		keyVaultName: keyvaultName
 		subnetName: funcsubnet
 		vnetName: vnet
@@ -220,16 +246,18 @@ module functions 'functions/functions.bicep' = {
 	params: {
 		funcAppPlan: funcAppPlan
 		processFunctionName: funcProcess
+		customFieldQueueName: customFieldQueueName
+		customFieldFunctionName : funcCustomField
 		moveFunctionName: funcMove
 		queueFunctionName: funcQueue
 		formStorageAcctName: formStorageAcct
 		functionStorageAcctName: funcStorageAcct
-		processedQueueName: processedQueueName
+		moveQueueName: moveQueueName
 		serviceBusNs: serviceBusNs
 		functionSubnetId: networking.outputs.functionSubnetId
 		keyVaultUri: keyvault.outputs.keyVaultUri
 		location: location
-		formQueueName: formQueueName
+		docQueueName: docQueueName
 		completedContainer: completedContainer
 		documentStorageContainer: documentStorageContainer
 		processResultsContainer: processResultsContainer
@@ -238,18 +266,21 @@ module functions 'functions/functions.bicep' = {
 		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
 		openAiEmbeddingModel: azureOpenAIEmbeddingModel
 		appInsightsName: appInsightsName
-		includeGeneralIndex: includeGeneralIndex
+		aiIndexName: aiIndexName
 		managedIdentityId: managedIdentity.outputs.id
 		azureOpenAiEmbeddingMaxTokens: embeddingMaxTokens
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
 		openAiChatModel: azureOpenAIChatModel
 		askQuestionsFunctionName: askQuestionsFunctionName
+		cosmosDbName: cosmosDbName
+		cosmosContainerName: cosmosContainerName
 	
 	}
 	dependsOn: [
 		storage
 		servicebus
 		appInsights
+		cosmosDb
 	]
 }
 
@@ -313,13 +344,13 @@ module apiManagement 'apim/api-management.bicep' = {
 
 module openAI 'openai/openai.bicep' = [
   for openAIInstance in openAIInstances: {
-    name: !empty(openAIInstance.name)
+    name: !empty(openAIInstance.?name)
       ? openAIInstance.name!
       : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
     scope: rg
     params: {
 			managedIdentityId: managedIdentity.outputs.id
-      name: !empty(openAIInstance.name)
+      name: !empty(openAIInstance.?name)
         ? openAIInstance.name!
         : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
       location: openAIInstance.location
@@ -333,7 +364,7 @@ module openAI 'openai/openai.bicep' = [
           }
           sku: {
             name: 'Standard'
-            capacity: 1
+            capacity: 49
           }
         }
         {
@@ -345,7 +376,7 @@ module openAI 'openai/openai.bicep' = [
           }
           sku: {
             name: 'Standard'
-            capacity: 1
+            capacity: 100
           }
         }
       ]
@@ -487,6 +518,7 @@ output moveFunctionName string = funcMove
 output queueFunctionName string = funcQueue	
 output aiSearchIndexFunctionName string = aiSearchIndexFunctionName
 output questionsFunctionName string = askQuestionsFunctionName
+output customFieldFunctionName string = funcCustomField
 
 
 output openAINames array = [for i in range(0, length(openAIInstances)): openAI[i].outputs.name]

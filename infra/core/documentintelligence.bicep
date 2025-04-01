@@ -9,6 +9,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }
 
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
+
 resource docIntelligenceAccount 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = [for i in range(0,docIntelligenceInstanceCount): {
   name: '${docIntelligenceName}_${padLeft(i, 2,'0')}'
   location: location
@@ -27,7 +29,7 @@ resource docIntelligenceAccount 'Microsoft.CognitiveServices/accounts@2023-10-01
 
 resource formRecognizerEndpointSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
   parent: keyVault
-  name: 'DOCUMENT-INTELLIGENCE-ENDPOINT'
+  name: keyVaultKeys.DOCUMENT_INTELLIGENCE_ENDPOINT
   properties: {
     value: docIntelligenceAccount[0].properties.endpoint
   }

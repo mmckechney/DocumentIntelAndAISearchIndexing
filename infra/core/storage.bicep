@@ -14,6 +14,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }
 
+
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
+
 resource formStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   name: formStorageAcct
   location: location
@@ -75,7 +78,7 @@ resource funcStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
 
 resource storageKeySecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
   parent: keyVault
-  name: 'STORAGE-KEY'
+  name: keyVaultKeys.STORAGE_KEY
   properties: {
     value: formStorageAccount.listKeys().keys[0].value
   }

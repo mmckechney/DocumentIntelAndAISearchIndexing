@@ -3,7 +3,7 @@ param location string = resourceGroup().location
 param functionSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
-param processedQueueName string
+param moveQueueName string
 param formStorageAcctName string
 param moveFunctionName string
 param managedIdentityId string
@@ -12,11 +12,14 @@ param documentStorageContainer string
 param processResultsContainer string
 param completedContainer string
 param appInsightsName string
+param cosmosDbName string
+param cosmosContainerName string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
-var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICE_BUS_CONNECTION}/)'
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
+var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
 
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02-preview' existing = {
@@ -55,26 +58,38 @@ resource moveFunction 'Microsoft.Web/sites@2021-01-01' = {
       }
       use32BitWorkerProcess: false
       netFrameworkVersion: 'v8.0'
-      remoteDebuggingEnabled: true
+      remoteDebuggingEnabled: false
       appSettings: [
         {
-          name: configKeys.DOCUMENT_SOURCE_CONTAINER_NAME
+          name:configKeys.COSMOS_CONNECTION
+          value: cosmosKvReference
+        }
+        {
+          name : configKeys.COSMOS_DB_NAME 
+          value: cosmosDbName
+        }
+        {
+          name : configKeys.COSMOS_CONTAINER_NAME 
+          value: cosmosContainerName
+        }
+        {
+          name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
           value: documentStorageContainer
         }
         {
-          name: configKeys.DOCUMENT_PROCESS_RESULTS_CONTAINER_NAME
+          name: configKeys.STORAGE_PROCESS_RESULTS_CONTAINER_NAME
           value: processResultsContainer
         }
         {
-          name: configKeys.DOCUMENT_COMPLETED_CONTAINER_NAME
+          name: configKeys.STORAGE_COMPLETED_CONTAINER_NAME
           value: completedContainer
         }
         {
-          name: configKeys.DOCUMENT_STORAGE_ACCOUNT_NAME
+          name: configKeys.STORAGE_ACCOUNT_NAME
           value: formStorageAcctName
         }
         {
-          name: configKeys.SERVICE_BUS_CONNECTION
+          name: configKeys.SERVICEBUS_CONNECTION
           value: sbConnKvReference
         }
         {
@@ -90,12 +105,8 @@ resource moveFunction 'Microsoft.Web/sites@2021-01-01' = {
           value: '~4'
         }
         {
-          name: configKeys.SERVICE_BUS_PROCESSED_QUEUE_NAME
-          value: processedQueueName
-        }
-        {
-          name: configKeys.SERVICE_BUS_MOVE_QUEUE_NAME
-          value: moveFunctionName
+          name: configKeys.SERVICEBUS_MOVE_QUEUE_NAME
+          value: moveQueueName
         }
         {
           name: 'FUNCTIONS_WORKER_RUNTIME'

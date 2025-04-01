@@ -1,8 +1,9 @@
 
 param serviceBusNs string
-param formQueueName string
-param processedQueueName string
+param docQueueName string
+param moveQueueName string
 param toIndexQueueName string
+param customFieldQueueName string
 param location string = resourceGroup().location
 param keyVaultName string
 param serviceBusSku string = 'Standard' 
@@ -11,6 +12,7 @@ param subnetName string = ''
 
 var enablePartitioning = (serviceBusSku != 'Premium')
 var includeNetworking = (serviceBusSku == 'Premium')
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
@@ -25,8 +27,8 @@ resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview
 
 }
 
-resource serviceBusFormQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-  name: formQueueName
+resource serviceBusDocQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: docQueueName
   parent: serviceBusNamespace
   properties: {
     enablePartitioning: enablePartitioning
@@ -34,8 +36,8 @@ resource serviceBusFormQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-
   }
 }
 
-resource serviceBusProcessedQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-  name: processedQueueName
+resource serviceBusMoveQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: moveQueueName
   parent: serviceBusNamespace
   properties: {
     enablePartitioning: enablePartitioning
@@ -51,6 +53,15 @@ resource serviceBusToIndexQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-
     maxSizeInMegabytes: 4096
   }
 }
+resource serviceBusCustomFieldQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  name: customFieldQueueName
+  parent: serviceBusNamespace
+  properties: {
+    enablePartitioning: enablePartitioning
+    maxSizeInMegabytes: 4096
+  }
+}
+
 
 resource serviceBusAuthorizationRule 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-10-01-preview' = {
   name: 'FormProcessFuncRule'
@@ -64,7 +75,7 @@ resource serviceBusAuthorizationRule 'Microsoft.ServiceBus/namespaces/Authorizat
 }
 
 resource serviceBusConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  name: 'SERVICE-BUS-CONNECTION'
+  name: keyVaultKeys.SERVICEBUS_CONNECTION
   parent: keyVault
   properties: {
     value: serviceBusAuthorizationRule.listKeys().primaryConnectionString
