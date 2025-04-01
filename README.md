@@ -101,7 +101,7 @@ To try out the sample end-to-end process, you will need:
 3. Run the deployment command
 
     ``` PowerShell
-    .\deploy.ps1 -appName "<less than 6 characters>" -location "<azure region>" -docIntelligenceInstanceCount "<number needed>" -loadBalancingType "<priority or round-robin>"
+    .\deploy.ps1 -appName "<less than 6 characters>" -location "<azure region>" -docIntelligenceInstanceCount "<number needed>" -loadBalancingType "<priority or round-robin>" -deployAction Full
     ```
 
 These scripts will create all of the Azure resources and RBAC role assignments needed for the demonstration.
