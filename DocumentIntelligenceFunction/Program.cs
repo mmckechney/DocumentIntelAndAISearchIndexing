@@ -1,5 +1,6 @@
 ﻿using HighVolumeProcessing.UtilityLibrary; 
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,9 +24,17 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
             logging.SetMinimumLevel(LogLevel.Debug);
             logging.AddFilter("System", LogLevel.Warning);
             logging.AddFilter("Microsoft", LogLevel.Warning);
-
          });
+         
          builder.ConfigureFunctionsWorkerDefaults();
+         
+         // Add Aspire service defaults
+         builder.ConfigureServices(services => 
+         {
+             var hostBuilder = builder as IHostApplicationBuilder;
+             hostBuilder.AddServiceDefaults();
+         });
+         
          builder.ConfigureAppConfiguration(b =>
          {
             b.SetBasePath(basePath)
@@ -34,17 +43,24 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
               .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)  // secrets go here. This file is excluded from source control.
               .AddEnvironmentVariables()
               .Build();
-
          });
 
          builder.ConfigureServices(ConfigureServices);
-
 
          await builder.Build().RunAsync();
       }
 
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
+         var hostBuilder = context.HostingEnvironment as IHostApplicationBuilder;
+         // Add Azure services via Aspire
+         //TODO: Add document intelligence
+         //hostBuilder.AddDocumentIntelligenceClient("docIntelligence");
+         hostBuilder.AddAzureBlobClient("blobs");
+         hostBuilder.AddAzureCosmosClient("cosmos");
+         hostBuilder.AddAzureServiceBusClient("servicebus");
+         
+         // Add application services
          services.AddSingleton<SkHelper>();
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
@@ -54,7 +70,6 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
          services.AddHttpClient();
          services.AddApplicationInsightsTelemetryWorkerService();
          services.ConfigureFunctionsApplicationInsights();
-
       }
 
       public static bool IsDevelopmentEnvironment()

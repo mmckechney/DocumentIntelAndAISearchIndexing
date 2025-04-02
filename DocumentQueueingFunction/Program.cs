@@ -22,9 +22,17 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
             logging.SetMinimumLevel(LogLevel.Debug);
             logging.AddFilter("System", LogLevel.Warning);
             logging.AddFilter("Microsoft", LogLevel.Warning);
-
          });
+         
          builder.ConfigureFunctionsWorkerDefaults();
+         
+         // Add Aspire service defaults
+         builder.ConfigureServices(services => 
+         {
+             var hostBuilder = builder as IHostApplicationBuilder;
+             hostBuilder.AddServiceDefaults();
+         });
+         
          builder.ConfigureAppConfiguration(b =>
          {
             b.SetBasePath(basePath)
@@ -33,17 +41,21 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
               .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)  // secrets go here. This file is excluded from source control.
               .AddEnvironmentVariables()
               .Build();
-
          });
 
          builder.ConfigureServices(ConfigureServices);
-
 
          await builder.Build().RunAsync();
       }
 
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
+         var hostBuilder = context.HostingEnvironment as IHostApplicationBuilder;
+         // Add Azure services via Aspire
+         hostBuilder.AddAzureBlobClient("blobs");
+         hostBuilder.AddAzureServiceBusClient("servicebus");
+
+         // Add application services
          services.AddSingleton<SkHelper>();
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();
@@ -52,7 +64,6 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
          services.AddSingleton<CosmosDbHelper>();
          services.AddHttpClient();
          services.AddApplicationInsightsTelemetryWorkerService();
-
       }
 
       public static bool IsDevelopmentEnvironment()

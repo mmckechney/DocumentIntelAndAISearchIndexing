@@ -1,5 +1,4 @@
-﻿
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32210.308
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -36,6 +35,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentQuestionsFunction",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomFieldExtractionFunction", "CustomFieldExtractionFunction\CustomFieldExtractionFunction.csproj", "{EBF14E70-995B-84F6-1994-31808CEC229D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Aspire", "Aspire", "{B5E25974-A32F-46C5-B3B0-EF6B3B8A4548}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocIntel.AppHost", "DocIntel.AppHost\DocIntel.AppHost.csproj", "{5D1EE442-8F04-4321-A438-A5209AB222C3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocIntel.ServiceDefaults", "DocIntel.ServiceDefaults\DocIntel.ServiceDefaults.csproj", "{5C5DAE94-7FFA-40E7-B903-6CB7C76BFEAD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -70,9 +75,21 @@ Global
 		{EBF14E70-995B-84F6-1994-31808CEC229D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EBF14E70-995B-84F6-1994-31808CEC229D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EBF14E70-995B-84F6-1994-31808CEC229D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D1EE442-8F04-4321-A438-A5209AB222C3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D1EE442-8F04-4321-A438-A5209AB222C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D1EE442-8F04-4321-A438-A5209AB222C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D1EE442-8F04-4321-A438-A5209AB222C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C5DAE94-7FFA-40E7-B903-6CB7C76BFEAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C5DAE94-7FFA-40E7-B903-6CB7C76BFEAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C5DAE94-7FFA-40E7-B903-6CB7C76BFEAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C5DAE94-7FFA-40E7-B903-6CB7C76BFEAD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5D1EE442-8F04-4321-A438-A5209AB222C3} = {B5E25974-A32F-46C5-B3B0-EF6B3B8A4548}
+		{5C5DAE94-7FFA-40E7-B903-6CB7C76BFEAD} = {B5E25974-A32F-46C5-B3B0-EF6B3B8A4548}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1A8BFEF7-48C6-4553-9693-84A6587EB003}

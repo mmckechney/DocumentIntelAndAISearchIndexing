@@ -1,11 +1,15 @@
 ﻿using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Azure.Amqp.Serialization;
+using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using Aspire.Microsoft.Azure.Cosmos;
+using Aspire.Azure.Messaging.ServiceBus;
+using Microsoft.AspNetCore.Connections.Features;
 
 namespace HighVolumeProcessing.ProcessedFileMover
 {
@@ -26,6 +30,14 @@ namespace HighVolumeProcessing.ProcessedFileMover
 
          });
          builder.ConfigureFunctionsWorkerDefaults();
+
+         // Add Aspire service defaults
+         builder.ConfigureServices(services =>
+         {
+            var hostBuilder = builder as IHostApplicationBuilder;
+            hostBuilder.AddServiceDefaults();
+         });
+
          builder.ConfigureAppConfiguration(b =>
          {
             b.SetBasePath(basePath)
@@ -39,12 +51,19 @@ namespace HighVolumeProcessing.ProcessedFileMover
 
          builder.ConfigureServices(ConfigureServices);
 
-
          await builder.Build().RunAsync();
       }
 
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
+         // Add Azure services via Aspire
+         var hostBuilder = context.HostingEnvironment as IHostApplicationBuilder;
+
+         hostBuilder.AddAzureCosmosClient("cosmos");
+         hostBuilder.AddAzureServiceBusClient("servicebus");
+         hostBuilder.AddAzureBlobClient("blobs");
+
+         // Add application services
          services.AddSingleton<SkHelper>();
          services.AddSingleton<StorageHelper>();
          services.AddSingleton<ServiceBusHelper>();

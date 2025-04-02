@@ -3,10 +3,17 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<AzureFunctionsVersion>v4</AzureFunctionsVersion>
 		<OutputType>Exe</OutputType>
-       <RootNamespace>HighVolumeProcessing.DocumentQuestionsFunction</RootNamespace>
-      <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+        <RootNamespace>HighVolumeProcessing.DocumentQuestionsFunction</RootNamespace>
+        <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+        <IsAspireProjectEnabled>true</IsAspireProjectEnabled>
 	</PropertyGroup>
 	<ItemGroup>
+
+      <PackageReference Include="Aspire.Azure.AI.OpenAI" Version="9.1.0-preview.1.25121.10" />
+      <PackageReference Include="Aspire.Hosting.Azure.ApplicationInsights" Version="9.1.0" />
+      <PackageReference Include="Aspire.Azure.Search.Documents" Version="9.1.0" />
+      
+      
 		<PackageReference Include="Azure.Identity" Version="1.13.2" />
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
 		<PackageReference Include="HttpMultipartParser" Version="9.0.0" />
@@ -20,6 +27,7 @@
    </ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />
+	  <ProjectReference Include="..\DocIntel.ServiceDefaults\DocIntel.ServiceDefaults.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="appsettings.json">

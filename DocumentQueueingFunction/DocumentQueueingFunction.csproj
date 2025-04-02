@@ -3,11 +3,15 @@
       <TargetFramework>net8.0</TargetFramework>
       <AzureFunctionsVersion>v4</AzureFunctionsVersion>
       <OutputType>Exe</OutputType>
-
-      <RootNamespace>HighVolumeProcessing.DocumentQuestionsFunction</RootNamespace>
+      <RootNamespace>HighVolumeProcessing.DocumentQueueingFunction</RootNamespace>
       <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+      <IsAspireProjectEnabled>true</IsAspireProjectEnabled>
    </PropertyGroup>
    <ItemGroup>
+
+      <PackageReference Include="Aspire.Azure.Messaging.ServiceBus" Version="9.1.0" />
+      <PackageReference Include="Aspire.Azure.Storage.Blobs" Version="9.1.0" />
+      
       <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
       <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
@@ -18,16 +22,21 @@
       <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.1" />
       <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
       <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.0.0" />
+      <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.18.4" />
+      <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
+      <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+      <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.22.2" />
    </ItemGroup>
    <ItemGroup>
       <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />
+      <ProjectReference Include="..\DocIntel.ServiceDefaults\DocIntel.ServiceDefaults.csproj" />
    </ItemGroup>
    <ItemGroup>
       <None Update="host.json">
          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Update="local.settings.json">
-         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
          <CopyToPublishDirectory>Never</CopyToPublishDirectory>
       </None>
    </ItemGroup>

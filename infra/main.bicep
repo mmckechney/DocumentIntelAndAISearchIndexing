@@ -1,4 +1,3 @@
-
 targetScope = 'subscription'
 
 param appName string
@@ -21,6 +20,9 @@ param apiManagementPublisherEmail string
 param apiManagementPublisherName string
 
 param serviceBusSku string = 'Standard'
+
+// Add parameters for Aspire deployment
+param deployAspire bool = true
 
 @allowed([
   'round-robin'
@@ -240,7 +242,8 @@ module keyvault 'core/keyvault.bicep' = {
 	]
 }
 
-module functions 'functions/functions.bicep' = {
+// Conditional deployment of Functions vs Aspire
+module functions 'functions/functions.bicep' = if (!deployAspire) {
 	name: 'functions'
 	scope: rg
 	params: {
@@ -274,7 +277,6 @@ module functions 'functions/functions.bicep' = {
 		askQuestionsFunctionName: askQuestionsFunctionName
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
-	
 	}
 	dependsOn: [
 		storage
@@ -284,6 +286,48 @@ module functions 'functions/functions.bicep' = {
 	]
 }
 
+// Aspire Infrastructure
+module aspireInfrastructure 'aspire-resources.bicep' = if (deployAspire) {
+  name: 'aspireInfrastructure'
+  scope: rg
+  params: {
+    appName: appName
+    location: location
+    appNameLc: appNameLc
+    abbrs: abbrs
+    logAnalyticsName: logAnalyticsName
+    appInsights: appInsightsName
+    rg: resourceGroupName
+    managedIdentity: managedIdentity.outputs.id // Updated to use the ID directly
+    formStorageAcct: formStorageAcct
+    aiIndexName: aiIndexName
+    serviceBusNs: serviceBusNs
+    docQueueName: docQueueName
+    moveQueueName: moveQueueName
+    toIndexQueueName: toIndexQueueName
+    customFieldQueueName: customFieldQueueName
+    keyVaultName: keyvaultName
+    serviceBusSku: serviceBusSku
+    cosmosDbName: cosmosDbName
+    cosmosContainerName: cosmosContainerName
+    cosmosDbAccountName: cosmosDbAccountName
+    apiManagement: apiManagementName
+    azureOpenAIChatModel: azureOpenAIChatModel
+    azureOpenAIEmbeddingModel: azureOpenAIEmbeddingModel
+    funcsubnet: funcsubnet
+    vnet: vnet
+    aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
+  }
+  dependsOn: [
+    appInsights
+    keyvault
+    servicebus
+    cosmosDb
+    apiManagement
+    openAI
+  ]
+}
+
 module roleAssigments 'core/roleassignments.bicep' = {
 	name: 'roleAssigments'
 	scope: rg
@@ -291,7 +335,7 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		docIntelligencePrincipalIds: docIntelligence.outputs.docIntelligencePrincipalIds
 		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
 		currentUserObjectId : currentUserObjectId
-		functionPrincipalIds: functions.outputs.systemAssignedIdentities
+		functionPrincipalIds: !deployAspire ? functions.outputs.systemAssignedIdentities : []
 		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
 	}
 }
@@ -520,6 +564,11 @@ output aiSearchIndexFunctionName string = aiSearchIndexFunctionName
 output questionsFunctionName string = askQuestionsFunctionName
 output customFieldFunctionName string = funcCustomField
 
+// Aspire-specific outputs
+output aspireDeployed bool = deployAspire
+output aspireAppHostUrl string = deployAspire ? aspireInfrastructure.outputs.appHostUrl : ''
+output aspireQueueingUrl string = deployAspire ? aspireInfrastructure.outputs.queueingUrl : ''
+output aspireQuestionsUrl string = deployAspire ? aspireInfrastructure.outputs.questionsUrl : ''
 
 output openAINames array = [for i in range(0, length(openAIInstances)): openAI[i].outputs.name]
 output openAiChatModel string = azureOpenAIChatModel
