@@ -1,5 +1,10 @@
 using Aspire.Hosting;
 
+Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "http://localhost:5000");
+Environment.SetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4317");
+Environment.SetEnvironmentVariable("DOTNET_DASHBOARD_OTLP_HTTP_ENDPOINT_URL", "http://localhost:4318");
+Environment.SetEnvironmentVariable("ASPIRE_ALLOW_UNSECURED_TRANSPORT", "true");
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure AI services
