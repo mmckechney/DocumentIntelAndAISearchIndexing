@@ -25,7 +25,7 @@ resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
   properties: {
     virtualNetworkSubnetId: functionSubnetId
     serverFarmId: functionAppPlan.id
-    keyVaultReferenceIdentity: useManagedIdentity ? managedIdentityId : ''
+    keyVaultReferenceIdentity: useManagedIdentity ? managedIdentityId : 'SystemAssigned'
     siteConfig: {
       cors: {
         allowedOrigins: ['https://portal.azure.com']

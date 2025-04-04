@@ -1,17 +1,15 @@
 param docIntelligencePrincipalIds array
 param functionPrincipalIds array
-param userAssignedManagedIdentityPrincipalId string
-param currentUserObjectId string
-param apimSystemAssignedIdentityPrincipalId string
+param userAssignedManagedIdentityPrincipalId string = ''
+param currentUserObjectId string = ''
+param apimSystemAssignedIdentityPrincipalId string = ''
 param useManagedIdentity bool 
 
-//Combine the function and current user (if supplied) and principal ids
-var principalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
-  currentUserObjectId
-  userAssignedManagedIdentityPrincipalId
-]) : concat(functionPrincipalIds, [
-  userAssignedManagedIdentityPrincipalId
-])
+// Use ternary operators to build the principalIds array conditionally
+var withCurrentUser = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [currentUserObjectId]) : functionPrincipalIds
+var principalIds = useManagedIdentity && !empty(userAssignedManagedIdentityPrincipalId) 
+  ? concat(withCurrentUser, [userAssignedManagedIdentityPrincipalId]) 
+  : withCurrentUser
 
 var deploymentEntropy = '3F2504E0-4F89-11D3-9A0C-0305E82C3302'
 var roles = loadJsonContent('../constants/roles.json')
@@ -46,12 +44,7 @@ resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-
   name: roles.cognitiveServicesUser
 }
 
-
-
-
-
-
-resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (useManagedIdentity) {
+resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (useManagedIdentity && !empty(userAssignedManagedIdentityPrincipalId)) {
   name: guid(userAssignedManagedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {
@@ -60,7 +53,7 @@ resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01
   }
 }
 
-resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(apimSystemAssignedIdentityPrincipalId)) {
   name: guid(apimSystemAssignedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {
@@ -68,7 +61,6 @@ resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments
     principalId: apimSystemAssignedIdentityPrincipalId
   }
 }
-
 
 //Document Intelligence Accounts 
 resource docIntelligenceBlobDataReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in docIntelligencePrincipalIds: {
@@ -79,7 +71,6 @@ resource docIntelligenceBlobDataReader 'Microsoft.Authorization/roleAssignments@
     principalId: id
   }
 }]
-
 
 //Function identities and current user
 resource functionManagedIdentityBlobDataContrib 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {

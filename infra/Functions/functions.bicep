@@ -41,7 +41,7 @@ var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${k
 var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
 var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY}/)'
 var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.APIM_SUBSCRIPTION_KEY}/)' 
-//var storageKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.STORAGE_CONNECTION}/)'
+var storageKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.STORAGE_CONNECTION}/)'
 var frEndpointKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_ENDPOINT}/)'
 var frKeyKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_KEY}/)'
 
@@ -286,6 +286,10 @@ var sharedConfiguration = [
   {
     name: configKeys.DOCUMENT_INTELLIGENCE_KEY
     value: frKeyKvReference
+  }
+  {
+    name: configKeys.STORAGE_CONNECTION
+    value: storageKvReference
   }
 ]
 

@@ -285,12 +285,12 @@ module functions 'functions/functions.bicep' = {
 	]
 }
 
-module roleAssigments 'core/roleassignments.bicep' = if (useManagedIdentity) {
+module roleAssigments 'core/roleassignments.bicep' = {
 	name: 'roleAssigments'
 	scope: rg
 	params: {
 		docIntelligencePrincipalIds: docIntelligence.outputs.docIntelligencePrincipalIds
-		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
+		userAssignedManagedIdentityPrincipalId: useManagedIdentity? managedIdentity.outputs.principalId : ''
 		currentUserObjectId: currentUserObjectId
 		functionPrincipalIds: functions.outputs.systemAssignedIdentities
 		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
