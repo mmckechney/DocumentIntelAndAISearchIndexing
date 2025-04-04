@@ -1,7 +1,7 @@
 
 param keyVaultName string
 param location string = resourceGroup().location
-
+param useManagedIdentity bool 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   name: keyVaultName
   location: location
@@ -16,7 +16,11 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enabledForDiskEncryption: true
     enableSoftDelete: true
     enablePurgeProtection: true
-    enableRbacAuthorization: true
+    enableRbacAuthorization: useManagedIdentity
+    accessPolicies: [
+      
+    ]
+
   }
 }
 

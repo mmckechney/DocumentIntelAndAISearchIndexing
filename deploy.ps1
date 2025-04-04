@@ -23,7 +23,8 @@ param
 	[string] $azureOpenAiChatModel,
 	[string] $chatModelVersion,
 	[string] $myPublicIp, 
-	[string] $deploymentName
+	[string] $deploymentName,
+	[bool] $useManagedIdentity = $true
 )
 
 
@@ -73,6 +74,7 @@ if($deployAction-eq "Full" -or $deployAction -eq "InfraOnly")
 	$output = az deployment sub create --name $deploymentName --location $location  --template-file ./infra/main.bicep `
 		--parameters ./infra/main.bicepparam `
 		--parameters location=$location `
+		--parameters useManagedIdentity=$useManagedIdentity `
 		appName=$appName `
 		myPublicIp=$myPublicIp `
 		docIntelligenceInstanceCount=$docIntelligenceInstanceCount `

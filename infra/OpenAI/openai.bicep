@@ -5,6 +5,7 @@ param location string = resourceGroup().location
 @description('Tags for the resource.')
 param tags object = {}
 param managedIdentityId string
+param useManagedIdentity bool 
 
 type roleAssignmentInfo = {
   roleDefinitionId: string
@@ -38,10 +39,10 @@ resource cognitiveServices 'Microsoft.CognitiveServices/accounts@2023-10-01-prev
   tags: tags
   kind: 'OpenAI'
   identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
+    type: useManagedIdentity ? 'UserAssigned' : 'None'
+    userAssignedIdentities: useManagedIdentity && !empty(managedIdentityId) ? {
       '${managedIdentityId}': {}
-    }
+    } : null
   }
   properties: {
     customSubDomainName: toLower(name)
@@ -77,7 +78,6 @@ resource adminKey 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
     value:  cognitiveServices.listKeys().key1
   }
 }
-
 
 @description('ID for the deployed Cognitive Services resource.')
 output id string = cognitiveServices.id

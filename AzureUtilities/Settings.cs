@@ -341,6 +341,19 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
+      private string _serviceBusConnection = string.Empty;
+      public string ServiceBusConnection
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_serviceBusConnection))
+            {
+               _serviceBusConnection = GetSettingsValue(ConfigKeys.SERVICEBUS_CONNECTION);
+            }
+            return _serviceBusConnection;
+         }
+      }
+
       private string _sourceContainerName = string.Empty;
       public string SourceContainerName
       {
@@ -367,6 +380,19 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
+      private string _storageConnection = string.Empty;
+      public string StorageConnection
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_storageConnection))
+            {
+               _storageConnection = GetSettingsValue(ConfigKeys.STORAGE_CONNECTION);
+            }
+            return _storageConnection;
+         }
+      }
+
       private string _toIndexQueueName = string.Empty;
       public string ToIndexQueueName
       {
@@ -377,6 +403,20 @@ namespace HighVolumeProcessing.UtilityLibrary
                _toIndexQueueName = GetSettingsValue(ConfigKeys.SERVICEBUS_TOINDEX_QUEUE_NAME);
             }
             return _toIndexQueueName;
+         }
+      }
+
+      private bool? _useManagedIdentity = null;
+      public bool UseManagedIdentity
+      {
+         get
+         {
+            if (_useManagedIdentity == null)
+            {
+               bool.TryParse(GetSettingsValue(ConfigKeys.USE_MANAGED_IDENTITY), out bool tmp);
+               _useManagedIdentity = tmp;
+            }
+            return _useManagedIdentity.Value;
          }
       }
 

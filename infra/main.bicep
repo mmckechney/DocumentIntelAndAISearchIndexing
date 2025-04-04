@@ -1,4 +1,3 @@
-
 targetScope = 'subscription'
 
 param appName string
@@ -27,7 +26,7 @@ param serviceBusSku string = 'Standard'
   'priority'
 ])
 param loadBalancingType string
-
+param useManagedIdentity bool = true
 
 type openAIInstanceInfo = {
   name: string?
@@ -105,7 +104,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 	location: location
 }
 
-module managedIdentity 'core/managed-identity.bicep' = {
+module managedIdentity 'core/managed-identity.bicep' = if (useManagedIdentity) {
 	name: 'managedIdentity'
 	scope: rg
 	params: {
@@ -160,7 +159,7 @@ module networking 'core/networking.bicep' = {
 }
 
 module appInsights 'core/appinsights.bicep' = {
-	name: 'appInsigts'
+	name: 'appInsights'
 	scope: rg
 	params: {
 		appInsightsName: appInsightsName
@@ -200,7 +199,7 @@ module docIntelligence 'core/documentintelligence.bicep' = {
 		docIntelligenceInstanceCount: docIntelligenceInstanceCount
 		location: location
 		keyVaultName: keyvaultName
-	}
+			}
 	dependsOn: [
   	networking
 		keyvault
@@ -221,7 +220,7 @@ module servicebus 'core/servicebus.bicep' = {
 		subnetName: funcsubnet
 		vnetName: vnet
 		serviceBusSku: serviceBusSku
-	}
+			}
 	dependsOn: [
 		keyvault
 		networking
@@ -234,9 +233,11 @@ module keyvault 'core/keyvault.bicep' = {
 	params: {
 		keyVaultName: keyvaultName
 		location: location
-	}
+		useManagedIdentity: useManagedIdentity
+}
 	dependsOn: [
 		networking
+
 	]
 }
 
@@ -267,14 +268,14 @@ module functions 'functions/functions.bicep' = {
 		openAiEmbeddingModel: azureOpenAIEmbeddingModel
 		appInsightsName: appInsightsName
 		aiIndexName: aiIndexName
-		managedIdentityId: managedIdentity.outputs.id
+		managedIdentityId: useManagedIdentity ? managedIdentity.outputs.id : ''
 		azureOpenAiEmbeddingMaxTokens: embeddingMaxTokens
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
 		openAiChatModel: azureOpenAIChatModel
 		askQuestionsFunctionName: askQuestionsFunctionName
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
-	
+		useManagedIdentity: useManagedIdentity
 	}
 	dependsOn: [
 		storage
@@ -284,15 +285,16 @@ module functions 'functions/functions.bicep' = {
 	]
 }
 
-module roleAssigments 'core/roleassignments.bicep' = {
+module roleAssigments 'core/roleassignments.bicep' = if (useManagedIdentity) {
 	name: 'roleAssigments'
 	scope: rg
 	params: {
 		docIntelligencePrincipalIds: docIntelligence.outputs.docIntelligencePrincipalIds
 		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
-		currentUserObjectId : currentUserObjectId
+		currentUserObjectId: currentUserObjectId
 		functionPrincipalIds: functions.outputs.systemAssignedIdentities
 		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
+		useManagedIdentity: useManagedIdentity
 	}
 }
 
@@ -327,7 +329,7 @@ module apiManagement 'apim/api-management.bicep' = {
 	params: {
 		name: apiManagementName
 		location: location
-		apiManagementIdentityId: managedIdentity.outputs.id
+		apiManagementIdentityId: useManagedIdentity ? managedIdentity.outputs.id : ''
 		publisherEmail: apiManagementPublisherEmail
 		publisherName: apiManagementPublisherName
 		subnetId: networking.outputs.apimSubnetId
@@ -338,6 +340,7 @@ module apiManagement 'apim/api-management.bicep' = {
 		tags: {
 			CreatedBy: currentUserObjectId
 		}
+		useManagedIdentity: useManagedIdentity
 	}
 	
 }
@@ -349,7 +352,7 @@ module openAI 'openai/openai.bicep' = [
       : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
     scope: rg
     params: {
-			managedIdentityId: managedIdentity.outputs.id
+			managedIdentityId: useManagedIdentity ? managedIdentity.outputs.id : ''
       name: !empty(openAIInstance.?name)
         ? openAIInstance.name!
         : '${abbrs.openAIService}${appName}-${openAIInstance.suffix}'
@@ -384,6 +387,7 @@ module openAI 'openai/openai.bicep' = [
         keyVaultName: keyvaultName
         primaryKeySecretName: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
       }
+      useManagedIdentity: useManagedIdentity
     }
 		dependsOn: [
 			keyvault
@@ -400,8 +404,9 @@ module openAIApiKeyNamedValue 'apim/api-management-key-vault-named-value.bicep' 
       name: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
       displayName: 'OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
       apiManagementName: apiManagement.outputs.name
-      apiManagementIdentityClientId: managedIdentity.outputs.clientId
+      apiManagementIdentityClientId: useManagedIdentity ? managedIdentity.outputs.clientId : ''
       keyVaultSecretUri: '${keyvault.outputs.keyVaultUri}secrets/OPENAI-API-KEY-${toUpper(openAIInstance.suffix)}'
+      useManagedIdentity: useManagedIdentity
     }
 		dependsOn: [
 			roleAssigments
@@ -431,14 +436,12 @@ module apiSubscription 'apim/api-management-subscription.bicep' = {
     name: 'openai-sub'
     apiManagementName: apiManagement.outputs.name
     displayName: 'OpenAI API Subscription'
-    //scope: '/apis/${openAIApi.outputs.name}'
-		scope: '/apis/${openAiApiName}'
+    scope: '/apis/${openAiApiName}'
 		keyVaultName: keyvaultName
   }
 	dependsOn: [
 		keyvault
 		openAIApi
-
 	]
 }
 
@@ -466,7 +469,6 @@ module apimRoundRobinLoadBalance 'apim/api-management-round-robin-backend-loadba
 	}
 	dependsOn: [
 		openAIApiBackend
-
 	]
 }
 module loadRoundRobinBalancingPolicy 'APIM/api-management-round-robin-policy.bicep' = if(loadBalancingType == 'round-robin'){
@@ -509,6 +511,17 @@ module apimLogger 'apim/api-management-logger.bicep' = {
 	dependsOn: [
 		appInsights
 	]
+}
+
+module keyVaultAccessPolicy 'core/keyvault-accesspolicy.bicep' = if (!useManagedIdentity) {
+	name: 'keyVaultAccessPolicy'
+	scope: rg
+	params: {
+		keyVaultName: keyvaultName
+		currentUserObjectId: currentUserObjectId
+		functionAppPrincipalIds: functions.outputs.systemAssignedIdentities
+
+	}
 }
 
 

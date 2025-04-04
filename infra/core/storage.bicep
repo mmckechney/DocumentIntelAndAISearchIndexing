@@ -84,5 +84,14 @@ resource storageKeySecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview'
   }
 }
 
+resource storageConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
+  parent: keyVault
+  name: keyVaultKeys.STORAGE_CONNECTION
+  properties: {
+    value: 'DefaultEndpointsProtocol=https;AccountName=${formStorageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${formStorageAccount.listKeys().keys[0].value}'
+  }
+}
+
+
 
 output storageAccountId string = formStorageAccount.id

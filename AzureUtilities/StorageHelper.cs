@@ -86,8 +86,14 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       private BlobServiceClient CreateStorageClient(string storageAccountName)
       {
-         var serviceClient = new BlobServiceClient(new Uri($"https://{storageAccountName}.blob.core.windows.net"), AadHelper.TokenCredential);
-         return serviceClient;
+         if (settings.UseManagedIdentity)
+         {
+            return new BlobServiceClient(new Uri($"https://{storageAccountName}.blob.core.windows.net"), AadHelper.TokenCredential);
+         }
+         else
+         {
+            return new BlobServiceClient(settings.StorageConnection);
+         }
       }
 
       private BlobContainerClient CreateBlobContainerClient(string containerName, BlobServiceClient serviceClient)

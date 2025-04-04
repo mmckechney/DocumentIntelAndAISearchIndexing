@@ -3,6 +3,7 @@ param functionPrincipalIds array
 param userAssignedManagedIdentityPrincipalId string
 param currentUserObjectId string
 param apimSystemAssignedIdentityPrincipalId string
+param useManagedIdentity bool 
 
 //Combine the function and current user (if supplied) and principal ids
 var principalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
@@ -50,7 +51,7 @@ resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-
 
 
 
-resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (useManagedIdentity) {
   name: guid(userAssignedManagedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {

@@ -2,7 +2,6 @@ param aiSearchName string
 param keyVaultName string
 param location string = resourceGroup().location
 
-
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 resource aiSearchInstance 'Microsoft.Search/searchServices@2023-11-01' = {
   name: aiSearchName

@@ -41,7 +41,14 @@ namespace HighVolumeProcessing.UtilityLibrary
       private ServiceBusClient CreateServiceBusClient(string serviceBusNamespace, string queueName)
       {
          var fullyQualified = $"{serviceBusNamespace}.servicebus.windows.net";
-         return new ServiceBusClient(fullyQualified, AadHelper.TokenCredential);
+         if (settings.UseManagedIdentity)
+         {
+            return new ServiceBusClient(fullyQualified, AadHelper.TokenCredential);
+         }
+         else
+         {
+            return new ServiceBusClient(settings.ServiceBusConnection);
+         }
       }
 
       private ServiceBusSender CreateServiceBusSender(string serviceBusNamespace, string queueName)
