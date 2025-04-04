@@ -56,4 +56,5 @@ output id string = apiManagement.id
 output name string = apiManagement.name
 @description('Gateway URL for the deployed API Management resource.')
 output gatewayUrl string = apiManagement.properties.gatewayUrl
-output identity string = apiManagement.identity.principalId
+output systemIdentity string = apiManagement.identity.principalId
+output userAssignedIdentity string = apiManagementIdentityId

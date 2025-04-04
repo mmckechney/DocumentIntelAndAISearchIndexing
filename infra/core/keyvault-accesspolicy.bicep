@@ -1,8 +1,8 @@
 param keyVaultName string
 param functionAppPrincipalIds array
 param currentUserObjectId string
-
-var ids = concat(functionAppPrincipalIds, [currentUserObjectId]) 
+param apimSystemIdentityId string
+var ids = concat(functionAppPrincipalIds, [currentUserObjectId, apimSystemIdentityId]) 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }

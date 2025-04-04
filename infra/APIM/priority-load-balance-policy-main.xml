@@ -22,7 +22,7 @@
                     // "retryAfter":   We use it to know when to mark this endpoint as healthy again after we received a 429 response
 
                     JArray backends = new JArray();
-                    backends.Add(new JObject() {{ "backend-id", "OPENAIEASTUS2" }, { "priority", 1 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
+                    backends.Add(new JObject() {{ "backend-id", "OPENAISOUTHCENTRALUS" }, { "priority", 1 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
 					backends.Add(new JObject() {{ "backend-id", "OPENAISWEDENCENTRAL" }, { "priority", 2 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
 					backends.Add(new JObject() {{ "backend-id", "OPENAIWESTUS3" }, { "priority", 2 }, { "isThrottling", false }, { "retryAfter", DateTime.MinValue }}); 
                     return backends;   

@@ -7,6 +7,7 @@ param useManagedIdentity bool
 
 // Use ternary operators to build the principalIds array conditionally
 var withCurrentUser = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [currentUserObjectId]) : functionPrincipalIds
+
 var principalIds = useManagedIdentity && !empty(userAssignedManagedIdentityPrincipalId) 
   ? concat(withCurrentUser, [userAssignedManagedIdentityPrincipalId]) 
   : withCurrentUser
@@ -44,25 +45,7 @@ resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-
   name: roles.cognitiveServicesUser
 }
 
-resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (useManagedIdentity && !empty(userAssignedManagedIdentityPrincipalId)) {
-  name: guid(userAssignedManagedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: cognitiveServicesUser.id
-    principalId: userAssignedManagedIdentityPrincipalId
-  }
-}
-
-resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (!empty(apimSystemAssignedIdentityPrincipalId)) {
-  name: guid(apimSystemAssignedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: cognitiveServicesUser.id
-    principalId: apimSystemAssignedIdentityPrincipalId
-  }
-}
-
-//Document Intelligence Accounts 
+//Document Intelligence Accounts -- these ALWAYS require RBAC access to the blob storage account
 resource docIntelligenceBlobDataReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in docIntelligencePrincipalIds: {
   name: guid(id, blobDataReader.id, deploymentEntropy)
   scope: resourceGroup()
@@ -72,8 +55,28 @@ resource docIntelligenceBlobDataReader 'Microsoft.Authorization/roleAssignments@
   }
 }]
 
-//Function identities and current user
-resource functionManagedIdentityBlobDataContrib 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+
+resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (useManagedIdentity && !empty(userAssignedManagedIdentityPrincipalId)) {
+  name: guid(userAssignedManagedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cognitiveServicesUser.id
+    principalId: userAssignedManagedIdentityPrincipalId
+  }
+}
+
+resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (useManagedIdentity &&!empty(apimSystemAssignedIdentityPrincipalId)) {
+  name: guid(apimSystemAssignedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cognitiveServicesUser.id
+    principalId: apimSystemAssignedIdentityPrincipalId
+  }
+}
+
+
+//Function identities and current user - only deploy these if useManagedIdentity is true
+resource functionManagedIdentityBlobDataContrib 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: if(useManagedIdentity) {
   name: guid(id, blobDataContrib.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {
@@ -82,7 +85,7 @@ resource functionManagedIdentityBlobDataContrib 'Microsoft.Authorization/roleAss
   }
 }]
 
-resource functionManagedIdentityBlobDataOwner 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' =  [for id in principalIds: {
+resource functionManagedIdentityBlobDataOwner 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: if(useManagedIdentity) {
   name: guid(id, blobDataOwner.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {
@@ -91,7 +94,7 @@ resource functionManagedIdentityBlobDataOwner 'Microsoft.Authorization/roleAssig
   }
 }]
 
-resource functionManagedIdentityServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+resource functionManagedIdentityServiceBusDataOwner 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: if(useManagedIdentity) {
   name: guid(id, serviceBusDataOwner.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {
@@ -100,7 +103,7 @@ resource functionManagedIdentityServiceBusDataOwner 'Microsoft.Authorization/rol
   }
 }]
 
-resource functionManagedIdentityKeyVaultSecretUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+resource functionManagedIdentityKeyVaultSecretUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: if(useManagedIdentity) {
   name: guid(id, keyVaultSecretUser.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {

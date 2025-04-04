@@ -70,6 +70,11 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
          fileMessage = await tracker.TrackAndUpdate(fileMessage, "Adding to Index");
          bool success = await aiSearchHelper.AddToIndexAsync(fileMessage.CustomIndexFieldValues, chunked, fileMessage.ProcessedFileName);
 
+         if(!success)
+         {
+            return success;
+         }
+
          fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sending to {settings.MoveQueueName}");
          var sbMessage = fileMessage.CloneWithOverrides().AsMessage();
          await serviceBusHelper.SendMessageAsync(settings.MoveQueueName, sbMessage);

@@ -293,7 +293,7 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		userAssignedManagedIdentityPrincipalId: useManagedIdentity? managedIdentity.outputs.principalId : ''
 		currentUserObjectId: currentUserObjectId
 		functionPrincipalIds: functions.outputs.systemAssignedIdentities
-		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
+		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.systemIdentity
 		useManagedIdentity: useManagedIdentity
 	}
 }
@@ -520,6 +520,7 @@ module keyVaultAccessPolicy 'core/keyvault-accesspolicy.bicep' = if (!useManaged
 		keyVaultName: keyvaultName
 		currentUserObjectId: currentUserObjectId
 		functionAppPrincipalIds: functions.outputs.systemAssignedIdentities
+		apimSystemIdentityId: apiManagement.outputs.systemIdentity
 
 	}
 }
