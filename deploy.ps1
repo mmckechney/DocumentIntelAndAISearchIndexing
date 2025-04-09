@@ -1,4 +1,6 @@
 #az login
+
+# Regional service availability: https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/table
 param
 (
 	[ValidateSet('Full', 'InfraOnly','CodeOnly', 'SettingsOnly')]
@@ -24,7 +26,9 @@ param
 	[string] $chatModelVersion,
 	[string] $myPublicIp, 
 	[string] $deploymentName,
-	[bool] $useManagedIdentity = $true
+	[bool] $useManagedIdentity = $true,
+	[ValidateSet( 'EP1', 'P0V3', 'P1V3', 'P2V3'  )]
+	[string] $funcAppPlanSku ='EP1'
 )
 
 
@@ -75,6 +79,7 @@ if($deployAction-eq "Full" -or $deployAction -eq "InfraOnly")
 		--parameters ./infra/main.bicepparam `
 		--parameters location=$location `
 		--parameters useManagedIdentity=$useManagedIdentity `
+		--parameters funcAppPlanSku=$funcAppPlanSku `
 		appName=$appName `
 		myPublicIp=$myPublicIp `
 		docIntelligenceInstanceCount=$docIntelligenceInstanceCount `

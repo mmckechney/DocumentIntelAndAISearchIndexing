@@ -16,6 +16,9 @@ param embeddingMaxTokens int
 
 param aiIndexName string
 
+param funcAppPlanSku string
+
+
 param apiManagementPublisherEmail string
 param apiManagementPublisherName string
 
@@ -152,6 +155,7 @@ module networking 'core/networking.bicep' = {
 		funcsubnet: funcsubnet
 		location: location
 		apimsubnet: apimsubnet
+
 	}
 	dependsOn: [
 		networkSecurityGroup
@@ -276,6 +280,8 @@ module functions 'functions/functions.bicep' = {
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
 		useManagedIdentity: useManagedIdentity
+		funcAppPlanSku: funcAppPlanSku
+
 	}
 	dependsOn: [
 		storage

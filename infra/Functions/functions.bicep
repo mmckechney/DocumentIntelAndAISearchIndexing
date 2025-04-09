@@ -29,6 +29,7 @@ param askQuestionsFunctionName string
 param cosmosDbName string
 param cosmosContainerName string
 param useManagedIdentity bool 
+param funcAppPlanSku string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
@@ -54,7 +55,8 @@ module functionAppPlan 'appplan.bicep' = {
   params: {
     location: location
     funcAppPlan: funcAppPlan
-  }
+    funcAppPlanSku: funcAppPlanSku
+   }
 }
 
 module processFunction 'function-process.bicep' = {
