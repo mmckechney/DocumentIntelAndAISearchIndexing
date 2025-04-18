@@ -1,48 +1,41 @@
-
-param location string = resourceGroup().location
+param completedContainer string
+param documentStorageContainer string
 param formStorageAcct string
 param funcStorageAcct string
+param keyVaultName string
+param location string = resourceGroup().location
 param myPublicIp string
-param subnetIds array
-
-param documentStorageContainer string
 param processResultsContainer string
-param completedContainer string
-param keyVaultName string 
+param subnetIds array
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
   name: keyVaultName
 }
 
-
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
 resource formStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: formStorageAcct
-  location: location
-  sku: {
-    name: 'Standard_LRS'
-  }
   kind: 'StorageV2'
+  location: location
+  name: formStorageAcct
   properties: {
     allowBlobPublicAccess: false
     networkAcls: {
       defaultAction: 'Deny'
       ipRules: !empty(myPublicIp) ? [
         {
-          value: myPublicIp
           action: 'Allow'
+          value: myPublicIp
         }
       ] : []
       virtualNetworkRules:[for subnetId in subnetIds: {
-        
-          id: subnetId
-          action: 'Allow'
-        }
-     ]
-      
+        action: 'Allow'
+        id: subnetId
+      }]
     }
-
+  }
+  sku: {
+    name: 'Standard_LRS'
   }
 }
 
@@ -54,7 +47,6 @@ resource formBlobService 'Microsoft.Storage/storageAccounts/blobServices@2021-06
 resource formIncomingStorageContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-06-01' = {
   name: documentStorageContainer
   parent: formBlobService
-
 }
 
 resource formProcessedStorageContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2021-06-01' = {
@@ -68,30 +60,28 @@ resource formOutputstorageContainer 'Microsoft.Storage/storageAccounts/blobServi
 }
 
 resource funcStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: funcStorageAcct
+  kind: 'StorageV2'
   location: location
+  name: funcStorageAcct
   sku: {
     name: 'Standard_LRS'
   }
-  kind: 'StorageV2'
 }
 
 resource storageKeySecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
-  parent: keyVault
   name: keyVaultKeys.STORAGE_KEY
+  parent: keyVault
   properties: {
     value: formStorageAccount.listKeys().keys[0].value
   }
 }
 
 resource storageConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2021-06-01-preview' = {
-  parent: keyVault
   name: keyVaultKeys.STORAGE_CONNECTION
+  parent: keyVault
   properties: {
     value: 'DefaultEndpointsProtocol=https;AccountName=${formStorageAccount.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${formStorageAccount.listKeys().keys[0].value}'
   }
 }
-
-
 
 output storageAccountId string = formStorageAccount.id

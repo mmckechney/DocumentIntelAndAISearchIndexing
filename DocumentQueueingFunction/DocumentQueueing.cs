@@ -1,14 +1,13 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
+using HighVolumeProcessing.UtilityLibrary;
+using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using HighVolumeProcessing.UtilityLibrary.Models;
 namespace HighVolumeProcessing.DocumentQueueingFunction
 {
    public class DocumentQueueing
@@ -27,21 +26,14 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
          this.tracker = tracker;
       }
 
-      [Function("DocumentQueueing")]
-      public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequestData req)
+      public async Task<(string, HttpStatusCode)> QueueDocs(bool force, DateTime fromDate)
       {
          int fileCounter = 0;
          logger.LogInformation("Request received to queue documents");
          var cancelSource = new CancellationTokenSource();
-         bool force = false;
-         bool.TryParse(req?.Query["force"], out force);
 
-         DateTime queuedDate = DateTime.MinValue;
-         DateTime.TryParse(req?.Query["queuedDate"], out queuedDate);
-
+         logger.LogInformation($"Processing settings: Force re-queue: '{force.ToString()}',  Re-queue document previously queued before: '{fromDate}'");
          List<Task> metaDataTasks = new List<Task>();
-
-         logger.LogInformation($"Processing settings: Force re-queue: '{force.ToString()}',  Re-queue document previously queued before: '{queuedDate}'");
 
          try
          {
@@ -66,14 +58,14 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
                }
 
                string queueDateStr;
-               if (blob.Metadata.TryGetValue("IsQueued", out queueDateStr) && queuedDate != DateTime.MinValue)
+               if (blob.Metadata.TryGetValue("IsQueued", out queueDateStr) && fromDate != DateTime.MinValue)
                {
                   DateTime fileQueueDate;
                   if (DateTime.TryParse(queueDateStr, out fileQueueDate))
                   {
-                     if (fileQueueDate > queuedDate)
+                     if (fileQueueDate > fromDate)
                      {
-                        logger.LogInformation($"Skipping {blob.Name}. Already marked as queued and metadata date of {fileQueueDate} is greater than target requeue date of {queuedDate}");
+                        logger.LogInformation($"Skipping {blob.Name}. Already marked as queued and metadata date of {fileQueueDate} is greater than target requeue date of {fromDate}");
                         continue;
                      }
                   }
@@ -109,17 +101,11 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
                var waiting = Task.WhenAll(metaDataTasks);
                await waiting;
             }
-
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteStringAsync($"Queued {fileCounter} files");
-            return response;
+            return ($"Queued {fileCounter} files", System.Net.HttpStatusCode.OK);
          }
          catch (Exception exe)
          {
-            logger.LogError($"Failed to queue files: {exe.ToString()}");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await response.WriteStringAsync(exe.Message);
-            return response;
+            return ($"Failed to queue files: {exe.ToString()}", System.Net.HttpStatusCode.BadRequest);
          }
       }
       public async Task UpdateBlobMetaData(string blobName, BlobContainerClient containerClient, string key, string value, int retry = 0)

@@ -20,9 +20,6 @@ param azureOpenAIChatModel = 'gpt-4o'
 param chatModelVersion = '2024-08-06'
 
 
-param funcAppPlanSku = ''
-
-
 
 
 //ADd info on each Azure OpenAI instance to deploy

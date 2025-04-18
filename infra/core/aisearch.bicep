@@ -4,8 +4,8 @@ param location string = resourceGroup().location
 
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 resource aiSearchInstance 'Microsoft.Search/searchServices@2023-11-01' = {
-  name: aiSearchName
   location: location
+  name: aiSearchName
   sku: {
     name: 'basic'
   }
@@ -16,10 +16,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
 }
 
 resource adminKey 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: keyVault
   name: keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY
+  parent: keyVault
   properties: {
-    value:  aiSearchInstance.listAdminKeys().primaryKey
+    value: aiSearchInstance.listAdminKeys().primaryKey
   }
 }
 

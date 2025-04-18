@@ -1,12 +1,6 @@
 ﻿using HighVolumeProcessing.UtilityLibrary.Models;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HighVolumeProcessing.UtilityLibrary
 {
@@ -17,7 +11,7 @@ namespace HighVolumeProcessing.UtilityLibrary
       private Settings settings;
       private CosmosDbHelper cosmosDbHelper;
       private string typeName;
-      public Tracker(ILogger<Tracker<T>> log, IConfiguration config, Settings settings, CosmosDbHelper cosmosDbHelper) 
+      public Tracker(ILogger<Tracker<T>> log, IConfiguration config, Settings settings, CosmosDbHelper cosmosDbHelper)
       {
          this.log = log;
          this.config = config;
@@ -32,7 +26,7 @@ namespace HighVolumeProcessing.UtilityLibrary
          var item = await cosmosDbHelper.UpsertRecord(fileQueueMessage);
          return item;
       }
-    
+
 
    }
 }

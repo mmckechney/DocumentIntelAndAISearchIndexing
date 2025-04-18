@@ -103,14 +103,14 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
 
          log.LogDebug($"Custom field query: {customFieldQuery}");
-         
+
          // Create the search options  
          var options = new SearchOptions
          {
             Filter = customFieldQuery,
             IncludeTotalCount = true
          };
- 
+
          List<CustomFieldIndexModel> values = new();
          // Perform the search  
          SearchResults<CustomFieldIndexModel> response = await searchClient.SearchAsync<CustomFieldIndexModel>(query, options);

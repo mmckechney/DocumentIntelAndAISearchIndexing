@@ -1,9 +1,9 @@
-param funcAppPlan string
+param containerAppEnvironmentId string
 param location string = resourceGroup().location
 param processFunctionName string
 param aiSearchIndexFunctionName string
 param customFieldFunctionName string
-param functionSubnetId string
+param containerAppSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
 param moveQueueName string
@@ -28,8 +28,8 @@ param openAiChatModel string
 param askQuestionsFunctionName string
 param cosmosDbName string
 param cosmosContainerName string
-param useManagedIdentity bool 
-param funcAppPlanSku string
+param cosmosDbAccountName string
+
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
@@ -50,29 +50,22 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02'existing = {
   name: appInsightsName
 }
 
-module functionAppPlan 'appplan.bicep' = {
-  name: funcAppPlan
-  params: {
-    location: location
-    funcAppPlan: funcAppPlan
-    funcAppPlanSku: funcAppPlanSku
-   }
+resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' existing = {
+  name: cosmosDbAccountName
 }
+
 
 module processFunction 'function-process.bicep' = {
   name: processFunctionName
   params: {
     location: location
     processFunctionName: processFunctionName
-    functionSubnetId: functionSubnetId
     managedIdentityId: managedIdentityId
-    funcAppPlan: funcAppPlan
-    useManagedIdentity: useManagedIdentity
     sharedConfiguration: sharedConfiguration
+    containerAppEnvironmentId: containerAppEnvironmentId
+    containerAppSubnetId: containerAppSubnetId
   }
-  dependsOn: [
-    functionAppPlan
-  ]
+
 }
 
 
@@ -81,15 +74,12 @@ module customFieldFunction 'function-customfield.bicep' = {
   params: {
     location: location
     customFieldFunctionName: customFieldFunctionName
-    functionSubnetId: functionSubnetId
     managedIdentityId: managedIdentityId
-    funcAppPlan: funcAppPlan
-    useManagedIdentity: useManagedIdentity
     sharedConfiguration: sharedConfiguration
+    containerAppEnvironmentId: containerAppEnvironmentId
+    containerAppSubnetId: containerAppSubnetId
   }
-  dependsOn: [
-    functionAppPlan
-  ]
+
 }
 
 module aiSearchFunction 'function-aisearch.bicep' = {
@@ -98,14 +88,11 @@ module aiSearchFunction 'function-aisearch.bicep' = {
     location: location
     aiSearchIndexFunctionName: aiSearchIndexFunctionName
     managedIdentityId: managedIdentityId
-    funcAppPlan: funcAppPlan
-    functionSubnetId: functionSubnetId
-    useManagedIdentity: useManagedIdentity
     sharedConfiguration: sharedConfiguration
+    containerAppEnvironmentId: containerAppEnvironmentId
+    containerAppSubnetId: containerAppSubnetId
   }
-  dependsOn: [
-    functionAppPlan
-  ]
+
 }
 
 module moveFunction 'function-move.bicep' = {
@@ -114,14 +101,11 @@ module moveFunction 'function-move.bicep' = {
     location: location
     moveFunctionName: moveFunctionName
     managedIdentityId: managedIdentityId
-    funcAppPlan: funcAppPlan
-    functionSubnetId: functionSubnetId
-    useManagedIdentity: useManagedIdentity
     sharedConfiguration: sharedConfiguration
+    containerAppEnvironmentId: containerAppEnvironmentId
+    containerAppSubnetId: containerAppSubnetId
   }
-  dependsOn: [
-    functionAppPlan
-  ]
+
 }
 
 module queueFunction 'functions-queueing.bicep' = {
@@ -130,14 +114,11 @@ module queueFunction 'functions-queueing.bicep' = {
     location: location
     queueFunctionName: queueFunctionName
     managedIdentityId: managedIdentityId
-    funcAppPlan: funcAppPlan
-    functionSubnetId: functionSubnetId
-    useManagedIdentity: useManagedIdentity
     sharedConfiguration: sharedConfiguration
+    containerAppEnvironmentId: containerAppEnvironmentId
+    containerAppSubnetId: containerAppSubnetId
   }
-  dependsOn: [
-    functionAppPlan
- ]
+ 
 }
 
 module askQuestions 'function-askquestions.bicep' = {
@@ -146,14 +127,10 @@ module askQuestions 'function-askquestions.bicep' = {
     location: location
     askQuestionsFunctionName: askQuestionsFunctionName
     managedIdentityId: managedIdentityId
-    funcAppPlan: funcAppPlan
-    functionSubnetId: functionSubnetId
-    useManagedIdentity: useManagedIdentity
     sharedConfiguration: sharedConfiguration
+    containerAppEnvironmentId: containerAppEnvironmentId
+    containerAppSubnetId: containerAppSubnetId
   }
-  dependsOn: [
-    functionAppPlan
-  ]
 }
 
 var sharedConfiguration = [
@@ -168,6 +145,10 @@ var sharedConfiguration = [
   {
     name: configKeys.COSMOS_CONTAINER_NAME 
     value: cosmosContainerName
+  }
+  {
+    name: configKeys.COSMOS_ENDPOINT 
+    value: cosmosDbAccount.properties.documentEndpoint
   }
   {
     name: configKeys.STORAGE_ACCOUNT_NAME
@@ -186,8 +167,8 @@ var sharedConfiguration = [
     value: completedContainer
   }
   {
-    name: configKeys.SERVICEBUS_CONNECTION
-    value: sbConnKvReference
+    name: 'ServiceBusConnection__fullyQualifiedNamespace' 
+    value: '${serviceBusNs}.servicebus.windows.net' 
   }
   {
     name: configKeys.SERVICEBUS_NAMESPACE_NAME
@@ -213,7 +194,11 @@ var sharedConfiguration = [
     name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
     value: storageConnectionString 
   }
-  {
+  // {
+  //   name: useManagedIdentity ? 'AzureWebJobsStorage__accountName' : 'AzureWebJobsStorage'
+  //   value: useManagedIdentity ? functionStorageAcctName : storageConnectionString
+  // }
+   {
     name: 'AzureWebJobsStorage'
     value: storageConnectionString
   }
@@ -228,6 +213,16 @@ var sharedConfiguration = [
   {
     name: 'WEBSITE_RUN_FROM_PACKAGE'
     value: '1'
+  }
+  // Add Linux-specific app settings
+  {
+    name: 'WEBSITE_USE_PLACEHOLDER'
+    value: '0'
+  }
+  // Add SCM_DO_BUILD_DURING_DEPLOYMENT to disable build during deployment
+  {
+    name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+    value: 'false'
   }
   {
     name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -274,10 +269,6 @@ var sharedConfiguration = [
     value: apimSubscriptionKeyKvReference
   }
   {
-    name: configKeys.USE_MANAGED_IDENTITY
-    value: '${useManagedIdentity}'
-  }
-  {
     name: configKeys.DOCUMENT_INTELLIGENCE_MODEL_NAME
     value: 'prebuilt-layout'
   }
@@ -297,10 +288,29 @@ var sharedConfiguration = [
 
 // Output the function app names and system assigned identitiesVAR 
 output systemAssignedIdentities array = [
-  processFunction.outputs.systemAssignedIdentity
-  aiSearchFunction.outputs.systemAssignedIdentity
-  moveFunction.outputs.systemAssignedIdentity
-  queueFunction.outputs.systemAssignedIdentity
-  askQuestions.outputs.systemAssignedIdentity
-  customFieldFunction.outputs.systemAssignedIdentity
+  {
+    id : processFunction.outputs.systemAssignedIdentity
+    name: 'ProcessFunction-SystemAssignedIdentity'
+  }
+  {
+    id : aiSearchFunction.outputs.systemAssignedIdentity
+    name: 'AiSearchFunction-SystemAssignedIdentity'
+  }
+  {
+    id : moveFunction.outputs.systemAssignedIdentity
+    name: 'MoveFunction-SystemAssignedIdentity'
+  }
+  {
+    id : queueFunction.outputs.systemAssignedIdentity
+    name: 'QueueFunction-SystemAssignedIdentity'
+  }
+  {
+    id : askQuestions.outputs.systemAssignedIdentity
+    name: 'AskQuestionsFunction-SystemAssignedIdentity'
+  }
+  {
+    id : customFieldFunction.outputs.systemAssignedIdentity
+    name: 'CustomFieldFunction-SystemAssignedIdentity'
+  }
+
 ]

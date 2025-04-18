@@ -1,41 +1,38 @@
-param funcAppPlan string
+
 param location string = resourceGroup().location
 param customFieldFunctionName string
-param functionSubnetId string
 param managedIdentityId string
-param useManagedIdentity bool 
 param sharedConfiguration array
+param containerAppEnvironmentId string
+param containerAppSubnetId string 
 
-
-
-
-resource functionAppPlan 'Microsoft.Web/serverfarms@2021-01-01' existing = {
-  name: funcAppPlan
-}
-
-
-resource processFunction 'Microsoft.Web/sites@2021-01-01' = {
+resource processFunction 'Microsoft.Web/sites@2022-09-01' ={
   name: customFieldFunctionName
   location: location
-  kind: 'functionapp'
+  kind: 'functionapp,linux'
   identity: {
-    type: useManagedIdentity ? 'SystemAssigned, UserAssigned' : 'SystemAssigned'
-    userAssignedIdentities: useManagedIdentity ? {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
       '${managedIdentityId}': {}
-    } : null
+    } 
   }
   properties: {
-    virtualNetworkSubnetId: functionSubnetId
-    serverFarmId: functionAppPlan.id
-    keyVaultReferenceIdentity: useManagedIdentity ? managedIdentityId : 'SystemAssigned'
+    virtualNetworkSubnetId: containerAppSubnetId
+    managedEnvironmentId: containerAppEnvironmentId
+    keyVaultReferenceIdentity:  managedIdentityId 
     siteConfig: {
       cors: {
         allowedOrigins: ['https://portal.azure.com']
       }
       use32BitWorkerProcess: false
-      netFrameworkVersion: 'v8.0'
+      linuxFxVersion: 'DOTNET-ISOLATED|8.0'  // Specify .NET 8.0 runtime for Linux
       remoteDebuggingEnabled: false
-      appSettings:sharedConfiguration
+      appSettings: concat(sharedConfiguration, [
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: toLower(replace(customFieldFunctionName, '-', '')) 
+        }
+      ])
     }
   }
 }

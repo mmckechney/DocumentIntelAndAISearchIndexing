@@ -1,9 +1,8 @@
 ﻿using Azure;
 using Azure.AI.DocumentIntelligence;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
-using System.Runtime.CompilerServices;
 using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace HighVolumeProcessing.UtilityLibrary
 {
@@ -31,6 +30,19 @@ namespace HighVolumeProcessing.UtilityLibrary
                _cosmosDbConnectionString = GetSettingsValue(ConfigKeys.COSMOS_CONNECTION);
             }
             return _cosmosDbConnectionString;
+         }
+      }
+
+      private string _cosmosEndpoint = string.Empty;
+      public string CosmosEndpoint
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_cosmosEndpoint))
+            {
+               _cosmosEndpoint = GetSettingsValue(ConfigKeys.COSMOS_ENDPOINT);
+            }
+            return _cosmosEndpoint;
          }
       }
 
@@ -411,21 +423,22 @@ namespace HighVolumeProcessing.UtilityLibrary
       {
          get
          {
-            if (_useManagedIdentity == null)
-            {
-               bool.TryParse(GetSettingsValue(ConfigKeys.USE_MANAGED_IDENTITY), out bool tmp);
-               _useManagedIdentity = tmp;
-            }
-            return _useManagedIdentity.Value;
+            // if (_useManagedIdentity == null)
+            // {
+            //    bool.TryParse(GetSettingsValue(ConfigKeys.USE_MANAGED_IDENTITY), out bool tmp);
+            //    _useManagedIdentity = tmp;
+            // }
+            // return _useManagedIdentity.Value;
+            return true; // TODO: Remove this line when the above code is uncommented.
          }
       }
 
       private string GetSettingsValue(string variableName, string? defaultValue = null)
       {
          var value = _config[variableName];
-         if(string.IsNullOrWhiteSpace(value))
+         if (string.IsNullOrWhiteSpace(value))
          {
-            if(string.IsNullOrWhiteSpace(defaultValue))
+            if (string.IsNullOrWhiteSpace(defaultValue))
             {
                settingsLogger.LogError($"Setting variable {variableName} is Empty!");
             }
@@ -435,7 +448,7 @@ namespace HighVolumeProcessing.UtilityLibrary
                value = defaultValue;
             }
          }
-         
+
          return value;
       }
    }

@@ -6,7 +6,12 @@
     <Nullable>enable</Nullable>
      <RootNamespace>HighVolumeProcessing.UtilityLibrary</RootNamespace>
      <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+     <SuppressExperimentalDiagnostics>SKEXP*</SuppressExperimentalDiagnostics>
   </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="SuppressExperimentalDiagnostics" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.DocumentIntelligence" Version="1.0.0" />

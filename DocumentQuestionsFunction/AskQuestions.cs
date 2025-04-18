@@ -1,10 +1,8 @@
-using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
+using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
-using System.IO;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,13 +16,11 @@ namespace HighVolumeProcessing.DocumentQuestionsFunction
       AiSearchHelper aiSearch;
       ILogger<AskQuestions> log;
       IConfiguration config;
-      Helper common;
       Settings settings;
-      public AskQuestions(ILogger<AskQuestions> log, IConfiguration config, Helper common, SkHelper semanticMemory, AiSearchHelper aiSearch, Settings settings)
+      public AskQuestions(ILogger<AskQuestions> log, IConfiguration config, SkHelper semanticMemory, AiSearchHelper aiSearch, Settings settings)
       {
          this.log = log;
          this.config = config;
-         this.common = common;
          semanticUtility = semanticMemory;
          this.aiSearch = aiSearch;
          this.settings = settings;
@@ -32,24 +28,18 @@ namespace HighVolumeProcessing.DocumentQuestionsFunction
 
 
       //function you can call to ask a question about a document.
-      [Function("AskQuestions")]
-      public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequestData req)
-      {
-         log.LogInformation("C# HTTP trigger function processed a request for AskQuestions Function.");
 
-         HttpResponseData resp;
+      public async Task<(string, HttpStatusCode)> Question(string question, string customField, string fileName)
+      {
          try
          {
-            (string fileName, string question, string customField) = await common.GetFilenameAndQuery(req);
 
             if (string.IsNullOrWhiteSpace(question))
             {
 
                StringBuilder sb = new();
-               sb.Append("To call this Function, please add a 'filename' and/or 'customField' and 'question' as query parameter to the URL for a GET or as JSON elements to the body for a POST.");
-               var listResp = req.CreateResponse(System.Net.HttpStatusCode.OK);
-               listResp.Body = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
-               return listResp;
+               sb.Append("To call this Function, please add a 'fileNme' and/or 'customField' and 'question' as JSON elements to the body for a POST.");
+               return (sb.ToString(), HttpStatusCode.BadRequest);
             }
 
             string content = "";
@@ -62,22 +52,17 @@ namespace HighVolumeProcessing.DocumentQuestionsFunction
 
             if (content.Length == 0)
             {
-               resp = req.CreateResponse(System.Net.HttpStatusCode.NoContent);
-               resp.Body = new MemoryStream(Encoding.UTF8.GetBytes("Sorry, but I did not find a match based on your query."));
+               return ("Sorry, but I did not find a match based on your query.", HttpStatusCode.NoContent);
             }
             else
             {
                var responseMessage = await semanticUtility.AskQuestion(question, content);
-               resp = req.CreateResponse(System.Net.HttpStatusCode.OK);
-               resp.Body = new MemoryStream(Encoding.UTF8.GetBytes(responseMessage));
+               return (responseMessage, HttpStatusCode.OK);
             }
-            return resp;
          }
          catch (Exception ex)
          {
-            resp = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            resp.Body = new MemoryStream(Encoding.UTF8.GetBytes(ex.Message));
-            return resp;
+            return (ex.Message, HttpStatusCode.BadRequest);
          }
 
 

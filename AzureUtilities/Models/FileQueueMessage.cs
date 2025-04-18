@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-
-namespace HighVolumeProcessing.UtilityLibrary.Models
+﻿namespace HighVolumeProcessing.UtilityLibrary.Models
 {
    public class FileQueueMessage
    {
@@ -30,7 +28,7 @@ namespace HighVolumeProcessing.UtilityLibrary.Models
 
          this.ProcessedFileName = item.ProcessedFileName ?? this.ProcessedFileName;
          this.ContainerName = item.ContainerName ?? this.ContainerName;
-         this. CustomIndexFieldValues = item.CustomIndexFieldValues ?? new List<string>(this.CustomIndexFieldValues);
+         this.CustomIndexFieldValues = item.CustomIndexFieldValues ?? new List<string>(this.CustomIndexFieldValues);
          if (item.Tracking.Count > 0)
          {
             this.Tracking.Add(item.Tracking.Last());

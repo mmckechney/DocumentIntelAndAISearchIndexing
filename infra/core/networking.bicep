@@ -2,7 +2,7 @@ param location string = resourceGroup().location
 param nsg string
 param vnet string
 param subnet string
-param funcsubnet string
+param containerAppSubnet string
 param apimsubnet string
 
 
@@ -21,14 +21,14 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
     }
     subnets: [
        {
-        name: funcsubnet
+        name: containerAppSubnet
         properties: {
-          addressPrefix: '10.10.1.0/24'
+          addressPrefix: '10.10.4.0/23'
           delegations: [
             {
-              name: 'Microsoft.Web/serverFarms'
+              name: 'Microsoft.App/environments'
               properties: {
-                serviceName: 'Microsoft.Web/serverFarms'
+                serviceName: 'Microsoft.App/environments'
               }
             }
           ]
@@ -141,6 +141,6 @@ output storageSubnetIds array = [
 
 ]
 output vnetName string = virtualNetwork.name
-output functionSubnetName string= virtualNetwork.properties.subnets[0].name
-output functionSubnetId string= virtualNetwork.properties.subnets[0].id
+output containerAppSubnetName string= virtualNetwork.properties.subnets[0].name
+output containerAppSubnetId string= virtualNetwork.properties.subnets[0].id
 output apimSubnetId string= virtualNetwork.properties.subnets[1].id

@@ -1,8 +1,7 @@
-﻿using HighVolumeProcessing.UtilityLibrary.Models; 
+﻿using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AzureAISearch;
 using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
 using Microsoft.SemanticKernel.Embeddings;
 using Microsoft.SemanticKernel.Memory;
@@ -14,6 +13,9 @@ namespace HighVolumeProcessing.UtilityLibrary
 #pragma warning disable SKEXP0052 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable SKEXP0021 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable SKEXP0011 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0010 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable SKEXP0050 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
    public class SkHelper
    {
@@ -46,7 +48,7 @@ namespace HighVolumeProcessing.UtilityLibrary
             _textEmbeddingService = value;
          }
       }
-      public SkHelper(ILoggerFactory logFactory, IConfiguration config,  Settings settings)
+      public SkHelper(ILoggerFactory logFactory, IConfiguration config, Settings settings)
       {
          log = logFactory.CreateLogger<SkHelper>();
          this.config = config;
@@ -102,7 +104,7 @@ namespace HighVolumeProcessing.UtilityLibrary
             });
             var plugin = KernelPluginFactory.CreateFromFunctions("YAMLPlugins", yamlPrompts.Select(y => y.Value).ToArray());
             kernel.Plugins.Add(plugin);
-            
+
          }
 
       }

@@ -1,49 +1,101 @@
 using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs.Models;
-using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Azure.Functions.Worker;
+using HighVolumeProcessing.UtilityLibrary;
+using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
-using HighVolumeProcessing.UtilityLibrary.Models;
 
 namespace HighVolumeProcessing.ProcessedFileMover
 {
-   public class FileMover
+   public class FileMover : BackgroundService
    {
       private readonly ILogger<FileMover> log;
       private StorageHelper storageHelper;
       private Settings settings;
       private Tracker<FileMover> tracker;
-      public FileMover(ILogger<FileMover> logger, StorageHelper storageHelper, Settings settings, Tracker<FileMover> tracker)
+      private IConfiguration config;
+      private ServiceBusHelper serviceBusHelper;
+      public FileMover(ILogger<FileMover> logger, IConfiguration config, StorageHelper storageHelper, Settings settings, ServiceBusHelper serviceBusHelper, Tracker<FileMover> tracker)
       {
          this.log = logger;
          this.storageHelper = storageHelper;
          this.settings = settings;
          this.tracker = tracker;
+         this.serviceBusHelper = serviceBusHelper;
+         this.config = config;
       }
 
-      [Function("FileMover")]
-      public async Task Run([ServiceBusTrigger("%SERVICEBUS_MOVE_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
+      protected async override Task ExecuteAsync(CancellationToken stoppingToken)
       {
-         var fileMessage = message.As<FileQueueMessage>();
-         log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
 
+         await Task.Run(() =>
+          {
+             var processor = serviceBusHelper.CreateServiceBusProcessor(config[ConfigKeys.SERVICEBUS_MOVE_QUEUE_NAME], settings.ServiceBusNamespaceName);
+             processor.ProcessMessageAsync += ProcessMessageAsync;
+             processor.ProcessErrorAsync += ExceptionReceivedHandler;
+             log.LogInformation($"Starting FileMover with queue name: {config[ConfigKeys.SERVICEBUS_MOVE_QUEUE_NAME]}");
+             while (true)
+             {
+                Thread.Sleep(10000);
+                if (stoppingToken.IsCancellationRequested)
+                {
+                   log.LogInformation("Cancellation requested. Stopping the FileMover.");
+                   break;
+                }
+             }
+          });
+
+      }
+      private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
+      {
+         var fileMessage = args.Message.As<FileQueueMessage>();
          await tracker.TrackAndUpdate(fileMessage, "Moving original file");
          bool success = await MoveOriginalFileToCompleted(fileMessage.SourceFileName);
          if (success)
          {
             log.LogInformation($"Successfully move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
             await tracker.TrackAndUpdate(fileMessage, "Successfully moved original file");
+            await args.CompleteMessageAsync(args.Message, args.CancellationToken);
          }
          else
          {
             log.LogInformation($"Failed move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
             await tracker.TrackAndUpdate(fileMessage, "Failed to move original file");
+            await args.AbandonMessageAsync(args.Message);
          }
 
       }
+
+      private Task ExceptionReceivedHandler(ProcessErrorEventArgs args)
+      {
+         log.LogError($"Error receiving message in FileMover ${args.Exception.Message}");
+         return Task.CompletedTask;
+      }
+      // [Function("FileMover")]
+      // public async Task Run([ServiceBusTrigger("%SERVICEBUS_MOVE_QUEUE_NAME%", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message)
+      // {
+      //    var fileMessage = message.As<FileQueueMessage>();
+      //    log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
+
+      //    await tracker.TrackAndUpdate(fileMessage, "Moving original file");
+      //    bool success = await MoveOriginalFileToCompleted(fileMessage.SourceFileName);
+      //    if (success)
+      //    {
+      //       log.LogInformation($"Successfully move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
+      //       await tracker.TrackAndUpdate(fileMessage, "Successfully moved original file");
+      //    }
+      //    else
+      //    {
+      //       log.LogInformation($"Failed move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
+      //       await tracker.TrackAndUpdate(fileMessage, "Failed to move original file");
+      //    }
+
+      // }
 
       public async Task<bool> MoveOriginalFileToCompleted(string sourceFileName)
       {

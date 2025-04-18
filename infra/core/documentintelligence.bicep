@@ -39,8 +39,8 @@ output docIntelligenceAccountName string = docIntelligenceAccount[0].properties.
 
 //get the id of each docIntelligence account created
 output docIntelligenceAccountIds array = [for (i, formIndex) in range(0,docIntelligenceInstanceCount): docIntelligenceAccount[i].id]
-output docIntelligencePrincipalIds array = [for i in range(0,docIntelligenceInstanceCount): docIntelligenceAccount[i].identity.principalId]
-output docIntellKeyArray array = [for i in range(0,docIntelligenceInstanceCount): docIntelligenceAccount[i].listKeys().key1]
+output docIntelligencePrincipalIds array = [for i in range(0,docIntelligenceInstanceCount): {id: docIntelligenceAccount[i].identity.principalId, name: '${docIntelligenceAccount[i].name}-SystemAssignedIdentity'}]
+output docIntellKeyArray array = [for i in range(0,docIntelligenceInstanceCount):   docIntelligenceAccount[i].listKeys().key1]
 output docIntellEndpoint string = docIntelligenceAccount[0].properties.endpoint
 
 

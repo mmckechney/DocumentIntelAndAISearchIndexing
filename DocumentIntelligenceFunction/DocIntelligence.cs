@@ -3,9 +3,10 @@ using Azure.AI.DocumentIntelligence;
 //using Azure.AI.FormRecognizer.DocumentAnalysis;
 using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs.Models;
-using HighVolumeProcessing.UtilityLibrary; 
-using HighVolumeProcessing.UtilityLibrary.Models; 
-using Microsoft.Azure.Functions.Worker;
+using HighVolumeProcessing.UtilityLibrary;
+using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Polly;
 using System;
@@ -18,47 +19,90 @@ using System.Threading.Tasks;
 
 namespace HighVolumeProcessing.DocumentIntelligenceFunction
 {
-   public class DocIntelligence
+   public class DocIntelligence : BackgroundService
    {
       private readonly ILogger<DocIntelligence> log;
       private StorageHelper storageHelper;
       private ServiceBusHelper serviceBusHelper;
       private Settings settings;
       private Tracker<DocIntelligence> tracker;
-      public DocIntelligence(ILogger<DocIntelligence> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<DocIntelligence> tracker)
+      IConfiguration config;
+      public DocIntelligence(ILogger<DocIntelligence> logger, IConfiguration config, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<DocIntelligence> tracker)
       {
          this.log = logger;
          this.storageHelper = storageHelper;
          this.serviceBusHelper = serviceBusHelper;
-         
+
          this.settings = settings;
          this.tracker = tracker;
+         this.config = config;
       }
 
-
-      [Function("DocIntelligence")]
-      public async Task Run([ServiceBusTrigger("%SERVICEBUS_DOC_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
+      protected async override Task ExecuteAsync(CancellationToken stoppingToken)
       {
-         var fileMessage = message.As<FileQueueMessage>();
-         try
-         {
-            log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
 
-            bool success = await ProcessMessage(fileMessage);
-            if (!success)
-            {
-               throw new Exception("Failed to process message");
-            }
-         }
-         catch (Exception exe)
-         {
-            log.LogError(exe.ToString());
-            await tracker.TrackAndUpdate(fileMessage, $"Failure in DocIntelligence: {exe.Message}");
-            throw;
+         await Task.Run(() =>
+          {
+             var processor = serviceBusHelper.CreateServiceBusProcessor(config[ConfigKeys.SERVICEBUS_DOC_QUEUE_NAME], settings.ServiceBusNamespaceName);
+             processor.ProcessMessageAsync += ProcessMessageAsync;
+             processor.ProcessErrorAsync += ExceptionReceivedHandler;
+             log.LogInformation($"Starting DocIntelligence with queue name: {config[ConfigKeys.SERVICEBUS_DOC_QUEUE_NAME]}");
 
-         }
-         return;
+             while (true)
+             {
+                Thread.Sleep(10000);
+                if (stoppingToken.IsCancellationRequested)
+                {
+                   log.LogInformation("Cancellation requested. Stopping the DocIntelligence.");
+                   break;
+                }
+             }
+          });
+
       }
+      private async Task ProcessMessageAsync(ProcessMessageEventArgs args)
+      {
+         var fileMessage = args.Message.As<FileQueueMessage>();
+         bool success = await ProcessMessage(fileMessage);
+         if (!success)
+         {
+            await args.AbandonMessageAsync(args.Message);
+            throw new Exception($"Failed to process message in DocIntelligence {args.Message.MessageId}.");
+         }
+         else
+         {
+            await args.CompleteMessageAsync(args.Message, args.CancellationToken);
+         }
+      }
+
+      private Task ExceptionReceivedHandler(ProcessErrorEventArgs args)
+      {
+         log.LogError($"Error receiving message in DocIntelligence ${args.Exception.Message}");
+         return Task.CompletedTask;
+      }
+      // [Function("DocIntelligence")]
+      // public async Task Run([ServiceBusTrigger("%SERVICEBUS_DOC_QUEUE_NAME%", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message)
+      // {
+      //    var fileMessage = message.As<FileQueueMessage>();
+      //    try
+      //    {
+      //       log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
+
+      //       bool success = await ProcessMessage(fileMessage);
+      //       if (!success)
+      //       {
+      //          throw new Exception("Failed to process message");
+      //       }
+      //    }
+      //    catch (Exception exe)
+      //    {
+      //       log.LogError(exe.ToString());
+      //       await tracker.TrackAndUpdate(fileMessage, $"Failure in DocIntelligence: {exe.Message}");
+      //       throw;
+
+      //    }
+      //    return;
+      // }
       public async Task<bool> ProcessMessage(FileQueueMessage fileMessage)
       {
 

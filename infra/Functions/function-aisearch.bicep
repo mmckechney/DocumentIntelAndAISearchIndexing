@@ -1,40 +1,43 @@
-param funcAppPlan string
 param location string = resourceGroup().location
 param aiSearchIndexFunctionName string
-param functionSubnetId string
-param managedIdentityId string
-param useManagedIdentity bool 
-
-
+param managedIdentityId string 
+param containerAppEnvironmentId string
+param containerAppSubnetId string 
 param sharedConfiguration array
 
-resource functionAppPlan 'Microsoft.Web/serverfarms@2021-01-01' existing = {
-  name: funcAppPlan
-}
 
-resource aiSearchIndexFunction 'Microsoft.Web/sites@2021-01-01' = {
+resource aiSearchIndexFunction 'Microsoft.Web/sites@2022-09-01' = {
   name: aiSearchIndexFunctionName
   location: location
-  kind: 'functionapp'
+  kind: 'functionapp,linux'
   identity: {
-    type: useManagedIdentity ? 'SystemAssigned, UserAssigned' : 'SystemAssigned'
-    userAssignedIdentities: useManagedIdentity ? {
+    type: 'UserAssigned'
+    userAssignedIdentities:  {
       '${managedIdentityId}': {}
-    } : null
+    } 
   }
   properties: {
-    virtualNetworkSubnetId: functionSubnetId
-    serverFarmId: functionAppPlan.id
-    keyVaultReferenceIdentity: useManagedIdentity ? managedIdentityId : 'SystemAssigned'
+    virtualNetworkSubnetId: containerAppSubnetId
+    managedEnvironmentId: containerAppEnvironmentId
+    keyVaultReferenceIdentity: managedIdentityId 
     siteConfig: {
+      acrUseManagedIdentityCreds: true
+      
       cors: {
-        allowedOrigins: ['https://portal.azure.com']
+        allowedOrigins: ['https://portal.azure.com', 'https://ms.portal.azure.com']
       }
       use32BitWorkerProcess: false
-      netFrameworkVersion: 'v8.0'
       remoteDebuggingEnabled: false
-      appSettings: sharedConfiguration
+      linuxFxVersion: 'DOTNET-ISOLATED|8.0'  // Specify .NET 8.0 runtime for Linux
+      
+      appSettings: concat(sharedConfiguration, [
+        {
+          name: 'WEBSITE_CONTENTSHARE'
+          value: toLower(replace(aiSearchIndexFunctionName, '-', '')) 
+        }
+      ])
     }
+
   }
 }
 

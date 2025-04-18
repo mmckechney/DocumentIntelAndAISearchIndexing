@@ -1,4 +1,4 @@
-﻿using HighVolumeProcessing.UtilityLibrary; 
+﻿using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -12,9 +12,7 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
    {
       static async Task Main(string[] args)
       {
-         string basePath = IsDevelopmentEnvironment() ?
-             Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot") :
-             $"{Environment.GetEnvironmentVariable("HOME")}\\site\\wwwroot";
+         string basePath = AppContext.BaseDirectory;
 
          var builder = new HostBuilder();
          builder.ConfigureLogging((hostContext, logging) =>
@@ -22,14 +20,14 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
             logging.SetMinimumLevel(LogLevel.Debug);
             logging.AddFilter("System", LogLevel.Warning);
             logging.AddFilter("Microsoft", LogLevel.Warning);
+            logging.AddConsole();
 
          });
-         builder.ConfigureFunctionsWorkerDefaults();
+         //builder.ConfigureFunctionsWorkerDefaults();
          builder.ConfigureAppConfiguration(b =>
          {
             b.SetBasePath(basePath)
               .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)  // common settings go here.
-              .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT")}.json", optional: true, reloadOnChange: false)  // environment specific settings go here
               .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)  // secrets go here. This file is excluded from source control.
               .AddEnvironmentVariables()
               .Build();
@@ -45,6 +43,7 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
 
       private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
       {
+         services.AddHostedService<AiSearchIndexing>();
          services.AddSingleton<SkHelper>();
          services.AddSingleton<AiSearchHelper>();
          services.AddSingleton<StorageHelper>();
@@ -52,13 +51,8 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
          services.AddSingleton<Settings>();
          services.AddSingleton<Tracker<AiSearchIndexing>>();
          services.AddSingleton<CosmosDbHelper>();
-         services.AddHttpClient();
 
       }
 
-      public static bool IsDevelopmentEnvironment()
-      {
-         return "Development".Equals(Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT"), StringComparison.OrdinalIgnoreCase);
-      }
    }
 }

@@ -8,8 +8,6 @@ param displayName string
 param apiManagementIdentityClientId string
 @description('URI of the Key Vault secret.')
 param keyVaultSecretUri string
-@description('Whether to use Managed Identity for authentication')
-param useManagedIdentity bool 
 
 resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' existing = {
   name: apiManagementName
@@ -18,12 +16,12 @@ resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' exis
     name: name
     properties: {
       displayName: displayName
-      keyVault: useManagedIdentity ? {
+      keyVault:  {
         identityClientId: apiManagementIdentityClientId
         secretIdentifier: keyVaultSecretUri
-      } : null
+      } 
       secret: true
-      value: !useManagedIdentity ? keyVaultSecretUri : null
+      //value: !useManagedIdentity ? keyVaultSecretUri : null
     }
   }
 }

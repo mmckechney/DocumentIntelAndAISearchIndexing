@@ -11,7 +11,7 @@ namespace HighVolumeProcessing.UtilityLibrary
       private Dictionary<string, BlobContainerClient> blobClients = new();
       private BlobServiceClient serviceClient = null;
       Settings settings;
-      public StorageHelper(ILogger<StorageHelper> logger,Settings settings)
+      public StorageHelper(ILogger<StorageHelper> logger, Settings settings)
       {
          this.logger = logger;
          this.settings = settings;
@@ -81,7 +81,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
             }
          }
-         
+
       }
 
       private BlobServiceClient CreateStorageClient(string storageAccountName)

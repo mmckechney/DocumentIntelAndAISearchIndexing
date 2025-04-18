@@ -6,8 +6,6 @@ param location string = resourceGroup().location
 param tags object = {}
 @description('ID for the Managed Identity associated with the API Management resource.')
 param apiManagementIdentityId string
-@description('Whether to use Managed Identity for authentication')
-param useManagedIdentity bool 
 
 @description('ID for the subnet to deploy the API Management resource.')
 param subnetId string
@@ -35,10 +33,10 @@ resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
   tags: tags
   sku: sku
   identity: {
-    type: useManagedIdentity ? 'SystemAssigned, UserAssigned' : 'SystemAssigned'
-    userAssignedIdentities: useManagedIdentity && !empty(apiManagementIdentityId) ? {
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities:  {
       '${apiManagementIdentityId}': {}
-    } : null
+    } 
   }
   properties: {
     publisherEmail: publisherEmail
@@ -56,5 +54,5 @@ output id string = apiManagement.id
 output name string = apiManagement.name
 @description('Gateway URL for the deployed API Management resource.')
 output gatewayUrl string = apiManagement.properties.gatewayUrl
-output systemIdentity string = apiManagement.identity.principalId
-output userAssignedIdentity string = apiManagementIdentityId
+output systemIdentity object = {id:apiManagement.identity.principalId, name:'${apiManagement.name}-SystemAssignedIdentity'}
+

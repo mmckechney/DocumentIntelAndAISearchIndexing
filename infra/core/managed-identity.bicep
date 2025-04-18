@@ -16,6 +16,6 @@ output id string = identity.id
 @description('Name for the deployed Managed Identity resource.')
 output name string = identity.name
 @description('Principal ID for the deployed Managed Identity resource.')
-output principalId string = identity.properties.principalId
+output principalId object = { id:identity.properties.principalId, name:'${identity.name}-UserAssignedIdentity'}
 @description('Client ID for the deployed Managed Identity resource.')
 output clientId string = identity.properties.clientId

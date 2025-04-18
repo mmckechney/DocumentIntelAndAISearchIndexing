@@ -56,5 +56,17 @@ namespace HighVolumeProcessing.UtilityLibrary
          var sbc = CreateServiceBusClient(serviceBusNamespace, queueName);
          return sbc.CreateSender(queueName);
       }
+
+      public ServiceBusProcessor CreateServiceBusProcessor(string serviceBusNamespace, string queueName)
+      {
+         var sbc = CreateServiceBusClient(serviceBusNamespace, queueName);
+
+         var options = new ServiceBusProcessorOptions
+         {
+            AutoCompleteMessages = false,
+            MaxConcurrentCalls = 2
+         };
+         return sbc.CreateProcessor(queueName, options);
+      }
    }
 }

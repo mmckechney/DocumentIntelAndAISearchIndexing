@@ -1,11 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using hpM = HighVolumeProcessing.UtilityLibrary.Models;
 namespace HighVolumeProcessing.UtilityLibrary
 {
@@ -24,8 +19,8 @@ namespace HighVolumeProcessing.UtilityLibrary
          this.settings = settings;
       }
 
-      
-      
+
+
       internal CosmosClient Client
       {
          get
@@ -34,10 +29,16 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                try
                {
-                  var connectionString = settings.CosmosDbConnectionString;
-                  _client = new CosmosClient(connectionString);
+                  if (string.IsNullOrWhiteSpace(settings.CosmosDbConnectionString))
+                  {
+                     _client = new CosmosClient(settings.CosmosEndpoint, AadHelper.TokenCredential);
+                  }
+                  else
+                  {
+                     _client = new CosmosClient(settings.CosmosDbConnectionString);
+                  }
                }
-               catch(Exception ex)
+               catch (Exception ex)
                {
                   log.LogError($"Issue creating CosmosClient: {ex.Message}");
                }
@@ -46,7 +47,7 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      
+
       internal Database Database
       {
          get
@@ -76,7 +77,7 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                try
                {
-                  
+
                   var container = Database.CreateContainerIfNotExistsAsync(settings.CosmosConstainerName, "/id").GetAwaiter().GetResult();
                   _container = container;
                }
@@ -124,12 +125,13 @@ namespace HighVolumeProcessing.UtilityLibrary
          {
             //retrieve item from cosmos
 
-            if(item.id == null) {
+            if (item.id == null)
+            {
                item.id = Guid.NewGuid().ToString();
             }
             var response = await CosmosContainer.ReadItemAsync<hpM.FileQueueMessage>(item.id, new PartitionKey(item.id));
             return response.Resource;
-         
+
          }
          catch (Exception ex)
          {
