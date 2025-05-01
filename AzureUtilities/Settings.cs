@@ -341,6 +341,19 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
+      private string _serviceBusConnection = string.Empty;
+      public string ServiceBusConnection
+      {
+         get
+         {
+            if (string.IsNullOrEmpty(_serviceBusConnection))
+            {
+               _serviceBusConnection = GetSettingsValue(ConfigKeys.SERVICEBUS_CONNECTION);
+            }
+            return _serviceBusConnection;
+         }
+      }
+
       private string _sourceContainerName = string.Empty;
       public string SourceContainerName
       {
