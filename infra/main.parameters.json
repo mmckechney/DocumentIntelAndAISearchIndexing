@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apiManagementPublisherEmail": {
+      "value": "${AZURE_CURRENT_USER_EMAIL}"
+    },
+    "apiManagementPublisherName": {
+      "value": "${AZURE_CURRENT_USER_NAME}"
+    },
+    "appName": {
+      "value": "${APP_NAME}"
+    },
+    "azureOpenAIChatModel": {
+      "value": "gpt-4o"
+    },
+    "azureOpenAIEmbeddingModel": {
+      "value": "text-embedding-ada-002"
+    },
+    "currentUserObjectId": {
+      "value": "${AZURE_CURRENT_USER_OBJECT_ID}"
+    },
+    "docIntelligenceInstanceCount": {
+      "value": 2
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "myPublicIp": {
+      "value": "${PUBLIC_IP}"
+    },
+    "openAiConfigs": {
+      "value": [
+       
+        {
+          "name": "",
+          "location": "swedencentral",
+          "suffix": "swedencentral",
+          "priority": 2
+        },
+        {
+          "name": "",
+          "location": "westus3",
+          "suffix": "westus3",
+          "priority": 2
+        }
+      ]
+    }
+  }
+}

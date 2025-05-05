@@ -1,16 +1,14 @@
+import * as customTypes from '../constants/customTypes.bicep'
+
 param funcAppPlan string
 param location string = resourceGroup().location
-param processFunctionName string
-param aiSearchIndexFunctionName string
-param customFieldFunctionName string
+param functionValues customTypes.functionValue[]
 param functionSubnetId string
 param functionStorageAcctName string
 param keyVaultUri string
 param moveQueueName string
 param serviceBusNs string
 param formStorageAcctName string
-param moveFunctionName string
-param queueFunctionName string
 param customFieldQueueName string
 param docQueueName string
 param toIndexQueueName string
@@ -25,10 +23,22 @@ param completedContainer string
 param appInsightsName string
 param aiIndexName string
 param openAiChatModel string
-param askQuestionsFunctionName string
 param cosmosDbName string
 param cosmosContainerName string
 
+var configKeys = loadJsonContent('../constants/configKeys.json')
+var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
+
+resource funcStorageAcct 'Microsoft.Storage/storageAccounts@2021-04-01'existing = {
+  name: functionStorageAcctName
+}
+var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${funcStorageAcct.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${funcStorageAcct.listKeys().keys[0].value}'
+var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
+var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
+var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY}/)'
+var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.APIM_SUBSCRIPTION_KEY}/)' 
+var frEndpointKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_ENDPOINT}/)'
+var frKeyKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_KEY}/)'
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02'existing = {
   name: appInsightsName
@@ -42,178 +52,152 @@ module functionAppPlan 'appplan.bicep' = {
   }
 }
 
-module processFunction 'function-process.bicep' = {
-  name: processFunctionName
+
+module function 'function.bicep' = [for functionValue in functionValues: {
+  name: functionValue.name
   params: {
     location: location
-    processFunctionName: processFunctionName
+    functionName: functionValue.name
+    functionTag : functionValue.tag
     functionSubnetId: functionSubnetId
-    functionStorageAcctName: functionStorageAcctName
-    keyVaultUri: keyVaultUri
-    serviceBusNs: serviceBusNs
-    formStorageAcctName: formStorageAcctName
-    documentStorageContainer: documentStorageContainer
-    processResultsContainer: processResultsContainer
     managedIdentityId: managedIdentityId
-    appInsightsName: appInsightsName
-    funcAppPlan: funcAppPlan
-    customFieldQueueName: customFieldQueueName
-    docQueueName: docQueueName
-    cosmosDbName: cosmosDbName
-    cosmosContainerName:cosmosContainerName
+    funcAppPlanId: functionAppPlan.outputs.functionAppPlanId
+    sharedConfiguration: sharedConfiguration
   }
-  dependsOn: [
-    functionAppPlan
-    appInsights
-  ]
-}
+}]
 
 
-module customFieldFunction 'function-customfield.bicep' = {
-  name: customFieldFunctionName
-  params: {
-    location: location
-    customFieldFunctionName: customFieldFunctionName
-    functionSubnetId: functionSubnetId
-    functionStorageAcctName: functionStorageAcctName
-    keyVaultUri: keyVaultUri
-    customFieldQueueName: customFieldQueueName
-    serviceBusNs: serviceBusNs
-    formStorageAcctName: formStorageAcctName
-    documentStorageContainer: documentStorageContainer
-    processResultsContainer: processResultsContainer
-    managedIdentityId: managedIdentityId
-    appInsightsName: appInsightsName
-    funcAppPlan: funcAppPlan
-    toIndexQueueName: toIndexQueueName
-    aiSearchEndpoint: aiSearchEndpoint
-    openAiEndpoint: openAiEndpoint
-    azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
-    openAiEmbeddingModel: openAiEmbeddingModel
-    openAiChatModel: openAiChatModel
-    cosmosDbName: cosmosDbName
-    cosmosContainerName:cosmosContainerName
 
+var sharedConfiguration = [
+  {
+    name: configKeys.COSMOS_CONNECTION
+    value: cosmosKvReference
   }
-  dependsOn: [
-    functionAppPlan
-    appInsights
-  ]
-}
-
-module aiSearchFunction 'function-aisearch.bicep' = {
-  name: aiSearchIndexFunctionName
-  params: {
-    location: location
-    aiSearchIndexFunctionName: aiSearchIndexFunctionName
-    keyVaultUri: keyVaultUri
-    openAiEmbeddingModel: openAiEmbeddingModel
-    aiSearchEndpoint: aiSearchEndpoint
-    openAiEndpoint: openAiEndpoint
-    azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
-    managedIdentityId: managedIdentityId
-    appInsightsName: appInsightsName
-    funcAppPlan: funcAppPlan
-    formStorageAcctName: formStorageAcctName
-    functionStorageAcctName: functionStorageAcctName
-    functionSubnetId: functionSubnetId
-    processResultsContainer: processResultsContainer
-    serviceBusNs: serviceBusNs
-    toIndexQueueName: toIndexQueueName
-    aiIndexName: aiIndexName
-    openAiChatModel: openAiChatModel
-    moveQueueName: moveQueueName
-    cosmosDbName: cosmosDbName
-    cosmosContainerName:cosmosContainerName
+  {
+    name: configKeys.COSMOS_DB_NAME 
+    value: cosmosDbName
   }
-  dependsOn: [
-    functionAppPlan
-    appInsights
-  ]
-}
-
-module moveFunction 'function-move.bicep' = {
-  name: moveFunctionName
-  params: {
-    location: location
-    moveFunctionName: moveFunctionName
-    keyVaultUri: keyVaultUri
-    managedIdentityId: managedIdentityId
-    appInsightsName: appInsightsName
-    funcAppPlan: funcAppPlan
-    formStorageAcctName: formStorageAcctName
-    functionStorageAcctName: functionStorageAcctName
-    functionSubnetId: functionSubnetId
-    processResultsContainer: processResultsContainer
-    completedContainer: completedContainer
-    documentStorageContainer: documentStorageContainer
-    moveQueueName: moveQueueName
-    cosmosDbName: cosmosDbName
-    cosmosContainerName:cosmosContainerName
+  {
+    name: configKeys.COSMOS_CONTAINER_NAME 
+    value: cosmosContainerName
   }
-  dependsOn: [
-    functionAppPlan
-    appInsights
-  ]
-}
-
-module queueFunction 'functions-queueing.bicep' = {
-  name: queueFunctionName
-  params: {
-    location: location
-    queueFunctionName: queueFunctionName
-    managedIdentityId: managedIdentityId
-    appInsightsName: appInsightsName
-    funcAppPlan: funcAppPlan
-    formStorageAcctName: formStorageAcctName
-    functionStorageAcctName: functionStorageAcctName
-    functionSubnetId: functionSubnetId
-    documentStorageContainer: documentStorageContainer
-    docQueueName: docQueueName
-    serviceBusNs: serviceBusNs
-    keyVaultUri: keyVaultUri
-    cosmosDbName: cosmosDbName
-    cosmosContainerName:cosmosContainerName
+  {
+    name: configKeys.STORAGE_ACCOUNT_NAME
+    value: formStorageAcctName
   }
-  dependsOn: [
-    functionAppPlan
-    appInsights
-  ]
-}
-
-module askQuestions 'function-askquestions.bicep' = {
-  name: askQuestionsFunctionName
-  params: {
-    location: location
-    askQuestionsFunctionName: askQuestionsFunctionName
-    keyVaultUri: keyVaultUri
-    openAiEmbeddingModel: openAiEmbeddingModel
-    aiSearchEndpoint: aiSearchEndpoint
-    openAiEndpoint: openAiEndpoint
-    azureOpenAiEmbeddingMaxTokens: azureOpenAiEmbeddingMaxTokens
-    managedIdentityId: managedIdentityId
-    appInsightsName: appInsightsName
-    funcAppPlan: funcAppPlan
-    functionStorageAcctName: functionStorageAcctName
-    functionSubnetId: functionSubnetId
-    openAiChatModel: openAiChatModel
-    cosmosDbName: cosmosDbName
-    cosmosContainerName:cosmosContainerName
-
+  {
+    name: configKeys.STORAGE_SOURCE_CONTAINER_NAME
+    value: documentStorageContainer
   }
-  dependsOn: [
-    functionAppPlan
-    appInsights
-  ]
-}
-
-output systemAssignedIdentities array = [
-  processFunction.outputs.systemAssignedIdentity
-  aiSearchFunction.outputs.systemAssignedIdentity
-  moveFunction.outputs.systemAssignedIdentity
-  queueFunction.outputs.systemAssignedIdentity
-  askQuestions.outputs.systemAssignedIdentity
-  customFieldFunction.outputs.systemAssignedIdentity
-
-  
+  {
+    name: configKeys.STORAGE_PROCESS_RESULTS_CONTAINER_NAME
+    value: processResultsContainer
+  }
+  {
+    name: configKeys.STORAGE_COMPLETED_CONTAINER_NAME
+    value: completedContainer
+  }
+  {
+    name: configKeys.SERVICEBUS_CONNECTION
+    value: sbConnKvReference
+  }
+  {
+    name: configKeys.SERVICEBUS_NAMESPACE_NAME
+    value: serviceBusNs
+  }
+  {
+    name: configKeys.SERVICEBUS_DOC_QUEUE_NAME
+    value: docQueueName
+  }
+  {
+    name: configKeys.SERVICEBUS_CUSTOMFIELD_QUEUE_NAME
+    value: customFieldQueueName
+  }
+  {
+    name: configKeys.SERVICEBUS_TOINDEX_QUEUE_NAME
+    value: toIndexQueueName
+  }
+  {
+    name: configKeys.SERVICEBUS_MOVE_QUEUE_NAME
+    value: moveQueueName
+  }
+  {
+    name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
+    value: storageConnectionString 
+  }
+  {
+    name: 'AzureWebJobsStorage'
+    value: storageConnectionString
+  }
+  {
+    name: 'FUNCTIONS_EXTENSION_VERSION'
+    value: '~4'
+  }
+  {
+    name: 'FUNCTIONS_WORKER_RUNTIME'
+    value: 'dotnet-isolated'
+  }
+  {
+    name: 'WEBSITE_RUN_FROM_PACKAGE'
+    value: '1'
+  }
+  {
+    name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+    value: appInsights.properties.ConnectionString
+  }
+  {
+    name: configKeys.AZURE_AISEARCH_ENDPOINT
+    value: aiSearchEndpoint
+  }
+  {
+    name: configKeys.AZURE_AISEARCH_ADMIN_KEY
+    value: aiSearchKvReference  
+  }
+  {
+    name: configKeys.AZURE_AISEARCH_INDEX_NAME
+    value: aiIndexName
+  }
+  {
+    name: configKeys.AZURE_OPENAI_ENDPOINT
+    value: openAiEndpoint
+  }
+  {
+    name: configKeys.AZURE_OPENAI_EMBEDDING_MODEL
+    value: openAiEmbeddingModel
+  }
+  {
+    name: configKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
+    value: openAiEmbeddingModel  
+  }
+  {
+    name: configKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS
+    value: string(azureOpenAiEmbeddingMaxTokens)
+  }
+  {
+    name: configKeys.AZURE_OPENAI_CHAT_MODEL
+    value: openAiChatModel
+  }
+  {
+    name: configKeys.AZURE_OPENAI_CHAT_DEPLOYMENT
+    value: openAiChatModel
+  }
+  {
+    name: configKeys.APIM_SUBSCRIPTION_KEY
+    value: apimSubscriptionKeyKvReference
+  }
+  {
+    name: configKeys.DOCUMENT_INTELLIGENCE_MODEL_NAME
+    value: 'prebuilt-layout'
+  }
+  {
+    name: configKeys.DOCUMENT_INTELLIGENCE_ENDPOINT
+    value: frEndpointKvReference
+  }
+  {
+    name: configKeys.DOCUMENT_INTELLIGENCE_KEY
+    value: frKeyKvReference
+  }
 ]
+
+output systemAssignedIdentities array = [for i in range(0, length(functionValues)): function[i].outputs.systemAssignedIdentity]
+

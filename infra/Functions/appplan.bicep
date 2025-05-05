@@ -12,3 +12,5 @@ resource functionAppPlan 'Microsoft.Web/serverfarms@2021-01-01' = {
     reserved: false 
   }
 }
+
+output functionAppPlanId string = functionAppPlan.id
