@@ -6,9 +6,6 @@ param location string
 param myPublicIp string
 param docIntelligenceInstanceCount int
 param currentUserObjectId string
-param azureOpenAIEmbeddingModel string
-param azureOpenAIChatModel string
-param embeddingMaxTokens int = 8191
 param aiIndexName string = 'documentindex'
 param apiManagementPublisherEmail string
 param apiManagementPublisherName string
@@ -20,7 +17,7 @@ param funcAppPlanSku string
 
 
 @description('OpenAI instances to deploy. Defaults to 2 across different regions.')
-param openAiConfigs customTypes.openAIConfig[] 
+param openAiConfigs customTypes.openAIConfigs
 
 var abbrs = loadJsonContent('./constants/abbreviations.json')
 var appNameLc = toLower(appName)
@@ -219,13 +216,13 @@ module functions 'functions/functions.bicep' = {
 		processResultsContainer: processResultsContainer
 		toIndexQueueName: toIndexQueueName
 		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
-		openAiEmbeddingModel: azureOpenAIEmbeddingModel
+		openAiEmbeddingModel: openAiConfigs.embeddingModel
 		appInsightsName: appInsightsName
 		aiIndexName: aiIndexName
 		managedIdentityId: managedIdentity.outputs.id
-		azureOpenAiEmbeddingMaxTokens: embeddingMaxTokens
+		azureOpenAiEmbeddingMaxTokens: openAiConfigs.embeddingMaxTokens
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
-		openAiChatModel: azureOpenAIChatModel
+		openAiChatModel: openAiConfigs.completionModel
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
 		funcAppPlanSku: funcAppPlanSku
@@ -316,11 +313,8 @@ module openAi './openai/openai.bicep' = {
 	params: {
 		openAIInstances: openAiConfigs
 		keyvaultName: keyvault.outputs.keyVaultName
-		azureOpenAIChatModel: azureOpenAIChatModel
-		azureOpenAIEmbeddingModel: azureOpenAIEmbeddingModel
 		instancePrefix: '${abbrs.openAIService}${appName}-'
 		managedIdentityId: managedIdentity.outputs.id
-
 	}
 }
 
@@ -330,7 +324,7 @@ module openAi './openai/openai.bicep' = {
 
 output resourceGroupName string = resourceGroupName
 output openAINames array = [for i in range(0, length(openAiConfigs)): openAi.outputs.openAIDeployments[i].name]
-output openAiChatModel string = azureOpenAIChatModel
-output openAiEmbeddingModel string = azureOpenAIEmbeddingModel
+output openAiChatModel string = openAiConfigs.completionModel
+output openAiEmbeddingModel string = openAiConfigs.embeddingModel
 output apimName string = apiManagement.outputs.name
 

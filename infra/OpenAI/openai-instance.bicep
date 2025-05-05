@@ -7,11 +7,11 @@ param location string = resourceGroup().location
 @description('Tags for the resource.')
 param tags object = {}
 param managedIdentityId string
+param openAiConfig customTypes.openAIConfig
+param completionModel string
+param embeddingModel string
 
 
-
-@description('List of model deployments.')
-param deployments array = []
 @description('Whether to enable public network access. Defaults to Enabled.')
 @allowed([
   'Enabled'
@@ -46,19 +46,40 @@ resource cognitiveServices 'Microsoft.CognitiveServices/accounts@2023-10-01-prev
   }
 }
 
-@batchSize(1)
-resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = [for deployment in deployments: {
+resource completionDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = {
   parent: cognitiveServices
-  name: deployment.name
+  name: '${openAiConfig.name}-${completionModel}'
   properties: {
-    model: deployment.?model ?? null
-    raiPolicyName: deployment.?raiPolicyName ?? null
+    model: {
+      format: 'OpenAI'
+      name: completionModel
   }
-  sku: deployment.?sku ?? {
+  }
+  sku:  {
+    name: openAiConfig.completion.sku
+    capacity: openAiConfig.completion.capacity
+  }
+}
+
+
+resource embeddingDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = {
+  parent: cognitiveServices
+  name: '${openAiConfig.name}-${embeddingModel}'
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: embeddingModel
+    }
+  }
+  sku:  {
     name: 'Standard'
-    capacity: 20
+    capacity: openAiConfig.embedding.capacity
   }
-}]
+  dependsOn:[
+      completionDeployment
+ ]
+}
+
 
 resource keyVaultSecrets 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultConfig.keyVaultName

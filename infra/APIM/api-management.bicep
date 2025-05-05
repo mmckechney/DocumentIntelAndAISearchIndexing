@@ -18,7 +18,7 @@ param publisherEmail string
 @minLength(1)
 param publisherName string
 @description('API Management SKU. Defaults to Developer, capacity 1.')
-param sku customTypes.skuInfo = {
+param sku customTypes.apimSkuInfo = {
   name: 'Developer'
   capacity: 1
 }

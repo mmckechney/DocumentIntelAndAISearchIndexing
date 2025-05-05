@@ -64,7 +64,7 @@ $mainParamsContent = Get-Content $mainParamsPath -Raw | ConvertFrom-Json
 # Convert $functionNames to JSON array
 $functionValuesJson = $functionValues | ConvertTo-Json -Depth 10
 $openAiConfigs = $mainParamsContent.parameters.openAiConfigs.value
-foreach ($cfg in $openAiConfigs) {
+foreach ($cfg in $openAiConfigs.configs) {
     if($null -eq $cfg.name -or $cfg.name -eq "") {
         $cfg.name = "$($safeEnvName)-$($cfg.suffix)"
     }

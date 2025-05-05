@@ -15,12 +15,6 @@
     "appName": {
       "value": "${APP_NAME}"
     },
-    "azureOpenAIChatModel": {
-      "value": "gpt-4o"
-    },
-    "azureOpenAIEmbeddingModel": {
-      "value": "text-embedding-ada-002"
-    },
     "currentUserObjectId": {
       "value": "${AZURE_CURRENT_USER_OBJECT_ID}"
     },
@@ -34,20 +28,41 @@
       "value": "${PUBLIC_IP}"
     },
     "openAiConfigs": {
-      "value": [
-        {
-          "name": "",
-          "location": "swedencentral",
-          "suffix": "swedencentral",
-          "priority": 2
-        },
-        {
-          "name": "",
-          "location": "westus3",
-          "suffix": "westus3",
-          "priority": 2
-        }
-      ]
+      "value": 
+      {
+        "embeddingModel" : "text-embedding-ada-002",
+        "embeddingMaxTokens" : 8191,
+        "completionModel" : "gpt-4o",
+        "configs" :     [
+          {
+            "name": "",
+            "location": "swedencentral",
+            "suffix": "swedencentral",
+            "priority": 2,
+            "embedding": {
+              "capacity": 20        
+            },
+            "completion": {
+              "capacity": 20, 
+              "sku" : "GlobalStandard"            
+            }
+          },
+          {
+            "name": "",
+            "location": "westus",
+            "suffix": "westus",
+            "priority": 2,
+            "embedding": {
+              "capacity": 20
+            },
+            "completion": {
+              "capacity": 20, 
+              "sku" : "GlobalStandard"            
+            }
+          }
+        ]
+      }
+    
     }
   }
 }
