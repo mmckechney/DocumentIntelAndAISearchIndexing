@@ -25,34 +25,34 @@ $envValues = azd env get-values --output json | ConvertFrom-Json
 $location= $envValues.AZURE_LOCATION
 $envName = $envValues.AZURE_ENV_NAME
 $safeEnvName = $envName -replace '[^a-zA-Z0-9]', ''
-$resourceGroupName = "$($abbrs.resourceGroup)$($safeEnvName)-$location"
+#$resourceGroupName = "$($abbrs.resourceGroup)$($safeEnvName)"
 
 
 
 
 $functionValues = @(
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-CustomField-$location"
+        name = "$($abbrs.functionApp)$($safeEnvName)-CustomField"
         tag  = "custom-field-function"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-Intelligence-$location"
+        name = "$($abbrs.functionApp)$($safeEnvName)-Intelligence"
         tag  = "intelligence-function"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-Mover-$location"
+        name = "$($abbrs.functionApp)$($safeEnvName)-Mover"
         tag  = "mover-function"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-Queueing-$location"
+        name = "$($abbrs.functionApp)$($safeEnvName)-Queueing"
         tag  = "queueing-function"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-AiSearch-$location"
+        name = "$($abbrs.functionApp)$($safeEnvName)-AiSearch"
         tag  = "aisearch-function"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-AskQuestions-$location"
+        name = "$($abbrs.functionApp)$($safeEnvName)-AskQuestions"
         tag  = "askquestions-function"
     }
 )
@@ -104,7 +104,7 @@ function Set-EnvironmentVariable {
 
 $funcString = ($functionNames | ConvertTo-Json -Depth 10) -replace '\r\n ', '' -replace '\"', '"'
 # Set the user object ID as an environment variable for the deployment
-Set-EnvironmentVariable -Name "AZURE_RESOURCE_GROUP" -Value $resourceGroupName
+#Set-EnvironmentVariable -Name "AZURE_RESOURCE_GROUP" -Value $resourceGroupName
 Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_OBJECT_ID" -Value $currentUserObjectId
 Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_NAME" -Value $userName
 Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_EMAIL" -Value $userEmail

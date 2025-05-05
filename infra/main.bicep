@@ -15,6 +15,9 @@ param apiManagementPublisherName string
 param serviceBusSku string = 'Standard'
 param functionValues customTypes.functionValue[] 
 
+@allowed(['EP1', 'P0V3', 'P1V3', 'P2V3'])
+param funcAppPlanSku string
+
 
 @description('OpenAI instances to deploy. Defaults to 2 across different regions.')
 param openAiConfigs customTypes.openAIConfig[] 
@@ -22,7 +25,7 @@ param openAiConfigs customTypes.openAIConfig[]
 var abbrs = loadJsonContent('./constants/abbreviations.json')
 var appNameLc = toLower(appName)
 
-var resourceGroupName = '${abbrs.resourceGroup}${appName}-${location}'
+var resourceGroupName = '${abbrs.resourceGroup}${appName}'
 var serviceBusNs = '${abbrs.serviceBusNamespace}${appName}-${location}'
 var formStorageAcct = '${abbrs.storageAccount}${appNameLc}${location}'
 var funcStorageAcct = '${abbrs.storageAccount}${appNameLc}func${location}'
@@ -225,6 +228,7 @@ module functions 'functions/functions.bicep' = {
 		openAiChatModel: azureOpenAIChatModel
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
+		funcAppPlanSku: funcAppPlanSku
 	
 	}
 	dependsOn: [

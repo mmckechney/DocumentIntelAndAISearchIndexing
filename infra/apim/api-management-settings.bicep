@@ -42,7 +42,7 @@ params: {
 module apiSubscription 'apim-settings/api-management-subscription.bicep' = {
   name: '${apiManagement.name}-subs-openai'
   params: {
-    name: 'openai-sub'
+    name: 'openai'
     apiManagementName: apiManagement.name
     displayName: 'OpenAI API Subscription'
     //scope: '/apis/${openAIApi.outputs.name}'

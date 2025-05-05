@@ -60,55 +60,52 @@ In a similar way with Document Intelligence, to ensure high throughput, you can 
 To try out the sample end-to-end process, you will need:
 
 - An Azure subscription that you have privileges to create resources.
-- Have the [Azure CLI installed](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli).
+- Have the [Azure Developer CLI (azd)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows) installed.
 
 ### Running deployment script
 
-1. **IMPORTANT**: Open and edit the `main.bicepparam` file found in the `infra` folder. This file will contain the information needed to properly deploy the API Management and Azure OpenAI accounts:
+1. **IMPORTANT**: Open and edit the `main.parameters.json` file found in the `infra` folder. This file will contain the information needed to properly deploy the API Management and Azure OpenAI accounts:
 
     - **APIM settings**
-      - `apiManagementPublisherEmail` - set this to your email or the email address of the APIM owner
-      - `apiManagementPublisherName` - your name or the name of the APIM owner
+      - `apiManagementPublisherEmail` - will default to current user email. Remove environment variable reference to set manually.
+      - `apiManagementPublisherName` - will default to current user name. Remove environment variable reference to set manually.
 
     - **Azure OpenAI model settings**
 
       - `azureOpenAIEmbeddingModel` - embedding model you will use to generate the embeddings
-      - `embeddingModelVersion` - the version of the embedding model to use
-      - `embeddingMaxTokens` - the maximum 'chunk' size you want to used to split up large documents for embedding and indexing. Be sure it does not exceed the limit of the model you have chosen.
       - `azureOpenAIChatModel` - the chat/completions model to use
-      - `chatModelVersion` - the versio of the chat model
 
     - **Azure OpenAI deployment settings**
 
-        For each deployment you want to create, add an object type type as per the example below (note `name` is optional). The value of `prority` is only used if `$loadBalancingType` is set to `priority` (vs. `round-robin`)
+        For each deployment you want to create, add an object type type as per the example below (note `name` is optional).
 
-        ``` bicep
-        var eastUs = {
-            name: ''
-            location: 'eastus'
-            suffix: 'eastus'
-            priority: 1
+        ``` json
+        "openAiConfigs": {
+          "value": [
+            {
+              "name": "",
+              "location": "swedencentral",
+              "suffix": "swedencentral",
+              "priority": 2
+            },
+            {
+              "name": "",
+              "location": "westus3",
+              "suffix": "westus3",
+              "priority": 2
+            }
+          ]
         }
         ```
 
-        then, add that object variable to the `openAIInstances` parameter value such as:
-
-        ``` bicep
-        param openAIInstances = [
-            eastUs
-            eastus2
-            canadaEast  
-        ]
-        ```
-
-2. Login to the Azure CLI:  `az login`
-3. Run the deployment command
+2. Login to the Azure Develper CLI:  `azd auth login` (note: if you have access to multiple Entra tenants, you may need to add the flag `--tenant-id` with the GUID value for the desired tenant )
+3. Run the azd command
 
     ``` PowerShell
-    .\deploy.ps1 -appName "<less than 6 characters>" -location "<azure region>" -docIntelligenceInstanceCount "<number needed>" -loadBalancingType "<priority or round-robin>" -deployAction Full
+    azd up
     ```
 
-These scripts will create all of the Azure resources and RBAC role assignments needed for the demonstration.
+The first time you run this, you will be prompted for several values. This command will create all of the Azure resources and RBAC role assignments needed for the demonstration.
 
 ### Running a demonstration
 
