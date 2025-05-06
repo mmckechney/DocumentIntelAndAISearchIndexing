@@ -1,0 +1,68 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "funcAppPlanSku": {
+      "value": "P0V3"
+    },
+
+    "apiManagementPublisherEmail": {
+      "value": "${AZURE_CURRENT_USER_EMAIL}"
+    },
+    "apiManagementPublisherName": {
+      "value": "${AZURE_CURRENT_USER_NAME}"
+    },
+    "appName": {
+      "value": "${APP_NAME}"
+    },
+    "currentUserObjectId": {
+      "value": "${AZURE_CURRENT_USER_OBJECT_ID}"
+    },
+    "docIntelligenceInstanceCount": {
+      "value": 2
+    },
+    "location": {
+      "value": "${AZURE_LOCATION}"
+    },
+    "myPublicIp": {
+      "value": "${PUBLIC_IP}"
+    },
+    "openAiConfigs": {
+      "value": 
+      {
+        "embeddingModel" : "text-embedding-ada-002",
+        "embeddingMaxTokens" : 8191,
+        "completionModel" : "gpt-4o",
+        "configs" :     [
+          {
+            "name": "",
+            "location": "eastus2",
+            "suffix": "eastus2",
+            "priority": 1,
+            "embedding": {
+              "capacity": 100        
+            },
+            "completion": {
+              "capacity": 100, 
+              "sku" : "GlobalStandard"            
+            }
+          },
+          {
+            "name": "",
+            "location": "westus",
+            "suffix": "westus",
+            "priority": 2,
+            "embedding": {
+              "capacity": 100
+            },
+            "completion": {
+              "capacity": 100, 
+              "sku" : "GlobalStandard"            
+            }
+          }
+        ]
+      }
+    
+    }
+  }
+}

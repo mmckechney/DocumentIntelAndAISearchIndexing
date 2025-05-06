@@ -1,0 +1,42 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: document-intel-and-aisearch-indexing
+metadata:
+    template: azd-init@1.14.0
+services:
+    aisearch-function:
+        project: src/AiSearchIndexingFunction
+        host: function
+        language: dotnet
+    custom-field-function:
+        project: src/CustomFieldExtractionFunction
+        host: function
+        language: dotnet
+    intelligence-function:
+        project: src/DocumentIntelligenceFunction
+        host: function
+        language: dotnet
+    askquestions-function:
+        project: src/DocumentQuestionsFunction
+        host: function
+        language: dotnet
+    queueing-function:
+        project: src/DocumentQueueingFunction
+        host: function
+        language: dotnet
+    mover-function:
+        project: src/ProcessedFileMover
+        host: function
+        language: dotnet
+
+infra:
+  bicep: ./infra/main.bicep
+
+hooks:
+  preup: 
+    - shell: pwsh
+      run: ./scripts/preup.ps1
+  postdeploy:
+    - shell: pwsh
+      run: ./scripts/postdeploy.ps1
+    

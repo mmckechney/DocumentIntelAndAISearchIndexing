@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+   <PropertyGroup>
+      <TargetFramework>net8.0</TargetFramework>
+      <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+      <OutputType>Exe</OutputType>
+
+      <RootNamespace>HighVolumeProcessing.DocumentQuestionsFunction</RootNamespace>
+      <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+     <UserSecretsId>5a6d02b0-1a66-4888-8a89-c720f3b87b36</UserSecretsId>
+  </PropertyGroup>
+   <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.4" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.4" />
+      <FrameworkReference Include="Microsoft.AspNetCore.App" />
+      <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
+      <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.2" />
+      <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.1" />
+      <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
+      <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.0.0" />
+   </ItemGroup>
+   <ItemGroup>
+      <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />
+   </ItemGroup>
+   <ItemGroup>
+      <None Update="host.json">
+         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="local.settings.json">
+         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+         <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+      </None>
+   </ItemGroup>
+   <ItemGroup>
+      <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
+   </ItemGroup>
+   <ItemGroup>
+     <Folder Include="Properties\PublishProfiles\" />
+   </ItemGroup>
+</Project>

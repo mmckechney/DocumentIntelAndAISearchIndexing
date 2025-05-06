@@ -355,3 +355,4 @@ MigrationBackup/
 /ProcessedFileMover/build.zip
 /Scriptsbuild.zip
 local.settings.json
+.azure
