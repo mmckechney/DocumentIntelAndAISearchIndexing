@@ -2,14 +2,11 @@
 
 This repository is offered to demonstrate a set of resources that will allow you to leverage [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/?view=doc-intel-4.0.0) for high throughput of processing documents stored in Azure Blob Storage to extract text. It then utilized Semantic Kernel, Azure OpenAI and Azure AI Search to index the contents of these documents. The solution can be used to process documents in a variety of formats, including Office documents, PDF, PNG, and JPEG.
 
-
-
 **IMPORTANT!** In addition to leveraging the solution below with multiple Document Intelligence instances, it will be beneficial to _request a transaction limit increase_ for your Document Intelligence Accounts. Instructions for how to do this can be found in the [Azure AI Document Intelligence Documentation](https://docs.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/service-limits#increasing-transactions-per-second-request-limit)
 
 ## Architecture and Process Overview
 
 ![Process flow](Images/ProcessFlow.png)
-
 
 ## Feature Details
 
@@ -60,7 +57,13 @@ In a similar way with Document Intelligence, to ensure high throughput, you can 
 To try out the sample end-to-end process, you will need:
 
 - An Azure subscription that you have privileges to create resources.
-- Have the [Azure Developer CLI (azd)](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd?tabs=winget-windows%2Cbrew-mac%2Cscript-linux&pivots=os-windows) installed.
+- Deployment is automated using PowerShell, the [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) and the [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/). These can be easily installed on a Windows machine using `winget`:
+
+``` bash
+winget install --id "Microsoft.AzureCLI" --silent --accept-package-agreements --accept-source-agreements
+winget install --id "Microsoft.Azd" --silent --accept-package-agreements --accept-source-agreements
+```
+
 
 ### Running deployment script
 
@@ -80,22 +83,41 @@ To try out the sample end-to-end process, you will need:
         For each deployment you want to create, add an object type type as per the example below (note `name` is optional).
 
         ``` json
-        "openAiConfigs": {
-          "value": [
-            {
-              "name": "",
-              "location": "swedencentral",
-              "suffix": "swedencentral",
-              "priority": 2
+      "openAiConfigs": {
+      "value": 
+      {
+        "embeddingModel" : "text-embedding-ada-002",
+        "embeddingMaxTokens" : 8191,
+        "completionModel" : "gpt-4o",
+        "configs" :     [
+          {
+            "name": "",
+            "location": "eastus2",
+            "suffix": "eastus2",
+            "priority": 1,
+            "embedding": {
+              "capacity": 100        
             },
-            {
-              "name": "",
-              "location": "westus3",
-              "suffix": "westus3",
-              "priority": 2
+            "completion": {
+              "capacity": 100, 
+              "sku" : "GlobalStandard"            
             }
-          ]
-        }
+          },
+          {
+            "name": "",
+            "location": "westus",
+            "suffix": "westus",
+            "priority": 2,
+            "embedding": {
+              "capacity": 100
+            },
+            "completion": {
+              "capacity": 100, 
+              "sku" : "GlobalStandard"            
+            }
+          }
+        ]
+      }
         ```
 
 2. Login to the Azure Develper CLI:  `azd auth login` (note: if you have access to multiple Entra tenants, you may need to add the flag `--tenant-id` with the GUID value for the desired tenant )
