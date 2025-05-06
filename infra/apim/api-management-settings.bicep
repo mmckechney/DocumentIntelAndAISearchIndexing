@@ -7,8 +7,13 @@ param keyvaultName string
 param keyVaultUri string
 param openAiApiName string
 param appInsightsName string
-param openAIDeployments customTypes.openAiDeploymentInfo[] 
+param openAIDeployments customTypes.openAiDeploymentInfo[]
+param openApiApimBackends customTypes.openApiApimBackends[]
+
 param userAssignedIdentityId string
+
+var loadBalancerName = 'openai-loadbalancer'
+
 resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' existing= {
   name: apiManagementName
 }
@@ -29,15 +34,19 @@ module openAIApiKeyNamedValue 'apim-settings/api-management-key-vault-named-valu
 // GitHub location for API specs: https://github.com/Azure/azure-rest-api-specs/tree/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference
 module openAIApi 'apim-settings/api-management-openai-api.bicep' = {
 name: '${apiManagement.name}-api-openai'
-params: {
-  name: 'openai'
-  apiManagementName: apiManagement.name
-  path: '/openai'
-  format: 'openapi-link'
-  displayName: 'OpenAI'
-  value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+  params: {
+    name: 'openai'
+    loadBalancerName: loadBalancerName
+    apiManagementName: apiManagement.name
+    path: '/openai'
+    format: 'openapi-link'
+    displayName: 'OpenAI'
+    value: 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+  }
 }
-}
+
+
+
 
 module apiSubscription 'apim-settings/api-management-subscription.bicep' = {
   name: '${apiManagement.name}-subs-openai'
@@ -49,17 +58,10 @@ module apiSubscription 'apim-settings/api-management-subscription.bicep' = {
     scope: '/apis/${openAiApiName}'
     keyVaultName: keyvaultName
   }
+  dependsOn:[
+    openAIApi
+  ]
 }
-
-module openAIApiBackend 'apim-settings/api-management-backend.bicep' = [for (item, index) in openAIDeployments: { 
-  name: '${apiManagement.name}-backend-openai-${item.name}'
-  params: {
-    name: 'OPENAI${toUpper(item.name)}'
-    apiManagementName: apiManagement.name
-    url: '${item.host}openai'
-  }
-}
-]
 
 module apimLogger 'apim-settings/api-management-logger.bicep' = {
   name: '${apiManagement.name}-logger'
@@ -67,6 +69,18 @@ module apimLogger 'apim-settings/api-management-logger.bicep' = {
     apiManagementName: apiManagement.name
     appInsightsName: appInsightsName
   }
+}
+
+module apimLoadBalancing 'apim-settings/api-management-loadbalancer.bicep' = {
+  name: '${apiManagement.name}-loadbalancer'
+  params: {
+    apiManagementName: apiManagement.name
+    openApiApimBackends: openApiApimBackends
+    name: loadBalancerName
+  }
+  dependsOn: [
+    openAIApiKeyNamedValue
+  ]
 }
 
 

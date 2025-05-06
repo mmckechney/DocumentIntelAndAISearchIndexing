@@ -48,7 +48,7 @@ resource cognitiveServices 'Microsoft.CognitiveServices/accounts@2023-10-01-prev
 
 resource completionDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = {
   parent: cognitiveServices
-  name: '${openAiConfig.name}-${completionModel}'
+  name: completionModel
   properties: {
     model: {
       format: 'OpenAI'
@@ -64,7 +64,7 @@ resource completionDeployment 'Microsoft.CognitiveServices/accounts/deployments@
 
 resource embeddingDeployment 'Microsoft.CognitiveServices/accounts/deployments@2023-10-01-preview' = {
   parent: cognitiveServices
-  name: '${openAiConfig.name}-${embeddingModel}'
+  name: embeddingModel
   properties: {
     model: {
       format: 'OpenAI'

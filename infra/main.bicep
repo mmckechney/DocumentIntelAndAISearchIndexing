@@ -279,6 +279,7 @@ module apiManagement 'apim/api-management.bicep' = {
 		publisherEmail: apiManagementPublisherEmail
 		publisherName: apiManagementPublisherName
 		subnetId: networking.outputs.apimSubnetId
+		openAIDeployments: openAi.outputs.openAIDeployments
 
 		sku: { 
 			name: 'Developer'
@@ -288,6 +289,7 @@ module apiManagement 'apim/api-management.bicep' = {
 			CreatedBy: currentUserObjectId
 		}
 	}
+	
 }
 
 module aoiManamgentSettings 'apim/api-management-settings.bicep' = {
@@ -297,6 +299,7 @@ module aoiManamgentSettings 'apim/api-management-settings.bicep' = {
 		apiManagementName: apiManagement.outputs.name
 		keyVaultUri: keyvault.outputs.keyVaultUri
 		keyvaultName: keyvaultName
+		openApiApimBackends: apiManagement.outputs.openAIApiBackends
 		openAIDeployments: openAi.outputs.openAIDeployments
 		openAiApiName: openAiApiName
 		appInsightsName: appInsights.outputs.name
@@ -323,7 +326,7 @@ module openAi './openai/openai.bicep' = {
 
 
 output resourceGroupName string = resourceGroupName
-output openAINames array = [for i in range(0, length(openAiConfigs)): openAi.outputs.openAIDeployments[i].name]
+output openAINames array = [for i in range(0, length(openAiConfigs.configs)): openAi.outputs.openAIDeployments[i].name]
 output openAiChatModel string = openAiConfigs.completionModel
 output openAiEmbeddingModel string = openAiConfigs.embeddingModel
 output apimName string = apiManagement.outputs.name

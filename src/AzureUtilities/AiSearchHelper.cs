@@ -82,7 +82,7 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
          catch (Exception ex)
          {
-            log.LogError($"Failed to index document {fileName}: {ex.Message}");
+            log.LogError($"Failed to index document {fileName}: {ex.ToString()}");
             return false;
          }
       }

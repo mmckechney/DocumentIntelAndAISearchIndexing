@@ -19,7 +19,7 @@ resource backend 'Microsoft.ApiManagement/service/backends@2024-06-01-preview' =
       rules: [
         {
           failureCondition: {
-            count: 1
+            count: 3
             errorReasons: [
               'Server errors'
             ]

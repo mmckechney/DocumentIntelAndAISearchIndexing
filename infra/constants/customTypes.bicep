@@ -57,3 +57,10 @@ type functionValue = {
   tag: string
 }
 
+@export()
+type openApiApimBackends = {
+  name: string
+  id: string
+  priority: int?
+}
+

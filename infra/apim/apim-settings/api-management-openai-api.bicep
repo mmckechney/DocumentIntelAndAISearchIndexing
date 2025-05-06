@@ -16,6 +16,7 @@ param path string
 param format string
 @description('Value for the OpenAPI specification.')
 param value string
+param loadBalancerName string
 
 resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' existing = {
   name: apiManagementName
@@ -30,6 +31,15 @@ resource api 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
     format: format
     value: value
     subscriptionRequired: true
+  }
+}
+
+resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-01' =  {
+  name: 'policy'
+  parent: api
+  properties: {
+    value: replace(loadTextContent('load-balancer-policy.xml'),'{{load-balancer-name}}', loadBalancerName)
+    format: 'rawxml'
   }
 }
 

@@ -36,14 +36,14 @@
         "configs" :     [
           {
             "name": "",
-            "location": "swedencentral",
-            "suffix": "swedencentral",
-            "priority": 2,
+            "location": "eastus2",
+            "suffix": "eastus2",
+            "priority": 1,
             "embedding": {
-              "capacity": 20        
+              "capacity": 100        
             },
             "completion": {
-              "capacity": 20, 
+              "capacity": 100, 
               "sku" : "GlobalStandard"            
             }
           },
@@ -53,10 +53,10 @@
             "suffix": "westus",
             "priority": 2,
             "embedding": {
-              "capacity": 20
+              "capacity": 100
             },
             "completion": {
-              "capacity": 20, 
+              "capacity": 100, 
               "sku" : "GlobalStandard"            
             }
           }

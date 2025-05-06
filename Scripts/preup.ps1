@@ -22,13 +22,8 @@ Write-Host "Public IP: $myPublicIp" -ForegroundColor Green
 $abbrs = Get-Content './infra/constants/abbreviations.json' | ConvertFrom-Json
 
 $envValues = azd env get-values --output json | ConvertFrom-Json
-$location= $envValues.AZURE_LOCATION
 $envName = $envValues.AZURE_ENV_NAME
 $safeEnvName = $envName -replace '[^a-zA-Z0-9]', ''
-#$resourceGroupName = "$($abbrs.resourceGroup)$($safeEnvName)"
-
-
-
 
 $functionValues = @(
     @{
