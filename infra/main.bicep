@@ -11,7 +11,10 @@ param apiManagementPublisherEmail string
 param apiManagementPublisherName string
 param serviceBusSku string = 'Standard'
 param functionValues customTypes.functionValue[] 
-
+param apimSku customTypes.apimSkuInfo = {
+	name: 'StandardV2'
+	capacity: 1
+}
 @allowed(['EP1', 'P0V3', 'P1V3', 'P2V3'])
 param funcAppPlanSku string
 
@@ -280,11 +283,7 @@ module apiManagement 'apim/api-management.bicep' = {
 		publisherName: apiManagementPublisherName
 		subnetId: networking.outputs.apimSubnetId
 		openAIDeployments: openAi.outputs.openAIDeployments
-
-		sku: { 
-			name: 'Developer'
-			capacity: 1
-		}
+		sku: apimSku
 		tags: {
 			CreatedBy: currentUserObjectId
 		}

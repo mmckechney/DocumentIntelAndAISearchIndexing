@@ -24,7 +24,7 @@ type openAIConfig = {
 
 @export()
 type apimSkuInfo = {
-  name: 'Developer' | 'Standard' | 'Premium' | 'Basic' | 'Consumption' | 'Isolated'
+  name: 'BasicV2' | 'StandardV2' | 'PremiumV2'
   capacity: int
 }
 

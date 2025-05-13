@@ -36,7 +36,7 @@ module openAIApi 'apim-settings/api-management-openai-api.bicep' = {
 name: '${apiManagement.name}-api-openai'
   params: {
     name: 'openai'
-    loadBalancerName: loadBalancerName
+    loadBalancerName: apimLoadBalancing.outputs.name
     apiManagementName: apiManagement.name
     path: '/openai'
     format: 'openapi-link'

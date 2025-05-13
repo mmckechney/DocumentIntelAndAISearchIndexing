@@ -17,9 +17,9 @@ param publisherEmail string
 @description('Name of the owner for the API Management resource.')
 @minLength(1)
 param publisherName string
-@description('API Management SKU. Defaults to Developer, capacity 1.')
+@description('API Management SKU. Defaults to StandardV2, capacity 1.')
 param sku customTypes.apimSkuInfo = {
-  name: 'Developer'
+  name: 'StandardV2'
   capacity: 1
 }
 param openAIDeployments customTypes.openAiDeploymentInfo[] 

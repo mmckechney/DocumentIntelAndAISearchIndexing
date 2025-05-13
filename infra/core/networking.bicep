@@ -65,6 +65,14 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
         name: apimsubnet
         properties: {
           addressPrefix: '10.10.2.0/24'
+           delegations: [
+            {
+              name: 'Microsoft.Web/serverFarms'
+              properties: {
+                serviceName: 'Microsoft.Web/serverFarms'
+              }
+            }
+          ]
           networkSecurityGroup: {
             id: networkSecurityGroup.id
           }

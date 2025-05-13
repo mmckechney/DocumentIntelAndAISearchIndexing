@@ -41,6 +41,7 @@ resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-
     value: replace(loadTextContent('load-balancer-policy.xml'),'{{load-balancer-name}}', loadBalancerName)
     format: 'rawxml'
   }
+  
 }
 
 
