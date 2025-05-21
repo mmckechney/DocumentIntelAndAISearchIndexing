@@ -6,6 +6,7 @@ param keyvaultName string
 param managedIdentityId string
 
 
+
 module openAI 'openai-instance.bicep' = [ for openAIInstance in openAIInstances.configs: {
   name: !empty(openAIInstance.?name) ? openAIInstance.name! : '${instancePrefix}${openAIInstance.suffix}'
   params: {
@@ -17,8 +18,7 @@ module openAI 'openai-instance.bicep' = [ for openAIInstance in openAIInstances.
     embeddingModel: openAIInstances.embeddingModel
     keyVaultConfig: {
       keyVaultName: keyvaultName
-      primaryKeySecretName: 'OPENAI-API-KEY-${toUpper(openAIInstance.?name)}'
-      
+      primaryKeySecretName:  !empty(openAIInstance.?name) ? 'OPENAI-API-KEY-${toUpper(openAIInstance.?name)}' : 'OPENAI-API-KEY-${instancePrefix}${openAIInstance.suffix}'     
     }
   }
  
