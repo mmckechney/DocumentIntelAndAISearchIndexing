@@ -1,49 +1,46 @@
-﻿using HighVolumeProcessing.UtilityLibrary.Models; 
+﻿using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.AzureAISearch;
-using Microsoft.SemanticKernel.Connectors.AzureOpenAI;
-using Microsoft.SemanticKernel.Embeddings;
-using Microsoft.SemanticKernel.Memory;
-using Microsoft.SemanticKernel.PromptTemplates.Handlebars;
-using Microsoft.SemanticKernel.Text;
-using System.Reflection;
+using Microsoft.Extensions.AI;
+using Azure.AI.OpenAI;
+using Azure;
+
 namespace HighVolumeProcessing.UtilityLibrary
 {
-#pragma warning disable SKEXP0052 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable SKEXP0021 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable SKEXP0011 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
    public class SkHelper
    {
-      Kernel kernel;
-      ISemanticTextMemory semanticMemory;
-      ILogger<SkHelper> log;
-      IConfiguration config;
-      ILoggerFactory logFactory;
-      bool usingVolatileMemory = false;
+      private IChatClient? _chatClient;
+      private IEmbeddingGenerator<string, Embedding<float>>? _embeddingGenerator;
+      private ILogger<SkHelper> log;
+      private IConfiguration config;
+      private ILoggerFactory logFactory;
       private bool initCalled = false;
-      private int embeddingMaxTokens;
-      private int embeddingMaxTokensDefault = 8100;
-      private bool includeGeneralIndex = true;
-      HttpClient client;
-      Settings settings;
+      private HttpClient client;
+      private Settings settings;
+      private Dictionary<string, PromptTemplate> _prompts = new();
 
-      ITextEmbeddingGenerationService _textEmbeddingService;
-      private ITextEmbeddingGenerationService TextEmbeddingGenerationService
+      private IChatClient ChatClient
       {
          get
          {
-            if (_textEmbeddingService == null)
+            if (_chatClient == null)
             {
-               if (!initCalled) InitKernel();
+               if (!initCalled) InitClients();
             }
-            return _textEmbeddingService;
+            return _chatClient!;
          }
-         set
+      }
+
+      private IEmbeddingGenerator<string, Embedding<float>> EmbeddingGenerator
+      {
+         get
          {
-            _textEmbeddingService = value;
+            if (_embeddingGenerator == null)
+            {
+               if (!initCalled) InitClients();
+            }
+            return _embeddingGenerator!;
          }
       }
       public SkHelper(ILoggerFactory logFactory, IConfiguration config,  Settings settings)
@@ -55,90 +52,187 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       }
 
-      object lockObject = new object();
-      private void InitKernel()
+      private readonly object lockObject = new object();
+      
+      private void InitClients()
       {
          initCalled = true;
          lock (lockObject)
          {
             var openAIEndpoint = settings.AzureOpenAiEndpoint ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_ENDPOINT} in configuration.");
-            var embeddingModel = settings.AzureOpenAiEmbeddingModel ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_EMBEDDING_MODEL} in configuration.");
             var embeddingDeploymentName = settings.AzureOpenAiEmbeddingDeployment ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT} in configuration.");
             var apimSubscriptionKey = settings.ApimSubscriptionKey ?? throw new ArgumentException($"Missing {ConfigKeys.APIM_SUBSCRIPTION_KEY} in configuration.");
             var openAiChatDeploymentName = settings.AzureOpenAiChatDeployment ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_CHAT_DEPLOYMENT} in configuration.");
-            var openAiChatModelName = settings.AzureOpenAiChatModel ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_CHAT_MODEL} in configuration.");
 
             var apiKey = "dummy";
-            log.LogInformation($"Endpoint {openAIEndpoint} ");
+            log.LogInformation($"Endpoint {openAIEndpoint}");
 
-
+            // Setup HTTP client with APIM subscription key
             client = new HttpClient();
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apimSubscriptionKey);
 
-            this.TextEmbeddingGenerationService = new AzureOpenAITextEmbeddingGenerationService(deploymentName: embeddingDeploymentName, modelId: embeddingModel,
-                        endpoint: openAIEndpoint, apiKey: apiKey, httpClient: client);
+            // Create Azure OpenAI client with custom HTTP client
+            var azureClient = new AzureOpenAIClient(
+                new Uri(openAIEndpoint), 
+                new AzureKeyCredential(apiKey),
+                new AzureOpenAIClientOptions
+                {
+                    NetworkTimeout = TimeSpan.FromSeconds(120)
+                });
 
-            //Build and configure the kernel
-            var kernelBuilder = Kernel.CreateBuilder();
-            kernelBuilder.AddAzureOpenAIChatCompletion(deploymentName: openAiChatDeploymentName, modelId: openAiChatModelName,
-                        endpoint: openAIEndpoint, apiKey: apiKey, httpClient: client);
+            // Get the chat client as IChatClient with Microsoft.Extensions.AI
+            var chatClient = azureClient.GetChatClient(openAiChatDeploymentName);
+            _chatClient = chatClient.AsIChatClient();
 
-            kernel = kernelBuilder.Build();
+            // Get the embedding client as IEmbeddingGenerator with Microsoft.Extensions.AI
+            var embeddingClient = azureClient.GetEmbeddingClient(embeddingDeploymentName);
+            _embeddingGenerator = embeddingClient.AsIEmbeddingGenerator();
 
-            var assembly = Assembly.GetExecutingAssembly();
-            var resources = assembly.GetManifestResourceNames().ToList();
-            Dictionary<string, KernelFunction> yamlPrompts = new();
-            resources.ForEach(r =>
-            {
-               if (r.ToLower().EndsWith("yaml"))
-               {
-                  var tmp = r.Substring(0, r.LastIndexOf('.'));
-                  var key = tmp.Substring(tmp.LastIndexOf('.') + 1);
-                  using StreamReader reader = new(Assembly.GetExecutingAssembly().GetManifestResourceStream(r)!);
-                  var content = reader.ReadToEnd();
-                  var func = kernel.CreateFunctionFromPromptYaml(content, promptTemplateFactory: new HandlebarsPromptTemplateFactory());
-                  yamlPrompts.Add(key, func);
-               }
-            });
-            var plugin = KernelPluginFactory.CreateFromFunctions("YAMLPlugins", yamlPrompts.Select(y => y.Value).ToArray());
-            kernel.Plugins.Add(plugin);
-            
+            // Load YAML prompts
+            _prompts = PromptLoader.LoadEmbeddedPrompts();
+            log.LogInformation($"Loaded {_prompts.Count} prompt templates");
          }
-
       }
 
       public async Task<string> AskQuestion(string question, string documentContent)
       {
-         if (kernel == null) InitKernel();
+         if (_chatClient == null) InitClients();
          log.LogInformation("Asking question about document...");
-         var result = await kernel.InvokeAsync("YAMLPlugins", "AskQuestions", new() { { "question", question }, { "content", documentContent } });
-         return result.GetValue<string>();
+
+         // Get the AskQuestions prompt template
+         if (!_prompts.TryGetValue("AskQuestions", out var promptTemplate))
+         {
+            throw new InvalidOperationException("AskQuestions prompt template not found");
+         }
+
+         // Render the template with variables
+         var renderedTemplate = PromptLoader.RenderTemplate(promptTemplate.Template, new Dictionary<string, string>
+         {
+            { "question", question },
+            { "content", documentContent }
+         });
+
+         // Parse messages from the template
+         var messages = PromptLoader.ParseMessages(renderedTemplate);
+         var chatMessages = messages.Select(m => m.Role switch
+         {
+            "system" => new ChatMessage(ChatRole.System, m.Content),
+            "user" => new ChatMessage(ChatRole.User, m.Content),
+            _ => new ChatMessage(ChatRole.Assistant, m.Content)
+         }).ToList();
+
+         // Configure chat options
+         var options = new ChatOptions
+         {
+            MaxOutputTokens = promptTemplate.ExecutionSettings.TryGetValue("default", out var settings) 
+               ? settings.MaxTokens 
+               : 3500,
+            Temperature = promptTemplate.ExecutionSettings.TryGetValue("default", out var tempSettings) 
+               ? (float)tempSettings.Temperature 
+               : 0.9f
+         };
+
+         // Call the chat client
+         var response = await ChatClient.GetResponseAsync(chatMessages, options);
+         return response?.Text ?? string.Empty;
       }
 
       public async IAsyncEnumerable<string> AskQuestionStreaming(string question, string documentContent)
       {
-         if (kernel == null) InitKernel();
+         if (_chatClient == null) InitClients();
          log.LogDebug("Asking question about document...");
-         var result = kernel.InvokeStreamingAsync("YAMLPlugins", "AskQuestions", new() { { "question", question }, { "content", documentContent } });
-         await foreach (var item in result)
+
+         // Get the AskQuestions prompt template
+         if (!_prompts.TryGetValue("AskQuestions", out var promptTemplate))
          {
-            yield return item.ToString();
+            throw new InvalidOperationException("AskQuestions prompt template not found");
+         }
+
+         // Render the template with variables
+         var renderedTemplate = PromptLoader.RenderTemplate(promptTemplate.Template, new Dictionary<string, string>
+         {
+            { "question", question },
+            { "content", documentContent }
+         });
+
+         // Parse messages from the template
+         var messages = PromptLoader.ParseMessages(renderedTemplate);
+         var chatMessages = messages.Select(m => m.Role switch
+         {
+            "system" => new ChatMessage(ChatRole.System, m.Content),
+            "user" => new ChatMessage(ChatRole.User, m.Content),
+            _ => new ChatMessage(ChatRole.Assistant, m.Content)
+         }).ToList();
+
+         // Configure chat options
+         var options = new ChatOptions
+         {
+            MaxOutputTokens = promptTemplate.ExecutionSettings.TryGetValue("default", out var settings) 
+               ? settings.MaxTokens 
+               : 3500,
+            Temperature = promptTemplate.ExecutionSettings.TryGetValue("default", out var tempSettings) 
+               ? (float)tempSettings.Temperature 
+               : 0.9f
+         };
+
+         // Stream the response
+         await foreach (var update in ChatClient.GetStreamingResponseAsync(chatMessages, options))
+         {
+            if (!string.IsNullOrEmpty(update.Text))
+            {
+               yield return update.Text;
+            }
          }
       }
 
       public async Task<CustomFields?> ExtractCustomField(string documentContent)
       {
-         if (kernel == null) InitKernel();
+         if (_chatClient == null) InitClients();
          var chunked = TextChunker.SplitPlainTextParagraphs(documentContent.Split('\n'), settings.EmbeddingMaxTokens);
-         string customFieldsString;
          CustomFields? customFieldsObj = new();
+         
          try
          {
+            // Get the ExtractCustomFields prompt template
+            if (!_prompts.TryGetValue("ExtractCustomFields", out var promptTemplate))
+            {
+               throw new InvalidOperationException("ExtractCustomFields prompt template not found");
+            }
+
             foreach (var chunk in chunked)
             {
                log.LogInformation("Extracting custom fields from document...");
-               var result = await kernel.InvokeAsync("YAMLPlugins", "ExtractCustomFields", new() { { "content", chunk } });
-               customFieldsString = result.GetValue<string>().CleanJson();
+               
+               // Render the template with variables
+               var renderedTemplate = PromptLoader.RenderTemplate(promptTemplate.Template, new Dictionary<string, string>
+               {
+                  { "content", chunk }
+               });
+
+               // Parse messages from the template
+               var messages = PromptLoader.ParseMessages(renderedTemplate);
+               var chatMessages = messages.Select(m => m.Role switch
+               {
+                  "system" => new ChatMessage(ChatRole.System, m.Content),
+                  "user" => new ChatMessage(ChatRole.User, m.Content),
+                  _ => new ChatMessage(ChatRole.Assistant, m.Content)
+               }).ToList();
+
+               // Configure chat options
+               var options = new ChatOptions
+               {
+                  MaxOutputTokens = promptTemplate.ExecutionSettings.TryGetValue("default", out var settings) 
+                     ? settings.MaxTokens 
+                     : 3500,
+                  Temperature = promptTemplate.ExecutionSettings.TryGetValue("default", out var tempSettings) 
+                     ? (float)tempSettings.Temperature 
+                     : 0.9f
+               };
+
+               // Call the chat client
+               var response = await ChatClient.GetResponseAsync(chatMessages, options);
+               var customFieldsString = (response?.Text ?? string.Empty).CleanJson();
+               
                try
                {
                   var tmp = System.Text.Json.JsonSerializer.Deserialize<CustomFields>(customFieldsString);
@@ -150,7 +244,6 @@ namespace HighVolumeProcessing.UtilityLibrary
                      }
                      customFieldsObj.AddRange(tmp);
                   }
-
                }
                catch (Exception ex)
                {
@@ -164,26 +257,28 @@ namespace HighVolumeProcessing.UtilityLibrary
             log.LogError($"Error extracting custom fields: {exe.Message}");
             return null;
          }
-
       }
 
       internal async Task<IList<float>> GetEmbeddingAsync(IList<string> content, string fileName)
       {
          try
          {
-            if (kernel == null) InitKernel();
+            if (_embeddingGenerator == null) InitClients();
             log.LogInformation($"Getting embedding for {fileName}...");
 
-            var embeddings = (await this.TextEmbeddingGenerationService.GenerateEmbeddingsAsync(content))
-                .SelectMany(e => e.ToArray())
+            var embeddings = await EmbeddingGenerator.GenerateAsync(content);
+            
+            // Flatten all embeddings into a single list
+            var flattenedEmbeddings = embeddings
+                .SelectMany(e => e.Vector.ToArray())
                 .ToList();
 
-            return embeddings;
+            return flattenedEmbeddings;
          }
          catch (Exception exe)
          {
             log.LogError($"Failed to create embeddings for {fileName}. {exe.Message}");
-            return null;
+            return null!;
          }
       }
    }

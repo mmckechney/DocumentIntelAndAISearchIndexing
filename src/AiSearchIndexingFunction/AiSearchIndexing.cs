@@ -3,7 +3,6 @@ using HighVolumeProcessing.UtilityLibrary;
 using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using Microsoft.SemanticKernel.Text;
 using System;
 using System.Linq;
 using System.Threading.Tasks;

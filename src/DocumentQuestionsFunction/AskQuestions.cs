@@ -1,4 +1,4 @@
-using HighVolumeProcessing.UtilityLibrary; 
+using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
@@ -10,8 +10,6 @@ using System.Threading.Tasks;
 
 namespace HighVolumeProcessing.DocumentQuestionsFunction
 {
-#pragma warning disable SKEXP0003 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
    public class AskQuestions
    {
       private SkHelper semanticUtility;

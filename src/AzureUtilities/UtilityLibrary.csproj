@@ -17,17 +17,14 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.49.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.4" />
-     <PackageReference Include="Microsoft.SemanticKernel" Version="1.48.0" />
-     <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.48.0" />
-     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureAISearch" Version="1.48.0-preview" />
-     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.48.0" />
-     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.48.0-alpha" />
-     <PackageReference Include="Microsoft.SemanticKernel.PromptTemplates.Handlebars" Version="1.48.0" />
-     <PackageReference Include="Microsoft.SemanticKernel.Yaml" Version="1.48.0" />
-     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.0.1-preview.1.25571.5" />
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.5.0-beta.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="YamlDotNet" Version="16.2.1" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Prompts\**\*.yaml" />
