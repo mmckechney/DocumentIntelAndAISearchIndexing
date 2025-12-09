@@ -1,15 +1,21 @@
 import * as customTypes from '../constants/customTypes.bicep'
 
-param funcAppPlan string
 param location string = resourceGroup().location
 param functionValues customTypes.functionValue[]
-param functionSubnetId string
-param functionStorageAcctName string
-param moveQueueName string
-param serviceBusNs string
+param managedEnvironmentId string
+param containerRegistryServer string
+@description('Identity used by the Container Apps runtime to pull from the registry. Typically the user-assigned managed identity id.')
+param containerRegistryIdentityResourceId string
+param managedIdentityId string
+param managedIdentityClientId string
 param formStorageAcctName string
-param customFieldQueueName string
+param documentStorageContainer string
+param processResultsContainer string
+param completedContainer string
+param serviceBusNs string
 param docQueueName string
+param customFieldQueueName string
+param moveQueueName string
 param toIndexQueueName string
 param openAiEmbeddingModel string
 param aiSearchEndpoint string
@@ -19,52 +25,51 @@ param serviceBusFullyQualifiedNamespace string
 param documentIntelligenceEndpoint string
 param documentIntelligenceEndpoints string
 param azureOpenAiEmbeddingMaxTokens int = 8091
-param managedIdentityId string
-param managedIdentityClientId string
-param documentStorageContainer string
-param processResultsContainer string
-param completedContainer string
-param appInsightsName string
 param aiIndexName string
 param openAiChatModel string
 param cosmosDbName string
 param cosmosContainerName string
-param funcAppPlanSku string
+param appInsightsConnectionString string
+param appInsightsInstrumentationKey string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 
-resource funcStorageAcct 'Microsoft.Storage/storageAccounts@2021-04-01'existing = {
-  name: functionStorageAcctName
-}
-
-resource appInsights 'Microsoft.Insights/components@2020-02-02'existing = {
-  name: appInsightsName
-}
-
-module functionAppPlan 'appplan.bicep' = {
-  name: funcAppPlan
-  params: {
-    location: location
-    funcAppPlan: funcAppPlan
-    funcAppPlanSku: funcAppPlanSku
+var ingressConfiguration = {
+  'askquestions-app': {
+    external: true
+    targetPort: 8080
+    transport: 'auto'
+    allowInsecure: false
+    traffic: [
+      {
+        latestRevision: true
+        weight: 100
+      }
+    ]
+  }
+  'queueing-app': {
+    external: true
+    targetPort: 8080
+    transport: 'auto'
+    allowInsecure: false
+    traffic: [
+      {
+        latestRevision: true
+        weight: 100
+      }
+    ]
   }
 }
 
-
-module function 'function.bicep' = [for functionValue in functionValues: {
-  name: functionValue.name
-  params: {
-    location: location
-    functionName: functionValue.name
-    functionTag : functionValue.tag
-    functionSubnetId: functionSubnetId
-    managedIdentityId: managedIdentityId
-    funcAppPlanId: functionAppPlan.outputs.functionAppPlanId
-    sharedConfiguration: sharedConfiguration
-  }
+var normalizedFunctionValuesBase = [for functionValue in functionValues: {
+  name: toLower(functionValue.name)
+  tag: functionValue.tag
+  serviceName: empty(functionValue.serviceName ?? '') ? toLower(functionValue.name) : (functionValue.serviceName ?? toLower(functionValue.name))
 }]
 
-
+var normalizedFunctionValues = [for functionValue in normalizedFunctionValuesBase: union(functionValue, {
+  hasIngress: contains(ingressConfiguration, functionValue.serviceName)
+})]
 
 var sharedConfiguration = [
   {
@@ -72,11 +77,11 @@ var sharedConfiguration = [
     value: cosmosDbEndpoint
   }
   {
-    name: configKeys.COSMOS_DB_NAME 
+    name: configKeys.COSMOS_DB_NAME
     value: cosmosDbName
   }
   {
-    name: configKeys.COSMOS_CONTAINER_NAME 
+    name: configKeys.COSMOS_CONTAINER_NAME
     value: cosmosContainerName
   }
   {
@@ -116,58 +121,6 @@ var sharedConfiguration = [
     value: moveQueueName
   }
   {
-    name: '${configKeys.SERVICEBUS_CONNECTION}__fullyQualifiedNamespace'
-    value: serviceBusFullyQualifiedNamespace
-  }
-  {
-    name: '${configKeys.SERVICEBUS_CONNECTION}__credential'
-    value: 'ManagedIdentity'
-  }
-  {
-    name: '${configKeys.SERVICEBUS_CONNECTION}__clientId'
-    value: managedIdentityClientId
-  }
-  {
-    name: 'AzureWebJobsStorage__accountName'
-    value: funcStorageAcct.name
-  }
-  {
-    name: 'AzureWebJobsStorage__blobServiceUri'
-    value: 'https://${funcStorageAcct.name}.blob.${environment().suffixes.storage}'
-  }
-  {
-    name: 'AzureWebJobsStorage__queueServiceUri'
-    value: 'https://${funcStorageAcct.name}.queue.${environment().suffixes.storage}'
-  }
-  {
-    name: 'AzureWebJobsStorage__tableServiceUri'
-    value: 'https://${funcStorageAcct.name}.table.${environment().suffixes.storage}'
-  }
-  {
-    name: 'AzureWebJobsStorage__credential'
-    value: 'ManagedIdentity'
-  }
-  {
-    name: 'AzureWebJobsStorage__clientId'
-    value: managedIdentityClientId
-  }
-  {
-    name: 'FUNCTIONS_EXTENSION_VERSION'
-    value: '~4'
-  }
-  {
-    name: 'FUNCTIONS_WORKER_RUNTIME'
-    value: 'dotnet-isolated'
-  }
-  {
-    name: 'WEBSITE_RUN_FROM_PACKAGE'
-    value: '1'
-  }
-  {
-    name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-    value: appInsights.properties.ConnectionString
-  }
-  {
     name: configKeys.AZURE_AISEARCH_ENDPOINT
     value: aiSearchEndpoint
   }
@@ -185,11 +138,7 @@ var sharedConfiguration = [
   }
   {
     name: configKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
-    value: openAiEmbeddingModel  
-  }
-  {
-    name: configKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS
-    value: string(azureOpenAiEmbeddingMaxTokens)
+    value: openAiEmbeddingModel
   }
   {
     name: configKeys.AZURE_OPENAI_CHAT_MODEL
@@ -198,6 +147,10 @@ var sharedConfiguration = [
   {
     name: configKeys.AZURE_OPENAI_CHAT_DEPLOYMENT
     value: openAiChatModel
+  }
+  {
+    name: configKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS
+    value: string(azureOpenAiEmbeddingMaxTokens)
   }
   {
     name: configKeys.DOCUMENT_INTELLIGENCE_MODEL_NAME
@@ -213,5 +166,84 @@ var sharedConfiguration = [
   }
 ]
 
-output systemAssignedIdentities array = [for i in range(0, length(functionValues)): function[i].outputs.systemAssignedIdentity]
+var containerRuntimeConfiguration = concat(sharedConfiguration, [
+  {
+    name: '${configKeys.SERVICEBUS_CONNECTION}__fullyQualifiedNamespace'
+    value: serviceBusFullyQualifiedNamespace
+  }
+  {
+    name: '${configKeys.SERVICEBUS_CONNECTION}__credential'
+    value: 'ManagedIdentity'
+  }
+  {
+    name: '${configKeys.SERVICEBUS_CONNECTION}__clientId'
+    value: managedIdentityClientId
+  }
+  {
+    name: 'MANAGED_IDENTITY_CLIENT_ID'
+    value: managedIdentityClientId
+  }
+  {
+    name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+    value: appInsightsConnectionString
+  }
+  {
+    name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+    value: appInsightsInstrumentationKey
+  }
+])
+
+resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for functionValue in normalizedFunctionValues: {
+  name: functionValue.name
+  location: location
+  tags: {
+    'azd-service-name': functionValue.serviceName
+    'workload-role': functionValue.tag
+  }
+  identity: {
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
+  }
+  properties: {
+    managedEnvironmentId: managedEnvironmentId
+    configuration: union({
+      secrets: []
+      registries: [
+        {
+          server: containerRegistryServer
+          identity: containerRegistryIdentityResourceId
+        }
+      ]
+    }, functionValue.hasIngress ? {
+      ingress: ingressConfiguration[functionValue.serviceName]
+    } : {})
+    template: {
+      containers: [
+        {
+          name: functionValue.serviceName
+          image: '${containerRegistryServer}/${functionValue.serviceName}:latest'
+          env: containerRuntimeConfiguration
+          resources: {
+            cpu: functionValue.hasIngress ? json('1.0') : json('0.5')
+            memory: functionValue.hasIngress ? '2Gi' : '1Gi'
+          }
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: functionValue.hasIngress ? 3 : 2
+      }
+    }
+  }
+}]
+
+output systemAssignedIdentities array = [for (functionValue, index) in normalizedFunctionValues: containerApps[index].identity.principalId]
+output services array = [for (functionValue, index) in normalizedFunctionValues: {
+  serviceName: functionValue.serviceName
+  containerAppName: containerApps[index].name
+  containerAppResourceId: containerApps[index].id
+  ingressFqdn: functionValue.hasIngress ? reference(containerApps[index].id, '2023-05-01', 'full').properties.configuration.ingress.fqdn : ''
+}]
 

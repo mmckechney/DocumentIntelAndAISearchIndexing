@@ -1,12 +1,10 @@
-using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs.Models;
-using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
+using HighVolumeProcessing.UtilityLibrary;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Extensions.Logging;
 
 namespace HighVolumeProcessing.ProcessedFileMover
 {
@@ -24,25 +22,32 @@ namespace HighVolumeProcessing.ProcessedFileMover
          this.tracker = tracker;
       }
 
-      [Function("FileMover")]
-      public async Task Run([ServiceBusTrigger("%SERVICEBUS_MOVE_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task ProcessMessageAsync(FileQueueMessage fileMessage)
       {
-         var fileMessage = message.As<FileQueueMessage>();
-         log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
-
-         await tracker.TrackAndUpdate(fileMessage, "Moving original file");
-         bool success = await MoveOriginalFileToCompleted(fileMessage.SourceFileName);
-         if (success)
+         ArgumentNullException.ThrowIfNull(fileMessage);
+         try
          {
-            log.LogInformation($"Successfully move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
-            await tracker.TrackAndUpdate(fileMessage, "Successfully moved original file");
-         }
-         else
-         {
-            log.LogInformation($"Failed move file {fileMessage.SourceFileName} to {settings.CompletedContainerName} container");
-            await tracker.TrackAndUpdate(fileMessage, "Failed to move original file");
-         }
+            log.LogInformation("FileMover triggered with message -- {Message}", fileMessage);
 
+            await tracker.TrackAndUpdate(fileMessage, "Moving original file");
+            bool success = await MoveOriginalFileToCompleted(fileMessage.SourceFileName);
+            if (success)
+            {
+               log.LogInformation("Successfully moved file {FileName} to {Container}", fileMessage.SourceFileName, settings.CompletedContainerName);
+               await tracker.TrackAndUpdate(fileMessage, "Successfully moved original file");
+            }
+            else
+            {
+               log.LogWarning("Failed move file {FileName} to {Container}", fileMessage.SourceFileName, settings.CompletedContainerName);
+               await tracker.TrackAndUpdate(fileMessage, "Failed to move original file");
+            }
+         }
+         catch (Exception exe)
+         {
+            log.LogError(exe, "FileMover failure for {FileName}", fileMessage.SourceFileName);
+            await tracker.TrackAndUpdate(fileMessage, $"Failure in FileMover: {exe.Message}");
+            throw;
+         }
       }
 
       public async Task<bool> MoveOriginalFileToCompleted(string sourceFileName)

@@ -1,11 +1,9 @@
-using Azure.Messaging.ServiceBus;
-using HighVolumeProcessing.UtilityLibrary;
-using HighVolumeProcessing.UtilityLibrary.Models;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using HighVolumeProcessing.UtilityLibrary;
+using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Extensions.Logging;
 
 namespace HighVolumeProcessing.AiSearchIndexingFunction
 {
@@ -30,29 +28,27 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
 
       }
 
-      [Function("AiSearchIndexing")]
-      public async Task Run([ServiceBusTrigger("%SERVICEBUS_TOINDEX_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task ProcessMessageAsync(FileQueueMessage fileMessage)
       {
-         var fileMessage = message.As<FileQueueMessage>();
+         ArgumentNullException.ThrowIfNull(fileMessage);
          try
          {
-            log.LogInformation($"AiSearchIndexing triggered with message -- {fileMessage.ToString()}");
-            bool success = await ProcessMessage(fileMessage);
+            log.LogInformation("AiSearchIndexing triggered with message -- {Message}", fileMessage.ToString());
+            bool success = await ProcessFileMessageAsync(fileMessage);
             if (!success)
             {
-               throw new Exception($"Failed to process message {message.MessageId}.");
+               throw new InvalidOperationException($"Failed to process message for {fileMessage.ProcessedFileName}.");
             }
          }
          catch (Exception exe)
          {
-            log.LogError(exe.Message);
-            tracker.TrackAndUpdate(fileMessage, $"Failure in AiSearchIndexing: {exe.Message}").Wait();
+            log.LogError(exe, "AiSearchIndexing failed for message {MessageId}", fileMessage.SourceFileName);
+            await tracker.TrackAndUpdate(fileMessage, $"Failure in AiSearchIndexing: {exe.Message}");
             throw;
-
          }
-
       }
-      public async Task<bool> ProcessMessage(FileQueueMessage fileMessage)
+
+      private async Task<bool> ProcessFileMessageAsync(FileQueueMessage fileMessage)
       {
          fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
          var contents = await storageHelper.GetFileContents(settings.ProcessResultsContainerName, fileMessage.ProcessedFileName);

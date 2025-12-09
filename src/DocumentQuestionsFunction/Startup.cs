@@ -1,64 +1,40 @@
-﻿using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Extensions.Configuration;
+﻿using HighVolumeProcessing.DocumentQuestionsFunction;
+using HighVolumeProcessing.UtilityLibrary;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace HighVolumeProcessing.DocumentQuestionsFunction
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration
+   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+   .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+   .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)
+   .AddEnvironmentVariables();
+
+builder.Logging
+   .AddFilter("System", LogLevel.Warning)
+   .AddFilter("Microsoft", LogLevel.Warning)
+   .SetMinimumLevel(LogLevel.Information);
+
+builder.Services.AddSingleton<SkHelper>();
+builder.Services.AddSingleton<AiSearchHelper>();
+builder.Services.AddSingleton<Helper>();
+builder.Services.AddSingleton<StorageHelper>();
+builder.Services.AddSingleton<ServiceBusHelper>();
+builder.Services.AddSingleton<Settings>();
+builder.Services.AddSingleton<AskQuestions>();
+builder.Services.AddHttpClient();
+builder.Services.AddApplicationInsightsTelemetry();
+
+var app = builder.Build();
+
+app.MapGet("/", () => Results.Ok("Document questions worker is running"));
+
+app.MapMethods("/api/AskQuestions", new[] { HttpMethods.Get, HttpMethods.Post }, async (HttpRequest request, AskQuestions handler, CancellationToken cancellationToken) =>
 {
-   internal class Startup
-   {
-      static async Task Main(string[] args)
-      {
-         string basePath = IsDevelopmentEnvironment() ?
-             Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot") :
-             $"{Environment.GetEnvironmentVariable("HOME")}\\site\\wwwroot";
+   return await handler.HandleAsync(request, cancellationToken);
+});
 
-         var builder = new HostBuilder();
-         builder.ConfigureLogging((hostContext, logging) =>
-         {
-            logging.SetMinimumLevel(LogLevel.Debug);
-            logging.AddFilter("System", LogLevel.Warning);
-            logging.AddFilter("Microsoft", LogLevel.Warning);
-
-         });
-         builder.ConfigureFunctionsWorkerDefaults();
-         builder.ConfigureAppConfiguration(b =>
-         {
-            b.SetBasePath(basePath)
-              .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)  // common settings go here.
-              .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT")}.json", optional: true, reloadOnChange: false)  // environment specific settings go here
-              .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)  // secrets go here. This file is excluded from source control.
-              .AddEnvironmentVariables()
-              .Build();
-
-         });
-         // builder.AddAzureStorage();
-
-         builder.ConfigureServices(ConfigureServices);
-
-
-         await builder.Build().RunAsync();
-      }
-
-      private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-      {
-         services.AddSingleton<SkHelper>();
-         services.AddSingleton<AiSearchHelper>();
-         services.AddSingleton<Helper>();
-         services.AddSingleton<StorageHelper>();
-         services.AddSingleton<ServiceBusHelper>();
-         services.AddSingleton<Settings>();
-         services.AddHttpClient();
-
-      }
-
-      public static bool IsDevelopmentEnvironment()
-      {
-         return "Development".Equals(Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT"), StringComparison.OrdinalIgnoreCase);
-      }
-   }
-}
+app.Run();

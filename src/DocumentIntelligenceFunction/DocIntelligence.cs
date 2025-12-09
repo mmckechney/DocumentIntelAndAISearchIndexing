@@ -1,11 +1,9 @@
 using Azure;
 using Azure.AI.DocumentIntelligence;
 //using Azure.AI.docIntelligence.DocumentAnalysis;
-using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs.Models;
 using HighVolumeProcessing.UtilityLibrary; 
 using HighVolumeProcessing.UtilityLibrary.Models; 
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Polly;
 using System;
@@ -36,69 +34,46 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
       }
 
 
-      [Function("DocIntelligence")]
-      public async Task Run([ServiceBusTrigger("%SERVICEBUS_DOC_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task ProcessMessageAsync(FileQueueMessage fileMessage)
       {
-         var fileMessage = message.As<FileQueueMessage>();
          try
          {
-            log.LogInformation($"DocIntelligence triggered with message -- {fileMessage.ToString()}");
-
-            bool success = await ProcessMessage(fileMessage);
-            if (!success)
-            {
-               throw new Exception("Failed to process message");
-            }
-         }
-         catch (Exception exe)
-         {
-            log.LogError(exe.ToString());
-            await tracker.TrackAndUpdate(fileMessage, $"Failure in DocIntelligence: {exe.Message}");
-            throw;
-
-         }
-         return;
-      }
-      public async Task<bool> ProcessMessage(FileQueueMessage fileMessage)
-      {
-
-         try
-         {
+            log.LogInformation("DocIntelligence triggered with message -- {Message}", fileMessage.ToString());
             fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
             var uri = GetSourceFileUrl(fileMessage.SourceFileName);
             var recogOutput = await ProcessDocumentIntelligence(uri, fileMessage.RecognizerIndex);
             if (recogOutput == null)
             {
-               log.LogError($"Failed to get Document Intelligence output for file '{fileMessage.SourceFileName}'. Stopping processing and abandoning message.");
-               return false;
+               throw new InvalidOperationException($"Failed to get Document Intelligence output for file '{fileMessage.SourceFileName}'.");
             }
+
             (bool saveResult, string processResultsFileName) = await SaveRecognitionResults(recogOutput, fileMessage.SourceFileName);
             if (!saveResult)
             {
-               log.LogError($"Unable to save results to output file for processed file '{fileMessage.SourceFileName}'. Stopping processing and abandoning message.");
-               return false;
+               throw new InvalidOperationException($"Unable to save results to output file for processed file '{fileMessage.SourceFileName}'.");
             }
+
             var tagResult = await SetTagAndMetaDataOriginalFileAsProcessed(fileMessage.SourceFileName);
             if (!tagResult)
             {
-               log.LogWarning($"Unable to tag the original processed file '{fileMessage.SourceFileName}'. Will still complete the message");
+               log.LogWarning("Unable to tag the original processed file '{SourceFileName}'. Will still complete the message", fileMessage.SourceFileName);
             }
-
-            fileMessage.CloneWithOverrides(containerName: settings.ProcessResultsContainerName, processedFileName: processResultsFileName).AsMessage();
 
             var newMsg = fileMessage.CloneWithOverrides(containerName: settings.ProcessResultsContainerName, processedFileName: processResultsFileName);
             newMsg = await tracker.TrackAndUpdate(newMsg, $"Sending to {settings.CustomFieldQueueName}");
 
             var sbMessage = newMsg.AsMessage();
             await serviceBusHelper.SendMessageAsync(settings.CustomFieldQueueName, sbMessage);
-            newMsg = await tracker.TrackAndUpdate(newMsg, $"Sent to {settings.CustomFieldQueueName}");
-
-            return true;
+            await tracker.TrackAndUpdate(newMsg, $"Sent to {settings.CustomFieldQueueName}");
          }
          catch (Exception exe)
          {
-            log.LogError(exe.ToString());
-            return false;
+            log.LogError(exe, "DocIntelligence failed for file '{SourceFile}'", fileMessage?.SourceFileName);
+            if (fileMessage != null)
+            {
+               await tracker.TrackAndUpdate(fileMessage, $"Failure in DocIntelligence: {exe.Message}");
+            }
+            throw;
          }
 
       }

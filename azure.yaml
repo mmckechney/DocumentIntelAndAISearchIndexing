@@ -4,30 +4,48 @@ name: document-intel-and-aisearch-indexing
 metadata:
     template: azd-init@1.14.0
 services:
-    aisearch-function:
+    aisearch-app:
         project: src/AiSearchIndexingFunction
-        host: function
+        host: containerapp
         language: dotnet
-    custom-field-function:
+        docker:
+            context: ../..
+            dockerfile: src/AiSearchIndexingFunction/Dockerfile
+    custom-field-app:
         project: src/CustomFieldExtractionFunction
-        host: function
+        host: containerapp
         language: dotnet
-    intelligence-function:
+        docker:
+            context: ../..
+            dockerfile: src/CustomFieldExtractionFunction/Dockerfile
+    intelligence-app:
         project: src/DocumentIntelligenceFunction
-        host: function
+        host: containerapp
         language: dotnet
-    askquestions-function:
+        docker:
+            context: ../..
+            dockerfile: src/DocumentIntelligenceFunction/Dockerfile
+    askquestions-app:
         project: src/DocumentQuestionsFunction
-        host: function
+        host: containerapp
         language: dotnet
-    queueing-function:
+        docker:
+            context: ../..
+            dockerfile: src/DocumentQuestionsFunction/Dockerfile
+    queueing-app:
         project: src/DocumentQueueingFunction
-        host: function
+        host: containerapp
         language: dotnet
-    mover-function:
+        docker:
+            context: ../..
+            dockerfile: src/DocumentQueueingFunction/Dockerfile
+    mover-app:
         project: src/ProcessedFileMover
-        host: function
+        host: containerapp
         language: dotnet
+        docker:
+            context: ../..
+            dockerfile: src/ProcessedFileMover/Dockerfile
 
 infra:
   bicep: ./infra/main.bicep

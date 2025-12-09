@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.39.26.7824",
-      "templateHash": "12861829842246733283"
+      "templateHash": "5131967189343410875"
     }
   },
   "definitions": {
@@ -1044,7 +1044,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "14647143966898263004"
+              "templateHash": "5261650653991597078"
             }
           },
           "parameters": {
@@ -1084,7 +1084,15 @@
                   {
                     "name": "[parameters('funcsubnet')]",
                     "properties": {
-                      "addressPrefix": "10.10.4.0/23",
+                      "addressPrefix": "10.10.1.0/24",
+                      "delegations": [
+                        {
+                          "name": "Microsoft.App/environments",
+                          "properties": {
+                            "serviceName": "Microsoft.App/environments"
+                          }
+                        }
+                      ],
                       "serviceEndpoints": [
                         {
                           "service": "Microsoft.Storage",
@@ -1956,65 +1964,6 @@
         "rg"
       ]
     },
-    "managedIdentityAcrPull": {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "managedIdentityAcrPull",
-      "resourceGroup": "[variables('resourceGroupName')]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "containerRegistryName": {
-            "value": "[variables('containerRegistryName')]"
-          },
-          "principalId": {
-            "value": "[reference('managedIdentity').outputs.principalId.value]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "5480609330597901005"
-            }
-          },
-          "parameters": {
-            "containerRegistryName": {
-              "type": "string"
-            },
-            "principalId": {
-              "type": "string"
-            }
-          },
-          "variables": {
-            "acrPullRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')]"
-          },
-          "resources": [
-            {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "scope": "[format('Microsoft.ContainerRegistry/registries/{0}', parameters('containerRegistryName'))]",
-              "name": "[guid(parameters('principalId'), variables('acrPullRoleDefinitionId'), resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')))]",
-              "properties": {
-                "roleDefinitionId": "[variables('acrPullRoleDefinitionId')]",
-                "principalId": "[parameters('principalId')]"
-              }
-            }
-          ]
-        }
-      },
-      "dependsOn": [
-        "containerRegistry",
-        "managedIdentity",
-        "rg"
-      ]
-    },
     "containerEnvironment": {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -2049,7 +1998,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "10930914970580496804"
+              "templateHash": "2362764651266699313"
             }
           },
           "parameters": {
@@ -2073,7 +2022,7 @@
           "resources": [
             {
               "type": "Microsoft.App/managedEnvironments",
-              "apiVersion": "2022-03-01",
+              "apiVersion": "2023-05-01",
               "name": "[parameters('name')]",
               "location": "[parameters('location')]",
               "properties": {
@@ -2218,7 +2167,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "1545276139884238902"
+              "templateHash": "16770662257323848252"
             }
           },
           "definitions": {
@@ -2518,7 +2467,7 @@
                 "name": "normalizedFunctionValuesBase",
                 "count": "[length(parameters('functionValues'))]",
                 "input": {
-                  "name": "[toLower(parameters('functionValues')[copyIndex('normalizedFunctionValuesBase')].name)]",
+                  "name": "[parameters('functionValues')[copyIndex('normalizedFunctionValuesBase')].name]",
                   "tag": "[parameters('functionValues')[copyIndex('normalizedFunctionValuesBase')].tag]",
                   "serviceName": "[if(empty(coalesce(parameters('functionValues')[copyIndex('normalizedFunctionValuesBase')].serviceName, '')), toLower(parameters('functionValues')[copyIndex('normalizedFunctionValuesBase')].name), coalesce(parameters('functionValues')[copyIndex('normalizedFunctionValuesBase')].serviceName, toLower(parameters('functionValues')[copyIndex('normalizedFunctionValuesBase')].name)))]"
                 }
@@ -2686,7 +2635,7 @@
                 "count": "[length(variables('normalizedFunctionValues'))]"
               },
               "type": "Microsoft.App/containerApps",
-              "apiVersion": "2023-05-01",
+              "apiVersion": "2024-05-01",
               "name": "[variables('normalizedFunctionValues')[copyIndex()].name]",
               "location": "[parameters('location')]",
               "tags": {
@@ -2727,7 +2676,7 @@
               "type": "array",
               "copy": {
                 "count": "[length(variables('normalizedFunctionValues'))]",
-                "input": "[reference(format('containerApps[{0}]', copyIndex()), '2023-05-01', 'full').identity.principalId]"
+                "input": "[reference(format('containerApps[{0}]', copyIndex()), '2024-05-01', 'full').identity.principalId]"
               }
             },
             "services": {
@@ -2738,7 +2687,7 @@
                   "serviceName": "[variables('normalizedFunctionValues')[copyIndex()].serviceName]",
                   "containerAppName": "[variables('normalizedFunctionValues')[copyIndex()].name]",
                   "containerAppResourceId": "[resourceId('Microsoft.App/containerApps', variables('normalizedFunctionValues')[copyIndex()].name)]",
-                  "ingressFqdn": "[if(variables('normalizedFunctionValues')[copyIndex()].hasIngress, reference(resourceId('Microsoft.App/containerApps', variables('normalizedFunctionValues')[copyIndex()].name), '2023-05-01', 'full').properties.configuration.ingress.fqdn, '')]"
+                  "ingressFqdn": "[if(variables('normalizedFunctionValues')[copyIndex()].hasIngress, reference(resourceId('Microsoft.App/containerApps', variables('normalizedFunctionValues')[copyIndex()].name), '2024-05-01', 'full').properties.configuration.ingress.fqdn, '')]"
                 }
               }
             }
@@ -2754,7 +2703,6 @@
         "cosmosDb",
         "docIntelligenceService",
         "managedIdentity",
-        "managedIdentityAcrPull",
         "rg",
         "servicebus",
         "storage"
@@ -2797,7 +2745,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.39.26.7824",
-              "templateHash": "3476036323936473755"
+              "templateHash": "14638412030473901747"
             }
           },
           "parameters": {
@@ -2849,7 +2797,6 @@
               "searchServiceContributor": "de139f84-1756-47ae-9be6-808fbbe84772"
             },
             "principalIds": "[if(not(empty(parameters('currentUserObjectId'))), concat(parameters('functionPrincipalIds'), createArray(parameters('currentUserObjectId'), parameters('userAssignedManagedIdentityPrincipalId'))), concat(parameters('functionPrincipalIds'), createArray(parameters('userAssignedManagedIdentityPrincipalId'))))]",
-            "acrPrincipalIds": "[if(not(empty(parameters('currentUserObjectId'))), concat(parameters('functionPrincipalIds'), createArray(parameters('currentUserObjectId'))), parameters('functionPrincipalIds'))]",
             "deploymentEntropy": "3F2504E0-4F89-11D3-9A0C-0305E82C3302",
             "roles": "[variables('$fxv#0')]"
           },
@@ -2996,15 +2943,15 @@
             {
               "copy": {
                 "name": "principalAcrPullAssignments",
-                "count": "[length(variables('acrPrincipalIds'))]"
+                "count": "[length(variables('principalIds'))]"
               },
               "type": "Microsoft.Authorization/roleAssignments",
               "apiVersion": "2020-04-01-preview",
               "scope": "[format('Microsoft.ContainerRegistry/registries/{0}', parameters('containerRegistryName'))]",
-              "name": "[guid(variables('acrPrincipalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').acrPull), resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')))]",
+              "name": "[guid(variables('principalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').acrPull), resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName')))]",
               "properties": {
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').acrPull)]",
-                "principalId": "[variables('acrPrincipalIds')[copyIndex()]]"
+                "principalId": "[variables('principalIds')[copyIndex()]]"
               }
             }
           ],

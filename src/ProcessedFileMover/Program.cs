@@ -1,64 +1,37 @@
-﻿using HighVolumeProcessing.UtilityLibrary;
-using Microsoft.Azure.Amqp.Serialization;
+﻿using HighVolumeProcessing.ProcessedFileMover;
+using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
-namespace HighVolumeProcessing.ProcessedFileMover
-{
-   internal class Startup
+var builder = Host.CreateDefaultBuilder(args)
+   .ConfigureAppConfiguration((context, config) =>
    {
-      static async Task Main(string[] args)
-      {
-         string basePath = IsDevelopmentEnvironment() ?
-             Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot") :
-             $"{Environment.GetEnvironmentVariable("HOME")}\\site\\wwwroot";
+      config
+         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+         .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+         .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)
+         .AddEnvironmentVariables();
+   })
+   .ConfigureLogging(logging =>
+   {
+      logging.SetMinimumLevel(LogLevel.Information);
+      logging.AddFilter("System", LogLevel.Warning);
+      logging.AddFilter("Microsoft", LogLevel.Warning);
+   })
+   .ConfigureServices((context, services) =>
+   {
+      services.AddSingleton<SkHelper>();
+      services.AddSingleton<StorageHelper>();
+      services.AddSingleton<ServiceBusHelper>();
+      services.AddSingleton<Settings>();
+      services.AddSingleton<Tracker<FileMover>>();
+      services.AddSingleton<CosmosDbHelper>();
+      services.AddSingleton<FileMover>();
+      services.AddHostedService<ProcessedFileMoverWorker>();
+      services.AddHttpClient();
+      services.AddApplicationInsightsTelemetryWorkerService();
+   });
 
-         var builder = new HostBuilder();
-         builder.ConfigureLogging((hostContext, logging) =>
-         {
-            logging.SetMinimumLevel(LogLevel.Debug);
-            logging.AddFilter("System", LogLevel.Warning);
-            logging.AddFilter("Microsoft", LogLevel.Warning);
-
-         });
-         builder.ConfigureFunctionsWorkerDefaults();
-         builder.ConfigureAppConfiguration(b =>
-         {
-            b.SetBasePath(basePath)
-              .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)  // common settings go here.
-              .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT")}.json", optional: true, reloadOnChange: false)  // environment specific settings go here
-              .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)  // secrets go here. This file is excluded from source control.
-              .AddEnvironmentVariables()
-              .Build();
-
-         });
-
-         builder.ConfigureServices(ConfigureServices);
-
-
-         await builder.Build().RunAsync();
-      }
-
-      private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-      {
-         services.AddSingleton<SkHelper>();
-         services.AddSingleton<StorageHelper>();
-         services.AddSingleton<ServiceBusHelper>();
-         services.AddSingleton<Settings>();
-         services.AddSingleton<Tracker<FileMover>>();
-         services.AddSingleton<CosmosDbHelper>();
-         services.AddHttpClient();
-         services.AddApplicationInsightsTelemetryWorkerService();
-
-      }
-
-      public static bool IsDevelopmentEnvironment()
-      {
-         return "Development".Equals(Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT"), StringComparison.OrdinalIgnoreCase);
-      }
-   }
-}
+await builder.RunConsoleAsync();

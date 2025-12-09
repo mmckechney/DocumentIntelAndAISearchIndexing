@@ -1,23 +1,24 @@
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
-using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using HighVolumeProcessing.UtilityLibrary;
 using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Extensions.Logging;
+
 namespace HighVolumeProcessing.DocumentQueueingFunction
 {
    public class DocumentQueueing
    {
       private readonly ILogger<DocumentQueueing> logger;
-      Tracker<DocumentQueueing> tracker;
-      private StorageHelper storageHelper;
-      private ServiceBusHelper serviceBusHelper;
-      private Settings settings;
+      private readonly Tracker<DocumentQueueing> tracker;
+      private readonly StorageHelper storageHelper;
+      private readonly ServiceBusHelper serviceBusHelper;
+      private readonly Settings settings;
+
       public DocumentQueueing(ILogger<DocumentQueueing> logger, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<DocumentQueueing> tracker)
       {
          this.logger = logger;
@@ -27,60 +28,43 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
          this.tracker = tracker;
       }
 
-      [Function("DocumentQueueing")]
-      public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function, "get", Route = null)] HttpRequestData req)
+      public async Task<int> QueueDocumentsAsync(bool force, DateTime? queuedDate, CancellationToken cancellationToken)
       {
-         int fileCounter = 0;
-         logger.LogInformation("Request received to queue documents");
-         var cancelSource = new CancellationTokenSource();
-         bool force = false;
-         bool.TryParse(req?.Query["force"], out force);
-
-         DateTime queuedDate = DateTime.MinValue;
-         DateTime.TryParse(req?.Query["queuedDate"], out queuedDate);
-
-         List<Task> metaDataTasks = new List<Task>();
-
-         logger.LogInformation($"Processing settings: Force re-queue: '{force.ToString()}',  Re-queue document previously queued before: '{queuedDate}'");
-
          try
          {
-            BlobContainerClient containerClient;
+            logger.LogInformation("Request received to queue documents");
+            logger.LogInformation("Processing settings: Force re-queue: '{Force}', Re-queue document previously queued before: '{QueuedDate}'", force, queuedDate);
 
-            containerClient = storageHelper.GetContainerClient(settings.SourceContainerName);
-            logger.LogInformation($"Using storage container '{containerClient.Name}' as files source.");
+            var containerClient = storageHelper.GetContainerClient(settings.SourceContainerName);
+            logger.LogInformation("Using storage container '{ContainerName}' as files source.", containerClient.Name);
 
             var blobList = containerClient.GetBlobsAsync(BlobTraits.Metadata);
+            var metadataTasks = new List<Task>();
             int counter = 0;
-            await foreach (var blob in blobList)
+            int fileCounter = 0;
+
+            await foreach (var blob in blobList.WithCancellation(cancellationToken))
             {
-               if (cancelSource.IsCancellationRequested)
-               {
-                  break;
-               }
+               cancellationToken.ThrowIfCancellationRequested();
 
                if (!force && blob.Metadata.ContainsKey("Processed"))
                {
-                  logger.LogInformation($"Skipping {blob.Name}. Already marked as Processed and 'force' flag not set");
+                  logger.LogInformation("Skipping {BlobName}. Already marked as Processed and 'force' flag not set", blob.Name);
                   continue;
                }
 
-               string queueDateStr;
-               if (blob.Metadata.TryGetValue("IsQueued", out queueDateStr) && queuedDate != DateTime.MinValue)
+               if (queuedDate.HasValue && ShouldSkipBasedOnQueueDate(blob.Metadata, queuedDate.Value))
                {
-                  DateTime fileQueueDate;
-                  if (DateTime.TryParse(queueDateStr, out fileQueueDate))
-                  {
-                     if (fileQueueDate > queuedDate)
-                     {
-                        logger.LogInformation($"Skipping {blob.Name}. Already marked as queued and metadata date of {fileQueueDate} is greater than target requeue date of {queuedDate}");
-                        continue;
-                     }
-                  }
+                  logger.LogInformation("Skipping {BlobName}. Already marked as queued with metadata date newer than target {QueuedDate}", blob.Name, queuedDate);
+                  continue;
                }
 
-               if (counter > 9) counter = 0;
-               logger.LogDebug($"Found file  {blob.Name}");
+               if (counter > 9)
+               {
+                  counter = 0;
+               }
+
+               logger.LogDebug("Found file {BlobName}", blob.Name);
 
                var fileMsg = new FileQueueMessage() { SourceFileName = blob.Name, ContainerName = containerClient.Name, RecognizerIndex = counter };
                fileMsg = await tracker.TrackAndUpdate(fileMsg, $"Sending to {settings.DocumentQueueName}");
@@ -88,69 +72,77 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
                await serviceBusHelper.SendMessageAsync(settings.DocumentQueueName, sbMessage);
 
                fileMsg = await tracker.TrackAndUpdate(fileMsg, $"Sent to {settings.DocumentQueueName}");
-               logger.LogInformation($"Queued file {blob.Name} for processing from storage container '{containerClient.Name}' ");
+               logger.LogInformation("Queued file {BlobName} for processing from storage container '{ContainerName}'", blob.Name, containerClient.Name);
                fileCounter++;
                counter++;
 
-               metaDataTasks.Add(UpdateBlobMetaData(blob.Name, containerClient, "IsQueued", DateTime.UtcNow.ToString()));
+               metadataTasks.Add(UpdateBlobMetaDataAsync(blob.Name, containerClient, "IsQueued", DateTime.UtcNow.ToString(), cancellationToken));
 
-               if (metaDataTasks.Count > 200)
+               if (metadataTasks.Count > 200)
                {
                   logger.LogInformation("Purging collection of completed tasks....");
-                  var waiting = Task.WhenAll(metaDataTasks);
-                  await waiting;
-                  metaDataTasks.Clear();
+                  await Task.WhenAll(metadataTasks);
+                  metadataTasks.Clear();
                }
             }
 
-            if (metaDataTasks.Count > 0)
+            if (metadataTasks.Count > 0)
             {
                logger.LogInformation("Waiting for metadata updates to complete....");
-               var waiting = Task.WhenAll(metaDataTasks);
-               await waiting;
+               await Task.WhenAll(metadataTasks);
             }
 
-            var response = req.CreateResponse(System.Net.HttpStatusCode.OK);
-            await response.WriteStringAsync($"Queued {fileCounter} files");
-            return response;
-         }
-         catch (Exception exe)
-         {
-            logger.LogError($"Failed to queue files: {exe.ToString()}");
-            var response = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await response.WriteStringAsync(exe.Message);
-            return response;
-         }
-      }
-      public async Task UpdateBlobMetaData(string blobName, BlobContainerClient containerClient, string key, string value, int retry = 0)
-      {
-         try
-         {
-
-            BlobClientOptions opts = new BlobClientOptions();
-
-            logger.LogDebug($"Updating metadata ({key}={value}) on blob {blobName} ");
-            var meta = new Dictionary<string, string>();
-            meta.Add(key, value);
-            var bc = containerClient.GetBlobClient(blobName);
-            await bc.SetMetadataAsync(meta);
-            logger.LogInformation($"Updated metadata ({key}={value}) on blob {blobName} ");
+            return fileCounter;
          }
          catch (Exception ex)
          {
-            logger.LogError($"Error updating Blob Metadata for file '{blobName}'. {ex.Message}");
-            if (retry < 3)
-            {
-               retry = retry + 1;
-               logger.LogError($"Retrying to set Blob Metadata for file '{blobName}'. Attempt #{retry}");
-               await UpdateBlobMetaData(blobName, containerClient, key, value, retry);
-            }
-            else
-            {
-               logger.LogError($"Error updating Blob Metadata for file '{blobName}'. Retries exceeded. {ex.Message}");
-            }
+            logger.LogError(ex, "Failed to queue files");
+            throw;
          }
       }
 
+      private static bool ShouldSkipBasedOnQueueDate(IDictionary<string, string> metadata, DateTime queuedDate)
+      {
+         if (!metadata.TryGetValue("IsQueued", out var queueDateStr))
+         {
+            return false;
+         }
+
+         if (!DateTime.TryParse(queueDateStr, out var fileQueueDate))
+         {
+            return false;
+         }
+
+         return fileQueueDate > queuedDate;
+      }
+
+      private async Task UpdateBlobMetaDataAsync(string blobName, BlobContainerClient containerClient, string key, string value, CancellationToken cancellationToken, int retry = 0)
+      {
+         try
+         {
+            logger.LogDebug("Updating metadata ({Key}={Value}) on blob {BlobName}", key, value, blobName);
+            var meta = new Dictionary<string, string>
+            {
+               { key, value }
+            };
+            var bc = containerClient.GetBlobClient(blobName);
+            await bc.SetMetadataAsync(meta, cancellationToken: cancellationToken);
+            logger.LogInformation("Updated metadata ({Key}={Value}) on blob {BlobName}", key, value, blobName);
+         }
+         catch (Exception ex)
+         {
+            logger.LogError(ex, "Error updating Blob Metadata for file '{BlobName}'", blobName);
+            if (retry < 3)
+            {
+               var attempt = retry + 1;
+               logger.LogWarning("Retrying to set Blob Metadata for file '{BlobName}'. Attempt #{Attempt}", blobName, attempt);
+               await UpdateBlobMetaDataAsync(blobName, containerClient, key, value, cancellationToken, attempt);
+            }
+            else
+            {
+               logger.LogError("Error updating Blob Metadata for file '{BlobName}'. Retries exceeded.", blobName);
+            }
+         }
+      }
    }
 }

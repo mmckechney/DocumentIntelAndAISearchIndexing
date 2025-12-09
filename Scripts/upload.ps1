@@ -23,15 +23,18 @@ $storageAccountName = $env:UPLOAD_SCRIPT_STORAGE_ACCOUNT_NAME
 
 if($null -eq $containerName -or $null -eq $storageAccountName )
 {
+    $abbrs = Get-Content './infra/constants/abbreviations.json' | ConvertFrom-Json
     $envValues = azd env get-values --output json | ConvertFrom-Json
-    $envConfig = Get-Content "./.azure/$($envValues.AZURE_ENV_NAME)/config.json" | ConvertFrom-Json
-    $funcName = $envConfig.infra.parameters.functionValues[0].name
-    $appSettings = az functionapp config appsettings list --name $funcName --resource-group $envValues.resourceGroupName | ConvertFrom-Json
-    $appSettingsHash = @{}
-    $appSettings | ForEach-Object { $appSettingsHash[$_.name] = $_.value }
+    $appNameSafe = $envValues.APP_NAME_SAFE
+    $location = $envValues.AZURE_LOCATION
+    $appNameLower = $appNameSafe.ToLower()
+    $formStorageBase = "{0}{1}{2}" -f $abbrs.storageAccount, $appNameLower, $location
+    if($formStorageBase.Length -gt 24) {
+        $formStorageBase = $formStorageBase.Substring(0,24)
+    }
 
-    $containerName = $appSettingsHash["STORAGE_SOURCE_CONTAINER_NAME"]
-    $storageAccountName = $appSettingsHash["STORAGE_ACCOUNT_NAME"]
+    $storageAccountName = $formStorageBase
+    $containerName = 'documents'
 
     $env:UPLOAD_SCRIPT_CONTAINER_NAME = $containerName
     $env:UPLOAD_SCRIPT_STORAGE_ACCOUNT_NAME = $storageAccountName

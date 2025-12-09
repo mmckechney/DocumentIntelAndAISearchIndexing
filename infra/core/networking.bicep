@@ -23,15 +23,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
        {
         name: funcsubnet
         properties: {
-          addressPrefix: '10.10.1.0/24'
-          delegations: [
-            {
-              name: 'Microsoft.Web/serverFarms'
-              properties: {
-                serviceName: 'Microsoft.Web/serverFarms'
-              }
-            }
-          ]
+           addressPrefix: '10.10.4.0/23'
           serviceEndpoints: [
             {
               service: 'Microsoft.Storage'

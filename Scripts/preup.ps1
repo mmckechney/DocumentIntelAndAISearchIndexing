@@ -27,37 +27,41 @@ $safeEnvName = $envName -replace '[^a-zA-Z0-9]', ''
 
 $functionValues = @(
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-CustomField"
+        name = "$($abbrs.containerApp)$($safeEnvName)-customfield"
         tag  = "custom-field-function"
+        serviceName = "custom-field-app"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-Intelligence"
+        name = "$($abbrs.containerApp)$($safeEnvName)-intelligence"
         tag  = "intelligence-function"
+        serviceName = "intelligence-app"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-Mover"
+        name = "$($abbrs.containerApp)$($safeEnvName)-mover"
         tag  = "mover-function"
+        serviceName = "mover-app"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-Queueing"
+        name = "$($abbrs.containerApp)$($safeEnvName)-queueing"
         tag  = "queueing-function"
+        serviceName = "queueing-app"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-AiSearch"
+        name = "$($abbrs.containerApp)$($safeEnvName)-aisearch"
         tag  = "aisearch-function"
+        serviceName = "aisearch-app"
     },
     @{
-        name = "$($abbrs.functionApp)$($safeEnvName)-AskQuestions"
+        name = "$($abbrs.containerApp)$($safeEnvName)-askquestions"
         tag  = "askquestions-function"
+        serviceName = "askquestions-app"
     }
 )
 
-# Update the 'functionValues' parameter in ../infra/main.parameters.json with the JSON array of $functionNames
+# Update the 'functionValues' parameter in ../infra/main.parameters.json
 $mainParamsPath = Join-Path $PSScriptRoot "../infra/main.parameters.json"
 $mainParamsContent = Get-Content $mainParamsPath -Raw | ConvertFrom-Json
 
-# Convert $functionNames to JSON array
-$functionValuesJson = $functionValues | ConvertTo-Json -Depth 10
 $openAiConfigs = $mainParamsContent.parameters.openAiConfigs.value
 foreach ($cfg in $openAiConfigs.configs) {
     if($null -eq $cfg.name -or $cfg.name -eq "") {
@@ -97,7 +101,6 @@ function Set-EnvironmentVariable {
     $envContent += "$Name=$Value"
 }
 
-$funcString = ($functionNames | ConvertTo-Json -Depth 10) -replace '\r\n ', '' -replace '\"', '"'
 # Set the user object ID as an environment variable for the deployment
 #Set-EnvironmentVariable -Name "AZURE_RESOURCE_GROUP" -Value $resourceGroupName
 Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_OBJECT_ID" -Value $currentUserObjectId

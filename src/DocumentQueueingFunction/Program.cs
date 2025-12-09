@@ -1,63 +1,47 @@
-﻿using HighVolumeProcessing.UtilityLibrary; 
+﻿using HighVolumeProcessing.DocumentQueueingFunction;
+using HighVolumeProcessing.UtilityLibrary;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 
-namespace HighVolumeProcessing.DocumentQueueingFunction
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration
+   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+   .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+   .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)
+   .AddEnvironmentVariables();
+
+builder.Logging
+   .AddFilter("System", LogLevel.Warning)
+   .AddFilter("Microsoft", LogLevel.Warning)
+   .SetMinimumLevel(LogLevel.Information);
+
+builder.Services.AddSingleton<SkHelper>();
+builder.Services.AddSingleton<StorageHelper>();
+builder.Services.AddSingleton<ServiceBusHelper>();
+builder.Services.AddSingleton<Settings>();
+builder.Services.AddSingleton<Tracker<DocumentQueueing>>();
+builder.Services.AddSingleton<CosmosDbHelper>();
+builder.Services.AddSingleton<DocumentQueueing>();
+builder.Services.AddHttpClient();
+builder.Services.AddApplicationInsightsTelemetry();
+
+var app = builder.Build();
+
+app.MapGet("/", () => Results.Ok("Document queueing worker is running"));
+
+app.MapGet("/api/DocumentQueueing", async (bool? force, DateTime? queuedDate, DocumentQueueing queueing, CancellationToken cancellationToken) =>
 {
-   internal class Startup
-   {
-      static async Task Main(string[] args)
-      {
-         string basePath = IsDevelopmentEnvironment() ?
-             Environment.GetEnvironmentVariable("AzureWebJobsScriptRoot") :
-             $"{Environment.GetEnvironmentVariable("HOME")}\\site\\wwwroot";
+   var queuedCount = await queueing.QueueDocumentsAsync(force ?? false, queuedDate, cancellationToken);
+   return Results.Ok(new { queued = queuedCount });
+});
 
-         var builder = new HostBuilder();
-         builder.ConfigureLogging((hostContext, logging) =>
-         {
-            logging.SetMinimumLevel(LogLevel.Debug);
-            logging.AddFilter("System", LogLevel.Warning);
-            logging.AddFilter("Microsoft", LogLevel.Warning);
+app.MapGet("/queue", async (bool? force, DateTime? queuedDate, DocumentQueueing queueing, CancellationToken cancellationToken) =>
+{
+   var queuedCount = await queueing.QueueDocumentsAsync(force ?? false, queuedDate, cancellationToken);
+   return Results.Ok(new { queued = queuedCount });
+});
 
-         });
-         builder.ConfigureFunctionsWorkerDefaults();
-         builder.ConfigureAppConfiguration(b =>
-         {
-            b.SetBasePath(basePath)
-              .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)  // common settings go here.
-              .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT")}.json", optional: true, reloadOnChange: false)  // environment specific settings go here
-              .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)  // secrets go here. This file is excluded from source control.
-              .AddEnvironmentVariables()
-              .Build();
-
-         });
-
-         builder.ConfigureServices(ConfigureServices);
-
-
-         await builder.Build().RunAsync();
-      }
-
-      private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-      {
-         services.AddSingleton<SkHelper>();
-         services.AddSingleton<StorageHelper>();
-         services.AddSingleton<ServiceBusHelper>();
-         services.AddSingleton<Settings>();
-         services.AddSingleton<Tracker<DocumentQueueing>>();
-         services.AddSingleton<CosmosDbHelper>();
-         services.AddHttpClient();
-         services.AddApplicationInsightsTelemetryWorkerService();
-
-      }
-
-      public static bool IsDevelopmentEnvironment()
-      {
-         return "Development".Equals(Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT"), StringComparison.OrdinalIgnoreCase);
-      }
-   }
-}
+app.Run();

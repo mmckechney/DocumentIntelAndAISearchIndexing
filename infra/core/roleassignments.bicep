@@ -3,6 +3,7 @@ param functionPrincipalIds array
 param userAssignedManagedIdentityPrincipalId string
 param currentUserObjectId string
 param apimSystemAssignedIdentityPrincipalId string
+param containerRegistryName string
 
 //Combine the function and current user (if supplied) and principal ids
 var principalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
@@ -11,6 +12,10 @@ var principalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
 ]) : concat(functionPrincipalIds, [
   userAssignedManagedIdentityPrincipalId
 ])
+
+var acrPrincipalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
+  currentUserObjectId
+]) : functionPrincipalIds
 
 var deploymentEntropy = '3F2504E0-4F89-11D3-9A0C-0305E82C3302'
 var roles = loadJsonContent('../constants/roles.json')
@@ -48,6 +53,15 @@ resource keyVaultSecretUser 'Microsoft.Authorization/roleDefinitions@2022-04-01'
 resource blobDataReader 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()
   name: roles.storageBlobDataReader
+}
+
+resource acrPullRole 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.acrPull
+}
+
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+  name: containerRegistryName
 }
 
 resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
@@ -169,6 +183,15 @@ resource functionManagedIdentityCognitiveServicesUser 'Microsoft.Authorization/r
   scope: resourceGroup()
   properties: {
     roleDefinitionId: cognitiveServicesUser.id
+    principalId: id
+  }
+}]
+
+resource principalAcrPullAssignments 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in acrPrincipalIds: {
+  name: guid(id, acrPullRole.id, containerRegistry.id)
+  scope: containerRegistry
+  properties: {
+    roleDefinitionId: acrPullRole.id
     principalId: id
   }
 }]

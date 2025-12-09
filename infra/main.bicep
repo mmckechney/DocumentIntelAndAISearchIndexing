@@ -16,8 +16,6 @@ param apimSku customTypes.apimSkuInfo = {
 	name: 'StandardV2'
 	capacity: 1
 }
-@allowed(['EP1', 'P0V3', 'P1V3', 'P2V3'])
-param funcAppPlanSku string
 
 
 @description('OpenAI instances to deploy. Defaults to 2 across different regions.')
@@ -39,7 +37,10 @@ var subnet = '${abbrs.virtualNetworkSubnet}${appName}-${location}'
 var nsg = '${abbrs.networkSecurityGroup}${appName}-${location}'
 var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
 var apimsubnet = '${abbrs.virtualNetworkSubnet}${appName}-apim-${location}'
-var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
+var containerRegistryBase = toLower('${abbrs.containerRegistry}${appNameLc}${location}')
+var containerRegistryName = length(containerRegistryBase) > 50 ? substring(containerRegistryBase, 0, 50) : containerRegistryBase
+var containerAppEnvironmentBase = toLower('${abbrs.containerAppsEnvironment}${appName}-${location}')
+var containerAppEnvironmentName = length(containerAppEnvironmentBase) > 32 ? substring(containerAppEnvironmentBase, 0, 32) : containerAppEnvironmentBase
 
 var keyvaultNameBase = '${abbrs.keyVault}${appName}-${location}'
 // Key Vaults allow up to 24 chars; trim to 24 if needed
@@ -126,7 +127,6 @@ module appInsights 'core/appinsights.bicep' = {
 		appInsightsName: appInsightsName
 		logAnalyticsName : logAnalyticsName
 		location: location
-		functionNames: [for f in functionValues: f.name]
 	}
 }
 
@@ -189,44 +189,79 @@ module keyvault 'core/keyvault.bicep' = {
 	]
 }
 
+module containerRegistry 'core/containerregistry.bicep' = {
+	name: 'containerRegistry'
+	scope: rg
+	params: {
+		registryName: containerRegistryName
+		location: location
+	}
+}
+ 
+module managedIdentityAcrPull 'core/containerregistry-acr-roleassignment.bicep' = {
+	name: 'managedIdentityAcrPull'
+	scope: rg
+	params: {
+		containerRegistryName: containerRegistryName
+		principalId: managedIdentity.outputs.principalId
+	}
+	dependsOn: [
+		containerRegistry
+	]
+}
+
+module containerEnvironment 'core/containerapp-environment.bicep' = {
+	name: 'containerEnvironment'
+	scope: rg
+	params: {
+		name: containerAppEnvironmentName
+		location: location
+		logAnalyticsCustomerId: appInsights.outputs.logAnalyticsCustomerId
+		logAnalyticsSharedKey: appInsights.outputs.logAnalyticsSharedKey
+		infrastructureSubnetId: networking.outputs.functionSubnetId
+	}
+}
+
 module functions 'functions/functions.bicep' = {
 	name: 'functions'
 	scope: rg
 	params: {
-		funcAppPlan: funcAppPlan
-		functionValues: functionValues
-		customFieldQueueName: customFieldQueueName
-		formStorageAcctName: formStorageAcct
-		functionStorageAcctName: funcStorageAcct
-		moveQueueName: moveQueueName
-		serviceBusNs: serviceBusNs
-		functionSubnetId: networking.outputs.functionSubnetId
 		location: location
-		docQueueName: docQueueName
-		completedContainer: completedContainer
-		documentStorageContainer: documentStorageContainer
-		processResultsContainer: processResultsContainer
-		toIndexQueueName: toIndexQueueName
-		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
-		openAiEmbeddingModel: openAiConfigs.embeddingModel
-		appInsightsName: appInsightsName
-		aiIndexName: aiIndexName
+		functionValues: functionValues
+		managedEnvironmentId: containerEnvironment.outputs.id
+		containerRegistryServer: containerRegistry.outputs.loginServer
+		containerRegistryIdentityResourceId: managedIdentity.outputs.id
 		managedIdentityId: managedIdentity.outputs.id
 		managedIdentityClientId: managedIdentity.outputs.clientId
-		azureOpenAiEmbeddingMaxTokens: openAiConfigs.embeddingMaxTokens
+		formStorageAcctName: formStorageAcct
+		documentStorageContainer: documentStorageContainer
+		processResultsContainer: processResultsContainer
+		completedContainer: completedContainer
+		serviceBusNs: serviceBusNs
+		docQueueName: docQueueName
+		customFieldQueueName: customFieldQueueName
+		moveQueueName: moveQueueName
+		toIndexQueueName: toIndexQueueName
+		openAiEmbeddingModel: openAiConfigs.embeddingModel
+		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
-		openAiChatModel: openAiConfigs.completionModel
-		cosmosDbName: cosmosDbName
-		cosmosContainerName: cosmosContainerName
-		funcAppPlanSku: funcAppPlanSku
 		cosmosDbEndpoint: cosmosDb.outputs.cosmosDbEndpoint
 		serviceBusFullyQualifiedNamespace: servicebus.outputs.serviceBusFullyQualifiedNamespace
 		documentIntelligenceEndpoint: docIntelligenceService.outputs.docIntellEndpoint
 		documentIntelligenceEndpoints: string(docIntelligenceService.outputs.docIntellEndpoints)
-	
+		azureOpenAiEmbeddingMaxTokens: openAiConfigs.embeddingMaxTokens
+		aiIndexName: aiIndexName
+		openAiChatModel: openAiConfigs.completionModel
+		cosmosDbName: cosmosDbName
+		cosmosContainerName: cosmosContainerName
+		appInsightsConnectionString: appInsights.outputs.connectionString
+		appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
 	}
 	dependsOn: [
 		storage
+		containerEnvironment
+		containerRegistry
+		managedIdentityAcrPull
 	]
 }
 
@@ -239,6 +274,7 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		currentUserObjectId : currentUserObjectId
 		functionPrincipalIds: functions.outputs.systemAssignedIdentities
 		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
+		containerRegistryName: containerRegistry.outputs.name
 	}
 }
 
@@ -302,4 +338,7 @@ output openAINames array = [for i in range(0, length(openAiConfigs.configs)): op
 output openAiChatModel string = openAiConfigs.completionModel
 output openAiEmbeddingModel string = openAiConfigs.embeddingModel
 output apimName string = apiManagement.outputs.name
-
+output containerAppsEnvironmentName string = containerEnvironment.outputs.name
+output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
+output services array = functions.outputs.services
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer

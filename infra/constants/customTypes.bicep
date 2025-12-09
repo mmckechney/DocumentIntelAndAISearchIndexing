@@ -55,6 +55,7 @@ type openAiDeploymentInfo = {
 type functionValue = {
   name: string
   tag: string
+  serviceName: string?
 }
 
 @export()

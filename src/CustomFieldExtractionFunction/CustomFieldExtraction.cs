@@ -1,6 +1,4 @@
-using Azure.Messaging.ServiceBus;
-using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Azure.Functions.Worker;
+using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
@@ -32,21 +30,20 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
       }
 
 
-      //function you can call to ask a question about a document.
-      [Function("CustomFieldExtraction")]
-      public async Task Run([ServiceBusTrigger("%SERVICEBUS_CUSTOMFIELD_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task ProcessMessageAsync(FileQueueMessage fileMessage)
       {
-         var fileMessage = message.As<FileQueueMessage>();
+         ArgumentNullException.ThrowIfNull(fileMessage);
+
          try
          {
-            log.LogInformation($"CustomFieldExtraction triggered with message -- {fileMessage.ToString()}");
-
+            log.LogInformation("CustomFieldExtraction triggered with message -- {Message}", fileMessage.ToString());
             await ProcessMessage(fileMessage);
          }
          catch (Exception exe)
          {
-            log.LogError($"Failure in CustomFieldExtraction: {exe.Message}");
+            log.LogError(exe, "Failure in CustomFieldExtraction for file '{FileName}'", fileMessage.SourceFileName);
             await tracker.TrackAndUpdate(fileMessage, $"Failure in CustomFieldExtraction: {exe.Message}");
+            throw;
          }
       }
 
