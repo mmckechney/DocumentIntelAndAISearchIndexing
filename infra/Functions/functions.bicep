@@ -5,7 +5,6 @@ param location string = resourceGroup().location
 param functionValues customTypes.functionValue[]
 param functionSubnetId string
 param functionStorageAcctName string
-param keyVaultUri string
 param moveQueueName string
 param serviceBusNs string
 param formStorageAcctName string
@@ -15,8 +14,13 @@ param toIndexQueueName string
 param openAiEmbeddingModel string
 param aiSearchEndpoint string
 param openAiEndpoint string
+param cosmosDbEndpoint string
+param serviceBusFullyQualifiedNamespace string
+param documentIntelligenceEndpoint string
+param documentIntelligenceEndpoints string
 param azureOpenAiEmbeddingMaxTokens int = 8091
 param managedIdentityId string
+param managedIdentityClientId string
 param documentStorageContainer string
 param processResultsContainer string
 param completedContainer string
@@ -28,18 +32,10 @@ param cosmosContainerName string
 param funcAppPlanSku string
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
-var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
 
 resource funcStorageAcct 'Microsoft.Storage/storageAccounts@2021-04-01'existing = {
   name: functionStorageAcctName
 }
-var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${funcStorageAcct.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${funcStorageAcct.listKeys().keys[0].value}'
-var cosmosKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.COSMOS_CONNECTION}/)'
-var sbConnKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.SERVICEBUS_CONNECTION}/)'
-var aiSearchKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.AZURE_AISEARCH_ADMIN_KEY}/)'
-var apimSubscriptionKeyKvReference ='@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.APIM_SUBSCRIPTION_KEY}/)' 
-var frEndpointKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_ENDPOINT}/)'
-var frKeyKvReference = '@Microsoft.KeyVault(SecretUri=${keyVaultUri}secrets/${keyVaultKeys.DOCUMENT_INTELLIGENCE_KEY}/)'
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02'existing = {
   name: appInsightsName
@@ -72,8 +68,8 @@ module function 'function.bicep' = [for functionValue in functionValues: {
 
 var sharedConfiguration = [
   {
-    name: configKeys.COSMOS_CONNECTION
-    value: cosmosKvReference
+    name: configKeys.COSMOS_ACCOUNT_ENDPOINT
+    value: cosmosDbEndpoint
   }
   {
     name: configKeys.COSMOS_DB_NAME 
@@ -100,10 +96,6 @@ var sharedConfiguration = [
     value: completedContainer
   }
   {
-    name: configKeys.SERVICEBUS_CONNECTION
-    value: sbConnKvReference
-  }
-  {
     name: configKeys.SERVICEBUS_NAMESPACE_NAME
     value: serviceBusNs
   }
@@ -124,12 +116,40 @@ var sharedConfiguration = [
     value: moveQueueName
   }
   {
-    name: 'WEBSITE_CONTENTAZUREFILECONNECTIONSTRING'
-    value: storageConnectionString 
+    name: '${configKeys.SERVICEBUS_CONNECTION}__fullyQualifiedNamespace'
+    value: serviceBusFullyQualifiedNamespace
   }
   {
-    name: 'AzureWebJobsStorage'
-    value: storageConnectionString
+    name: '${configKeys.SERVICEBUS_CONNECTION}__credential'
+    value: 'ManagedIdentity'
+  }
+  {
+    name: '${configKeys.SERVICEBUS_CONNECTION}__clientId'
+    value: managedIdentityClientId
+  }
+  {
+    name: 'AzureWebJobsStorage__accountName'
+    value: funcStorageAcct.name
+  }
+  {
+    name: 'AzureWebJobsStorage__blobServiceUri'
+    value: 'https://${funcStorageAcct.name}.blob.${environment().suffixes.storage}'
+  }
+  {
+    name: 'AzureWebJobsStorage__queueServiceUri'
+    value: 'https://${funcStorageAcct.name}.queue.${environment().suffixes.storage}'
+  }
+  {
+    name: 'AzureWebJobsStorage__tableServiceUri'
+    value: 'https://${funcStorageAcct.name}.table.${environment().suffixes.storage}'
+  }
+  {
+    name: 'AzureWebJobsStorage__credential'
+    value: 'ManagedIdentity'
+  }
+  {
+    name: 'AzureWebJobsStorage__clientId'
+    value: managedIdentityClientId
   }
   {
     name: 'FUNCTIONS_EXTENSION_VERSION'
@@ -150,10 +170,6 @@ var sharedConfiguration = [
   {
     name: configKeys.AZURE_AISEARCH_ENDPOINT
     value: aiSearchEndpoint
-  }
-  {
-    name: configKeys.AZURE_AISEARCH_ADMIN_KEY
-    value: aiSearchKvReference  
   }
   {
     name: configKeys.AZURE_AISEARCH_INDEX_NAME
@@ -184,20 +200,16 @@ var sharedConfiguration = [
     value: openAiChatModel
   }
   {
-    name: configKeys.APIM_SUBSCRIPTION_KEY
-    value: apimSubscriptionKeyKvReference
-  }
-  {
     name: configKeys.DOCUMENT_INTELLIGENCE_MODEL_NAME
     value: 'prebuilt-layout'
   }
   {
     name: configKeys.DOCUMENT_INTELLIGENCE_ENDPOINT
-    value: frEndpointKvReference
+    value: documentIntelligenceEndpoint
   }
   {
-    name: configKeys.DOCUMENT_INTELLIGENCE_KEY
-    value: frKeyKvReference
+    name: configKeys.DOCUMENT_INTELLIGENCE_ENDPOINTS
+    value: documentIntelligenceEndpoints
   }
 ]
 

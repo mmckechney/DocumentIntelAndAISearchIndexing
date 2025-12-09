@@ -25,7 +25,11 @@
   "storageTableDataContributor": "0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3",
   "storageTableDataReader": "76199698-9eea-4c19-bc75-cec21354c6b6",
 
-  "cognitiveServicesUser": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd"
+  "cognitiveServicesUser": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
+
+  "cosmosDbOperator" :"230815da-be43-4aae-9cb4-875f7bd000aa",
+  "cosmosDbBuiltInDataContributor": "5bd9cd88-fe45-4216-938b-f97437e15450",
+  "searchServiceContributor": "de139f84-1756-47ae-9be6-808fbbe84772"
 
   
 }

@@ -30,6 +30,16 @@ resource serviceBusDataOwner 'Microsoft.Authorization/roleDefinitions@2022-04-01
   name: roles.serviceBusDataOwner
 }
 
+resource storageQueueDataContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.storageQueueDataContributor
+}
+
+resource storageTableDataContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.storageTableDataContributor
+}
+
 resource keyVaultSecretUser 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()
   name: roles.keyVaultSecretsUser
@@ -50,15 +60,6 @@ resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-
 
 
 
-resource apimCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(userAssignedManagedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: cognitiveServicesUser.id
-    principalId: userAssignedManagedIdentityPrincipalId
-  }
-}
-
 resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
   name: guid(apimSystemAssignedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
   scope: resourceGroup()
@@ -66,6 +67,16 @@ resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments
     roleDefinitionId: cognitiveServicesUser.id
     principalId: apimSystemAssignedIdentityPrincipalId
   }
+}
+
+resource cosmosDataContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.cosmosDbBuiltInDataContributor
+}
+
+resource searchServiceContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.searchServiceContributor
 }
 
 
@@ -108,11 +119,56 @@ resource functionManagedIdentityServiceBusDataOwner 'Microsoft.Authorization/rol
   }
 }]
 
+resource functionManagedIdentityStorageQueueDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, storageQueueDataContributor.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: storageQueueDataContributor.id
+    principalId: id
+  }
+}]
+
+resource functionManagedIdentityStorageTableDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, storageTableDataContributor.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: storageTableDataContributor.id
+    principalId: id
+  }
+}]
+
 resource functionManagedIdentityKeyVaultSecretUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
   name: guid(id, keyVaultSecretUser.id, deploymentEntropy)
   scope: resourceGroup()
   properties: {
     roleDefinitionId: keyVaultSecretUser.id
+    principalId: id
+  }
+}]
+
+resource functionManagedIdentityCosmosDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, cosmosDataContributor.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cosmosDataContributor.id
+    principalId: id
+  }
+}]
+
+resource functionManagedIdentitySearchServiceContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, searchServiceContributor.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: searchServiceContributor.id
+    principalId: id
+  }
+}]
+
+resource functionManagedIdentityCognitiveServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, cognitiveServicesUser.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cognitiveServicesUser.id
     principalId: id
   }
 }]

@@ -48,7 +48,7 @@ resource apiManagement 'Microsoft.ApiManagement/service@2023-05-01-preview' = {
 
 
 module openAIApiBackend 'apim-settings/api-management-backend.bicep' = [for (item, index) in openAIDeployments: { 
-  name: '${apiManagement.name}-backend-openai-${item.name}'
+  name: 'backend-openai-${item.name}'
   params: {
     name: 'OPENAI${toUpper(item.name)}'
     apiManagementName: apiManagement.name

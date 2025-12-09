@@ -18,11 +18,6 @@ param embeddingModel string
   'Disabled'
 ])
 param publicNetworkAccess string = 'Enabled'
-@description('Properties to store in a Key Vault.')
-param keyVaultConfig customTypes.keyVaultSecretsInfo = {
-  keyVaultName: ''
-  primaryKeySecretName: ''
-}
 // @description('Role assignments to create for the Azure OpenAI Service instance.')
 // param roleAssignments roleAssignmentInfo[] = []
 
@@ -78,19 +73,6 @@ resource embeddingDeployment 'Microsoft.CognitiveServices/accounts/deployments@2
   dependsOn:[
       completionDeployment
  ]
-}
-
-
-resource keyVaultSecrets 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
-  name: keyVaultConfig.keyVaultName
-}
-
-resource adminKey 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: keyVaultSecrets
-  name: keyVaultConfig.primaryKeySecretName
-  properties: {
-    value:  cognitiveServices.listKeys().key1
-  }
 }
 
 

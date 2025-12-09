@@ -2,7 +2,8 @@
 using Azure.AI.DocumentIntelligence;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
-using System.Runtime.CompilerServices;
+using System;
+using System.Text.Json;
 using HighVolumeProcessing.UtilityLibrary.Models;
 
 namespace HighVolumeProcessing.UtilityLibrary
@@ -21,16 +22,16 @@ namespace HighVolumeProcessing.UtilityLibrary
       public const string VectorSearchProfileName = "vectorSearch";
       private const string defaultAiIndexName = "general";
 
-      private string _cosmosDbConnectionString = string.Empty;
-      public string CosmosDbConnectionString
+      private string _cosmosAccountEndpoint = string.Empty;
+      public string CosmosAccountEndpoint
       {
          get
          {
-            if (string.IsNullOrEmpty(_cosmosDbConnectionString))
+            if (string.IsNullOrEmpty(_cosmosAccountEndpoint))
             {
-               _cosmosDbConnectionString = GetSettingsValue(ConfigKeys.COSMOS_CONNECTION);
+               _cosmosAccountEndpoint = GetSettingsValue(ConfigKeys.COSMOS_ACCOUNT_ENDPOINT);
             }
-            return _cosmosDbConnectionString;
+            return _cosmosAccountEndpoint;
          }
       }
 
@@ -74,19 +75,6 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      private string _AiSearchAdminKey = string.Empty;
-      public string AiSearchAdminKey
-      {
-         get
-         {
-            if (string.IsNullOrEmpty(_AiSearchAdminKey))
-            {
-               _AiSearchAdminKey = GetSettingsValue(ConfigKeys.AZURE_AISEARCH_ADMIN_KEY);
-            }
-            return _AiSearchAdminKey;
-         }
-      }
-
       private string _AiSearchIndexName = string.Empty;
       public string AiSearchIndexName
       {
@@ -97,19 +85,6 @@ namespace HighVolumeProcessing.UtilityLibrary
                _AiSearchIndexName = GetSettingsValue(ConfigKeys.AZURE_AISEARCH_INDEXNAME, defaultAiIndexName);
             }
             return _AiSearchIndexName;
-         }
-      }
-
-      private string _apimSubscriptionKey = string.Empty;
-      public string ApimSubscriptionKey
-      {
-         get
-         {
-            if (string.IsNullOrEmpty(_apimSubscriptionKey))
-            {
-               _apimSubscriptionKey = GetSettingsValue(ConfigKeys.APIM_SUBSCRIPTION_KEY);
-            }
-            return _apimSubscriptionKey;
          }
       }
 
@@ -218,6 +193,7 @@ namespace HighVolumeProcessing.UtilityLibrary
       }
 
       private object lockObject = new object();
+      private List<string>? _docIntelEndpointList;
       private List<DocAnalysisModel> _docIntelClients = new List<DocAnalysisModel>();
       public List<DocAnalysisModel> DocumentIntelligenceClients
       {
@@ -227,18 +203,39 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                if (_docIntelClients.Count == 0)
                {
+                  var endpoints = DocumentIntelligenceEndpointList;
+                  if (endpoints.Count == 0)
+                  {
+                     throw new InvalidOperationException("No Document Intelligence endpoints are configured.");
+                  }
 
                   int index = 0;
-                  foreach (var key in Keys)
+                  foreach (var endpoint in endpoints)
                   {
-                     var credential = new AzureKeyCredential(key);
-                     var intelClient = new DocumentIntelligenceClient(new Uri(DocIntelEndpoint), credential);
-                     _docIntelClients.Add(new() { DocumentIntelligenceClient = intelClient, Endpoint = DocIntelEndpoint, Key = key, Index = index });
+                     var intelClient = new DocumentIntelligenceClient(new Uri(endpoint), AadHelper.TokenCredential);
+                     _docIntelClients.Add(new() { DocumentIntelligenceClient = intelClient, Endpoint = endpoint, Index = index });
                      index++;
                   }
                }
             }
             return _docIntelClients;
+         }
+      }
+
+      public IReadOnlyList<string> DocumentIntelligenceEndpointList
+      {
+         get
+         {
+            if (_docIntelEndpointList == null)
+            {
+               var parsed = ParseEndpointList(_config[ConfigKeys.DOCUMENT_INTELLIGENCE_ENDPOINTS]);
+               if (parsed.Count == 0 && !string.IsNullOrWhiteSpace(DocIntelEndpoint))
+               {
+                  parsed.Add(DocIntelEndpoint);
+               }
+               _docIntelEndpointList = parsed;
+            }
+            return _docIntelEndpointList;
          }
       }
 
@@ -279,26 +276,6 @@ namespace HighVolumeProcessing.UtilityLibrary
                int.TryParse(GetSettingsValue(ConfigKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS, embeddingMaxTokensDefault.ToString()), out embeddingMaxTokens);
             }
             return embeddingMaxTokens;
-         }
-      }
-
-      private List<string> _keys = new List<string>();
-      public List<string> Keys
-      {
-         get
-         {
-            lock (lockObject)
-            {
-               if (_keys.Count == 0)
-               {
-                  var tmp = GetSettingsValue(ConfigKeys.DOCUMENT_INTELLIGENCE_KEY);
-                  if (!string.IsNullOrWhiteSpace(tmp))
-                  {
-                     _keys.AddRange(tmp.Split('|', StringSplitOptions.RemoveEmptyEntries));
-                  }
-               }
-            }
-            return _keys;
          }
       }
 
@@ -397,6 +374,58 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
          
          return value;
+      }
+      private static List<string> ParseEndpointList(string? rawValue)
+      {
+         var endpoints = new List<string>();
+         if (string.IsNullOrWhiteSpace(rawValue))
+         {
+            return endpoints;
+         }
+
+         var trimmed = rawValue.Trim();
+         if (trimmed.StartsWith("["))
+         {
+            try
+            {
+               var parsed = JsonSerializer.Deserialize<List<string>>(trimmed);
+               if (parsed != null)
+               {
+                  foreach (var item in parsed)
+                  {
+                     AddEndpointIfValid(endpoints, item);
+                  }
+               }
+            }
+            catch (JsonException ex)
+            {
+               throw new InvalidOperationException("Unable to parse DOCUMENT_INTELLIGENCE_ENDPOINTS as JSON array.", ex);
+            }
+         }
+         else
+         {
+            var split = rawValue.Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var item in split)
+            {
+               AddEndpointIfValid(endpoints, item);
+            }
+         }
+
+         return endpoints;
+      }
+
+      private static void AddEndpointIfValid(List<string> endpoints, string? candidate)
+      {
+         if (string.IsNullOrWhiteSpace(candidate))
+         {
+            return;
+         }
+
+         var normalized = candidate.Trim();
+         if (!string.IsNullOrWhiteSpace(normalized))
+         {
+            endpoints.Add(normalized);
+         }
       }
    }
 }

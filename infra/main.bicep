@@ -2,6 +2,7 @@ import * as customTypes from './constants/customTypes.bicep'
 targetScope = 'subscription'
 
 param appName string
+param appNameSafe string
 param location string
 param myPublicIp string
 param docIntelligenceInstanceCount int
@@ -23,12 +24,14 @@ param funcAppPlanSku string
 param openAiConfigs customTypes.openAIConfigs
 
 var abbrs = loadJsonContent('./constants/abbreviations.json')
-var appNameLc = toLower(appName)
+var appNameLc = toLower(appNameSafe)
 
 var resourceGroupName = '${abbrs.resourceGroup}${appName}'
 var serviceBusNs = '${abbrs.serviceBusNamespace}${appName}-${location}'
-var formStorageAcct = '${abbrs.storageAccount}${appNameLc}${location}'
-var funcStorageAcct = '${abbrs.storageAccount}${appNameLc}func${location}'
+var formStorageBase = '${abbrs.storageAccount}${appNameLc}${location}'
+var formStorageAcct = length(formStorageBase) > 24 ? substring(formStorageBase, 0, 24) : formStorageBase
+var funcStorageBase = '${abbrs.storageAccount}${appNameLc}func${location}'
+var funcStorageAcct = length(funcStorageBase) > 24 ? substring(funcStorageBase, 0, 24) : funcStorageBase
 var docIntelligence = '${abbrs.documentIntelligence}${appName}-${location}'
 
 var vnet = '${abbrs.virtualNetwork}${appName}-${location}'
@@ -38,7 +41,9 @@ var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
 var apimsubnet = '${abbrs.virtualNetworkSubnet}${appName}-apim-${location}'
 var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
 
-var keyvaultName = '${abbrs.keyVault}${appName}-${location}'
+var keyvaultNameBase = '${abbrs.keyVault}${appName}-${location}'
+// Key Vaults allow up to 24 chars; trim to 24 if needed
+var keyvaultName = length(keyvaultNameBase) > 24 ? substring(keyvaultNameBase, 0, 24) : keyvaultNameBase
 
 var aiSearchName = '${abbrs.aiSearch}${appNameLc}-demo-${location}'
 var appInsightsName = '${abbrs.applicationInsights}${appName}-${location}'
@@ -58,9 +63,6 @@ var customFieldQueueName = 'customfieldqueue'
 var docQueueName = 'docqueue'
 var moveQueueName = 'movequeue'
 var toIndexQueueName = 'toindexqueue'
-
-var openAiApiName = 'openai'
-
 
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 	name: resourceGroupName
@@ -96,14 +98,10 @@ module cosmosDb 'core/cosmos.bicep' = {
 		functionSubnetId: networking.outputs.functionSubnetId
 		apimSubnetId: networking.outputs.apimSubnetId
 		location: location
-		keyVaultName: keyvaultName
 		vnetName: vnet
 		subnetName: subnet
 		myPublicIp: myPublicIp
 	}
-	dependsOn: [
-		keyvault
-	]
 }
 module networking 'core/networking.bicep' = {
 	name: 'networking'
@@ -144,11 +142,7 @@ module storage 'core/storage.bicep' = {
 		completedContainer: completedContainer
 		documentStorageContainer: documentStorageContainer
 		processResultsContainer: processResultsContainer
-		keyVaultName:	keyvaultName
 	}
-	dependsOn: [
-		keyvault
-	]
 }
 
 module docIntelligenceService 'core/documentintelligence.bicep' = {
@@ -158,11 +152,9 @@ module docIntelligenceService 'core/documentintelligence.bicep' = {
 		docIntelligenceName: docIntelligence
 		docIntelligenceInstanceCount: docIntelligenceInstanceCount
 		location: location
-		keyVaultName: keyvaultName
 	}
 	dependsOn: [
   	networking
-		keyvault
 	]
 }
 
@@ -176,13 +168,11 @@ module servicebus 'core/servicebus.bicep' = {
 		moveQueueName: moveQueueName
 		toIndexQueueName: toIndexQueueName
 		customFieldQueueName: customFieldQueueName
-		keyVaultName: keyvaultName
 		subnetName: funcsubnet
 		vnetName: vnet
 		serviceBusSku: serviceBusSku
 	}
 	dependsOn: [
-		keyvault
 		networking
 	]
 }
@@ -211,7 +201,6 @@ module functions 'functions/functions.bicep' = {
 		moveQueueName: moveQueueName
 		serviceBusNs: serviceBusNs
 		functionSubnetId: networking.outputs.functionSubnetId
-		keyVaultUri: keyvault.outputs.keyVaultUri
 		location: location
 		docQueueName: docQueueName
 		completedContainer: completedContainer
@@ -223,18 +212,21 @@ module functions 'functions/functions.bicep' = {
 		appInsightsName: appInsightsName
 		aiIndexName: aiIndexName
 		managedIdentityId: managedIdentity.outputs.id
+		managedIdentityClientId: managedIdentity.outputs.clientId
 		azureOpenAiEmbeddingMaxTokens: openAiConfigs.embeddingMaxTokens
 		openAiEndpoint: apiManagement.outputs.gatewayUrl
 		openAiChatModel: openAiConfigs.completionModel
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
 		funcAppPlanSku: funcAppPlanSku
+		cosmosDbEndpoint: cosmosDb.outputs.cosmosDbEndpoint
+		serviceBusFullyQualifiedNamespace: servicebus.outputs.serviceBusFullyQualifiedNamespace
+		documentIntelligenceEndpoint: docIntelligenceService.outputs.docIntellEndpoint
+		documentIntelligenceEndpoints: string(docIntelligenceService.outputs.docIntellEndpoints)
 	
 	}
 	dependsOn: [
 		storage
-		servicebus
-		cosmosDb
 	]
 }
 
@@ -255,21 +247,8 @@ module aiSearch 'core/aisearch.bicep' = {
 	scope: rg
 	params: {
 		aiSearchName: aiSearchName
-		keyVaultName: keyvault.outputs.keyVaultName
 		location: location
 	}
-}
-
-module keyvaultSecrets 'core/keyvault-secrets.bicep' = {
-	name: 'keyvaultSecrets'
-	scope: rg
-	params: {
-		keyvault: keyvaultName
-		docIntelKeyArray: docIntelligenceService.outputs.docIntellKeyArray
-	}
-	dependsOn: [
-		keyvault
-	]
 }
 
 module apiManagement 'apim/api-management.bicep' = {
@@ -296,13 +275,8 @@ module aoiManamgentSettings 'apim/api-management-settings.bicep' = {
 	scope: rg
 	params: {
 		apiManagementName: apiManagement.outputs.name
-		keyVaultUri: keyvault.outputs.keyVaultUri
-		keyvaultName: keyvaultName
 		openApiApimBackends: apiManagement.outputs.openAIApiBackends
-		openAIDeployments: openAi.outputs.openAIDeployments
-		openAiApiName: openAiApiName
 		appInsightsName: appInsights.outputs.name
-		userAssignedIdentityId: managedIdentity.outputs.clientId
 	}
 	dependsOn: [
 		roleAssigments
@@ -314,7 +288,6 @@ module openAi './openai/openai.bicep' = {
 	scope: rg
 	params: {
 		openAIInstances: openAiConfigs
-		keyvaultName: keyvault.outputs.keyVaultName
 		instancePrefix: '${abbrs.openAIService}${appName}-'
 		managedIdentityId: managedIdentity.outputs.id
 	}

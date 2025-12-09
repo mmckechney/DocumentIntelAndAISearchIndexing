@@ -2,9 +2,6 @@ namespace HighVolumeProcessing.UtilityLibrary
 {
    public static class ConfigKeys
    {
-      public const string APIM_SUBSCRIPTION_KEY = "APIM_SUBSCRIPTION_KEY";
-      
-      public const string AZURE_AISEARCH_ADMIN_KEY = "AZURE_AISEARCH_ADMIN_KEY";
       public const string AZURE_AISEARCH_ENDPOINT = "AZURE_AISEARCH_ENDPOINT";
       public const string AZURE_AISEARCH_INCLUDE_GENERAL_INDEX = "AZURE_AISEARCH_INCLUDE_GENERAL_INDEX";
       public const string AZURE_AISEARCH_INDEXNAME = "AZURE_AISEARCH_INDEXNAME";
@@ -16,12 +13,12 @@ namespace HighVolumeProcessing.UtilityLibrary
       public const string AZURE_OPENAI_EMBEDDING_MODEL = "AZURE_OPENAI_EMBEDDING_MODEL";
       public const string AZURE_OPENAI_ENDPOINT = "AZURE_OPENAI_ENDPOINT";
       
-      public const string COSMOS_CONNECTION = "COSMOS_CONNECTION";
+      public const string COSMOS_ACCOUNT_ENDPOINT = "COSMOS_ACCOUNT_ENDPOINT";
       public const string COSMOS_CONTAINER_NAME = "COSMOS_CONTAINER_NAME";
       public const string COSMOS_DB_NAME = "COSMOS_DB_NAME";
      
       public const string DOCUMENT_INTELLIGENCE_ENDPOINT = "DOCUMENT_INTELLIGENCE_ENDPOINT";
-      public const string DOCUMENT_INTELLIGENCE_KEY = "DOCUMENT_INTELLIGENCE_KEY";
+      public const string DOCUMENT_INTELLIGENCE_ENDPOINTS = "DOCUMENT_INTELLIGENCE_ENDPOINTS";
       public const string DOCUMENT_INTELLIGENCE_MODEL_NAME = "DOCUMENT_INTELLIGENCE_MODEL_NAME";
      
       public const string SERVICEBUS_CONNECTION = "SERVICEBUS_CONNECTION";

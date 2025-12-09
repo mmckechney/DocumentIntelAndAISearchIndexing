@@ -104,7 +104,8 @@ Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_OBJECT_ID" -Value $currentUser
 Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_NAME" -Value $userName
 Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_EMAIL" -Value $userEmail
 Set-EnvironmentVariable -Name "PUBLIC_IP" -Value $myPublicIp
-Set-EnvironmentVariable -Name "APP_NAME" -Value $safeEnvName
+Set-EnvironmentVariable -Name "APP_NAME" -Value $envName
+Set-EnvironmentVariable -Name "APP_NAME_SAFE" -Value $safeEnvName
 
 
 # Write all environment variables to .env file

@@ -30,7 +30,7 @@ resource api 'Microsoft.ApiManagement/service/apis@2024-06-01-preview' = {
     path: path
     format: format
     value: value
-    subscriptionRequired: true
+    subscriptionRequired: false
   }
 }
 
@@ -38,7 +38,11 @@ resource openaiApiPolicy 'Microsoft.ApiManagement/service/apis/policies@2022-08-
   name: 'policy'
   parent: api
   properties: {
-    value: replace(loadTextContent('load-balancer-policy.xml'),'{{load-balancer-name}}', loadBalancerName)
+    value: replace(
+      replace(loadTextContent('load-balancer-policy.xml'), '{{load-balancer-name}}', loadBalancerName),
+      '{{tenant-id}}',
+      subscription().tenantId
+    )
     format: 'rawxml'
   }
   

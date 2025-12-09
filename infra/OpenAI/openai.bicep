@@ -2,7 +2,6 @@ import * as customTypes from '../constants/customTypes.bicep'
 
 param instancePrefix string
 param openAIInstances customTypes.openAIConfigs
-param keyvaultName string
 param managedIdentityId string
 
 
@@ -16,10 +15,6 @@ module openAI 'openai-instance.bicep' = [ for openAIInstance in openAIInstances.
     openAiConfig : openAIInstance
     completionModel: openAIInstances.completionModel
     embeddingModel: openAIInstances.embeddingModel
-    keyVaultConfig: {
-      keyVaultName: keyvaultName
-      primaryKeySecretName:  !empty(openAIInstance.?name) ? 'OPENAI-API-KEY-${toUpper(openAIInstance.?name)}' : 'OPENAI-API-KEY-${instancePrefix}${openAIInstance.suffix}'     
-    }
   }
  
 }]
