@@ -34,8 +34,8 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                try
                {
-                  var connectionString = settings.CosmosDbConnectionString;
-                  _client = new CosmosClient(connectionString);
+                  var accountEndpoint = settings.CosmosAccountEndpoint ?? throw new InvalidOperationException($"Missing {ConfigKeys.COSMOS_ACCOUNT_ENDPOINT} in configuration.");
+                  _client = new CosmosClient(accountEndpoint, AadHelper.TokenCredential);
                }
                catch(Exception ex)
                {

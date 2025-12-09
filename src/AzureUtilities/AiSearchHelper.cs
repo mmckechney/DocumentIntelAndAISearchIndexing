@@ -1,5 +1,4 @@
-﻿using Azure;
-using Azure.Search.Documents;
+﻿using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
@@ -26,12 +25,7 @@ namespace HighVolumeProcessing.UtilityLibrary
          this.semanticUtility = semanticUtility;
          this.settings = settings;
          var aISearchEndpoint = settings.AiSearchEndpoint ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_AISEARCH_ENDPOINT} in configuration.");
-         var aISearchAdminKey = settings.AiSearchAdminKey ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_AISEARCH_ADMIN_KEY} in configuration.");
-
-
-         // Create a client
-         AzureKeyCredential credential = new AzureKeyCredential(aISearchAdminKey);
-         client = new SearchIndexClient(new Uri(aISearchEndpoint), credential);
+         client = new SearchIndexClient(new Uri(aISearchEndpoint), AadHelper.TokenCredential);
          CreateCustomFieldIndex().Wait();
 
       }

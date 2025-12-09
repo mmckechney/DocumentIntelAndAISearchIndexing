@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.AI;
 using Azure.AI.OpenAI;
-using Azure;
 
 namespace HighVolumeProcessing.UtilityLibrary
 {
@@ -16,7 +15,6 @@ namespace HighVolumeProcessing.UtilityLibrary
       private IConfiguration config;
       private ILoggerFactory logFactory;
       private bool initCalled = false;
-      private HttpClient client;
       private Settings settings;
       private Dictionary<string, PromptTemplate> _prompts = new();
 
@@ -61,24 +59,17 @@ namespace HighVolumeProcessing.UtilityLibrary
          {
             var openAIEndpoint = settings.AzureOpenAiEndpoint ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_ENDPOINT} in configuration.");
             var embeddingDeploymentName = settings.AzureOpenAiEmbeddingDeployment ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT} in configuration.");
-            var apimSubscriptionKey = settings.ApimSubscriptionKey ?? throw new ArgumentException($"Missing {ConfigKeys.APIM_SUBSCRIPTION_KEY} in configuration.");
             var openAiChatDeploymentName = settings.AzureOpenAiChatDeployment ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_OPENAI_CHAT_DEPLOYMENT} in configuration.");
 
-            var apiKey = "dummy";
             log.LogInformation($"Endpoint {openAIEndpoint}");
 
-            // Setup HTTP client with APIM subscription key
-            client = new HttpClient();
-            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", apimSubscriptionKey);
-
-            // Create Azure OpenAI client with custom HTTP client
             var azureClient = new AzureOpenAIClient(
-                new Uri(openAIEndpoint), 
-                new AzureKeyCredential(apiKey),
-                new AzureOpenAIClientOptions
-                {
-                    NetworkTimeout = TimeSpan.FromSeconds(120)
-                });
+               new Uri(openAIEndpoint),
+               AadHelper.TokenCredential,
+               new AzureOpenAIClientOptions
+               {
+                  NetworkTimeout = TimeSpan.FromSeconds(120)
+               });
 
             // Get the chat client as IChatClient with Microsoft.Extensions.AI
             var chatClient = azureClient.GetChatClient(openAiChatDeploymentName);
