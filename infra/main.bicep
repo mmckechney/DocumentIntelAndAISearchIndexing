@@ -30,7 +30,7 @@ var formStorageBase = '${abbrs.storageAccount}${appNameLc}${location}'
 var formStorageAcct = length(formStorageBase) > 24 ? substring(formStorageBase, 0, 24) : formStorageBase
 var funcStorageBase = '${abbrs.storageAccount}${appNameLc}func${location}'
 var funcStorageAcct = length(funcStorageBase) > 24 ? substring(funcStorageBase, 0, 24) : funcStorageBase
-var docIntelligence = '${abbrs.documentIntelligence}${appName}-${location}'
+var docIntelligence = '${abbrs.documentIntelligence}${appName}${location}'
 
 var vnet = '${abbrs.virtualNetwork}${appName}-${location}'
 var subnet = '${abbrs.virtualNetworkSubnet}${appName}-${location}'
@@ -262,8 +262,6 @@ module functions 'functions/functions.bicep' = {
 	}
 	dependsOn: [
 		storage
-		containerEnvironment
-		containerRegistry
 		managedIdentityAcrPull
 	]
 }

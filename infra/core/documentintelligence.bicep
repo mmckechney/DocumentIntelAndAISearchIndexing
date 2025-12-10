@@ -2,8 +2,9 @@ param location string = resourceGroup().location
 
 param docIntelligenceName string
 param docIntelligenceInstanceCount int = 1
+
 resource docIntelligenceAccount 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = [for i in range(0,docIntelligenceInstanceCount): {
-  name: '${docIntelligenceName}_${padLeft(i, 2,'0')}'
+  name: '${docIntelligenceName}-${padLeft(i, 2,'0')}'
   location: location
   kind: 'FormRecognizer'
   sku: {
@@ -11,6 +12,8 @@ resource docIntelligenceAccount 'Microsoft.CognitiveServices/accounts@2023-10-01
   }
   properties: {
    publicNetworkAccess: 'Enabled'
+   disableLocalAuth: true
+   customSubDomainName: '${docIntelligenceName}-${padLeft(i, 2,'0')}'
   }
   identity: {
     type: 'SystemAssigned'
