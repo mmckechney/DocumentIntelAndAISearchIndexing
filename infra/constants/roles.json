@@ -29,7 +29,11 @@
 
   "cosmosDbOperator" :"230815da-be43-4aae-9cb4-875f7bd000aa",
   "cosmosDbBuiltInDataContributor": "5bd9cd88-fe45-4216-938b-f97437e15450",
-  "searchServiceContributor": "de139f84-1756-47ae-9be6-808fbbe84772"
+  "cosmosDbAccountReader": "fbdf93bf-df7d-467e-a4d2-9458aa1360c8",
+
+  "searchServiceContributor": "7ca78c08-252a-4471-8644-bb5ff32d4ba0",
+  "searchIndexDataContributor": "8ebe5a00-799e-43f5-93ac-243d3dce84a7",
+  "searchIndexDataReader": "1407120a-92aa-4202-b7e9-c0e197c71c8f"
 
   
 }

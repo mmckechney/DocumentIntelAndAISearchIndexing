@@ -4,6 +4,9 @@ param userAssignedManagedIdentityPrincipalId string
 param currentUserObjectId string
 param apimSystemAssignedIdentityPrincipalId string
 param containerRegistryName string
+param cosmosAccountName string
+param cosmosAccountResourceGroup string
+
 
 //Combine the function and current user (if supplied) and principal ids
 var principalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds, [
@@ -19,6 +22,16 @@ var acrPrincipalIds = !empty(currentUserObjectId) ? concat(functionPrincipalIds,
 
 var deploymentEntropy = '3F2504E0-4F89-11D3-9A0C-0305E82C3302'
 var roles = loadJsonContent('../constants/roles.json')
+
+module cosmosDataPlane 'cosmos-dataplane-roleassignments.bicep' = {
+  name: 'cosmos-dataplane-roleassignments'
+  params: {
+    principalIds: principalIds
+    accountName: cosmosAccountName
+    cosmosRg: cosmosAccountResourceGroup
+    
+  }
+}
 
 resource blobDataContrib 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()
@@ -69,6 +82,23 @@ resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-
   name: roles.cognitiveServicesUser
 }
 
+resource searchIndexDataContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.searchIndexDataContributor
+}
+
+resource searchIndexDataReader 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.searchIndexDataReader
+}
+
+resource cosmosDbAccountReader 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.cosmosDbAccountReader
+}
+
+
+
 
 
 
@@ -87,6 +117,13 @@ resource cosmosDataContributor 'Microsoft.Authorization/roleDefinitions@2022-04-
   scope: resourceGroup()
   name: roles.cosmosDbBuiltInDataContributor
 }
+
+resource cosmosDbOperator 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.cosmosDbOperator
+}
+
+
 
 resource searchServiceContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()
@@ -160,15 +197,6 @@ resource functionManagedIdentityKeyVaultSecretUser 'Microsoft.Authorization/role
   }
 }]
 
-resource functionManagedIdentityCosmosDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
-  name: guid(id, cosmosDataContributor.id, deploymentEntropy)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: cosmosDataContributor.id
-    principalId: id
-  }
-}]
-
 resource functionManagedIdentitySearchServiceContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
   name: guid(id, searchServiceContributor.id, deploymentEntropy)
   scope: resourceGroup()
@@ -183,6 +211,53 @@ resource functionManagedIdentityCognitiveServicesUser 'Microsoft.Authorization/r
   scope: resourceGroup()
   properties: {
     roleDefinitionId: cognitiveServicesUser.id
+    principalId: id
+  }
+}]
+
+resource functionManagedIdentitySearchIndexDataReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, searchIndexDataReader.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: searchIndexDataReader.id
+    principalId: id
+  }
+}]
+
+resource functionManagedIdentitySearchIndexDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, searchIndexDataContributor.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: searchIndexDataContributor.id
+    principalId: id
+  }
+}]
+
+
+resource functionManagedIdentityCosmosDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, cosmosDataContributor.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cosmosDataContributor.id
+    principalId: id
+  }
+}]
+
+
+resource functionManagedIdentityComsmosDbOperator 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, cosmosDbOperator.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cosmosDbOperator.id
+    principalId: id
+  }
+}]
+
+resource functionManagedIdentityComsmosDbAccountReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, cosmosDbAccountReader.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cosmosDbAccountReader.id
     principalId: id
   }
 }]

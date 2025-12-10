@@ -68,6 +68,9 @@ var toIndexQueueName = 'toindexqueue'
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 	name: resourceGroupName
 	location: location
+	tags: {
+		SecurityControl: 'Ignore'
+	}
 }
 
 module managedIdentity 'core/managed-identity.bicep' = {
@@ -275,6 +278,8 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		functionPrincipalIds: functions.outputs.systemAssignedIdentities
 		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
 		containerRegistryName: containerRegistry.outputs.name
+		cosmosAccountName: cosmosDb.outputs.cosmosDbAccountName
+		cosmosAccountResourceGroup: resourceGroupName
 	}
 }
 
