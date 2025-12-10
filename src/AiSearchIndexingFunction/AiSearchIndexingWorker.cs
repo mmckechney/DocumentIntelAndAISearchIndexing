@@ -10,11 +10,15 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
    public class AiSearchIndexingWorker : ServiceBusWorker
    {
       private readonly AiSearchIndexing indexing;
+      private readonly ILogger<AiSearchIndexingWorker> logger;
 
       public AiSearchIndexingWorker(ServiceBusHelper serviceBusHelper, Settings settings, AiSearchIndexing indexing, ILogger<AiSearchIndexingWorker> logger)
          : base(serviceBusHelper, new ServiceBusWorkerOptions(settings.ToIndexQueueName), logger)
       {
          this.indexing = indexing ?? throw new ArgumentNullException(nameof(indexing));
+         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+         this.logger.LogInformation("Initializing AiSearchIndexingWorker for Queue: {QueueName}", settings.ToIndexQueueName);
+
       }
 
       protected override async Task ProcessMessageAsync(ProcessMessageEventArgs args)

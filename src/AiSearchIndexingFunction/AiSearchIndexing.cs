@@ -16,6 +16,7 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
       Settings settings;
       ServiceBusHelper serviceBusHelper;
       Tracker<AiSearchIndexing> tracker;
+      bool searchInitialized = false;
       public AiSearchIndexing(ILogger<AiSearchIndexing> logger, SkHelper semanticUtility, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, AiSearchHelper aiSearchHelper, Settings settings, Tracker<AiSearchIndexing> tracker)
       {
          log = logger;
@@ -30,6 +31,10 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
 
       public async Task ProcessMessageAsync(FileQueueMessage fileMessage)
       {
+         if(!searchInitialized)
+         {
+            searchInitialized = await aiSearchHelper.EnsureIndexInitializedAsync();
+         }
          ArgumentNullException.ThrowIfNull(fileMessage);
          try
          {
@@ -50,6 +55,11 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
 
       private async Task<bool> ProcessFileMessageAsync(FileQueueMessage fileMessage)
       {
+         if (!searchInitialized)
+         {
+            searchInitialized = await aiSearchHelper.EnsureIndexInitializedAsync();
+         }
+
          fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
          var contents = await storageHelper.GetFileContents(settings.ProcessResultsContainerName, fileMessage.ProcessedFileName);
          if (string.IsNullOrEmpty(contents))

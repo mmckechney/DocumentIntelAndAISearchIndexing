@@ -25,6 +25,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       public override async Task StartAsync(CancellationToken cancellationToken)
       {
+         logger.LogInformation("Starting Service Bus Worker for Queue: {QueueName}", processor.EntityPath);
          processor.ProcessMessageAsync += HandleMessageAsync;
          processor.ProcessErrorAsync += HandleErrorAsync;
          await processor.StartProcessingAsync(cancellationToken);
@@ -33,6 +34,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       public override async Task StopAsync(CancellationToken cancellationToken)
       {
+         logger.LogInformation("Stopping Service Bus Worker for Queue: {QueueName}", processor.EntityPath);
          await processor.StopProcessingAsync(cancellationToken);
          await processor.DisposeAsync();
          await base.StopAsync(cancellationToken);

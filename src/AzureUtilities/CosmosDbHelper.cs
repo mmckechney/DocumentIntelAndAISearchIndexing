@@ -55,7 +55,8 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                try
                {
-                  _database = Client.CreateDatabaseIfNotExistsAsync(settings.CosmosDbName).GetAwaiter().GetResult();
+                  //_database = Client.CreateDatabaseIfNotExistsAsync(settings.CosmosDbName).GetAwaiter().GetResult();
+                  _database = Client.GetDatabase(settings.CosmosDbName);
                }
                catch (Exception ex)
                {
@@ -77,7 +78,8 @@ namespace HighVolumeProcessing.UtilityLibrary
                try
                {
                   
-                  var container = Database.CreateContainerIfNotExistsAsync(settings.CosmosConstainerName, "/id").GetAwaiter().GetResult();
+                  //var container = Database.CreateContainerIfNotExistsAsync(settings.CosmosConstainerName, "/id").GetAwaiter().GetResult();
+                  var container = Database.GetContainer(settings.CosmosConstainerName);
                   _container = container;
                }
                catch (Exception ex)
