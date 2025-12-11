@@ -48,9 +48,10 @@ if ($localSettings.Count -eq 0) {
     Write-Warning "No environment variables were discovered on container app '$primaryContainerAppName'."
 }
 
-$funcSettings = @{
-    "IsEncrypted" = $false
-    "Values" = $localSettings
+# Alphabetize the keys
+$sortedSettings = [ordered]@{}
+$localSettings.Keys | Sort-Object | ForEach-Object {
+    $sortedSettings[$_] = $localSettings[$_]
 }
 
 $functionPaths = @(
@@ -65,7 +66,7 @@ $functionPaths = @(
 foreach ($path in $functionPaths) {
     if (Test-Path $path) {
         # Save local settings to file
-        $localSettings | ConvertTo-Json -Depth 10 | Out-File -FilePath "$path/local.settings.json"
+        $sortedSettings | ConvertTo-Json -Depth 10 | Out-File -FilePath "$path/local.settings.json"
         Write-Host "Created $path/local.settings.json for $(Split-Path $path -Leaf)" -ForegroundColor Green
     } else {
         Write-Host "Directory $path not found. Skipping local.settings.json creation." -ForegroundColor Red

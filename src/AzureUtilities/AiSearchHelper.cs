@@ -5,6 +5,7 @@ using Azure.Search.Documents.Models;
 using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -51,19 +52,27 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       public async Task<List<string>> ListAvailableIndexes(bool quoted = true)
       {
-         List<string> names = new();
-         await foreach (var page in client.GetIndexNamesAsync())
+         try
          {
-            if (quoted)
+            List<string> names = new();
+            await foreach (var page in client.GetIndexNamesAsync())
             {
-               names.Add($"\"{page}\"");
+               if (quoted)
+               {
+                  names.Add($"\"{page}\"");
+               }
+               else
+               {
+                  names.Add($"{page}");
+               }
             }
-            else
-            {
-               names.Add($"{page}");
-            }
+            return names;
          }
-         return names;
+         catch (Exception exe)
+         {
+            log.LogError(exe, "Failed to get list of existing indexes");
+            throw;
+         }
       }
 
       public async Task<bool> AddToIndexAsync(List<string> customFieldValues, List<string> chunkedText, string fileName)
@@ -103,7 +112,11 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      public async Task<List<CustomFieldIndexModel>> SearchByCustomField(string fileName, string customFieldValue, string query)
+      [Description("Searches AI Search index for information from the specified document and the provided query.")]
+      public async Task<List<CustomFieldIndexModel>> SearchByCustomField(
+         [Description("The name of the file to filter search.")] string fileName,
+         [Description("The search query.")] string query,
+         [Description("The custom field to search for (if provided).")] string customFieldValue = "")
       {
          await EnsureIndexInitializedAsync();
 

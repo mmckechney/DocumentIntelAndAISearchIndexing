@@ -8,18 +8,14 @@ param myPublicIp string
 param docIntelligenceInstanceCount int
 param currentUserObjectId string
 param aiIndexName string = 'documentindex'
-param apiManagementPublisherEmail string
-param apiManagementPublisherName string
 param serviceBusSku string = 'Standard'
 param functionValues customTypes.functionValue[] 
-param apimSku customTypes.apimSkuInfo = {
-	name: 'StandardV2'
-	capacity: 1
-}
 
+@description('Azure AI Foundry deployment configuration.')
+param foundryConfig customTypes.foundryConfig
 
-@description('OpenAI instances to deploy. Defaults to 2 across different regions.')
-param openAiConfigs customTypes.openAIConfigs
+@description('Persistent agent identifier inside the Azure AI Foundry project (optional).')
+param foundryAgentId string = ''
 
 var abbrs = loadJsonContent('./constants/abbreviations.json')
 var appNameLc = toLower(appNameSafe)
@@ -50,11 +46,12 @@ var aiSearchName = '${abbrs.aiSearch}${appNameLc}-demo-${location}'
 var appInsightsName = '${abbrs.applicationInsights}${appName}-${location}'
 var logAnalyticsName = '${abbrs.logAnalyticsWorkspace}${appName}-${location}'
 var managedIdentityName = '${abbrs.managedIdentity}${appName}-${location}'
-var apiManagementName = '${abbrs.apiManagementService}${appName}-${location}'
-
 var cosmosDbName = 'documentIndexing'
 var cosmosContainerName = 'processTracker'
 var cosmosDbAccountName = toLower('${abbrs.cosmosDBNoSQL}${appName}-${location}')
+
+var foundryResourceName = '${abbrs.foundryResource}${appName}-${location}'
+var foundryProjectName = '${abbrs.foundryProject}${appName}-${location}'
 
 var documentStorageContainer = 'documents'
 var processResultsContainer = 'processresults'
@@ -79,6 +76,29 @@ module managedIdentity 'core/managed-identity.bicep' = {
 	params: {
 		name: managedIdentityName
 		location: location
+	}
+}
+
+module foundry 'foundry/foundry.bicep' = {
+	name: 'foundry'
+	scope: rg
+	params: {
+		aiFoundryResourceName: foundryResourceName
+		location: location
+		tags: {
+			CreatedBy: currentUserObjectId
+		}
+		managedIdentityId: managedIdentity.outputs.id
+		projectName: foundryProjectName
+		projectDisplayName: foundryConfig.projectDisplayName
+		chatModelName: foundryConfig.chatModel.name
+		chatModelVersion: foundryConfig.chatModel.version
+		chatSku: foundryConfig.chatModel.sku
+		chatCapacity: foundryConfig.chatModel.capacity
+		embeddingModelName: foundryConfig.embeddingModel.name
+		embeddingModelVersion: foundryConfig.embeddingModel.version
+		embeddingSku: foundryConfig.embeddingModel.sku
+		embeddingCapacity: foundryConfig.embeddingModel.capacity
 	}
 }
 
@@ -245,20 +265,23 @@ module functions 'containerapp/containerapps.bicep' = {
 		customFieldQueueName: customFieldQueueName
 		moveQueueName: moveQueueName
 		toIndexQueueName: toIndexQueueName
-		openAiEmbeddingModel: openAiConfigs.embeddingModel
 		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
-		openAiEndpoint: apiManagement.outputs.gatewayUrl
+		foundryProjectEndpoint: foundry.outputs.projectEndpoint
 		cosmosDbEndpoint: cosmosDb.outputs.cosmosDbEndpoint
 		serviceBusFullyQualifiedNamespace: servicebus.outputs.serviceBusFullyQualifiedNamespace
 		documentIntelligenceEndpoint: docIntelligenceService.outputs.docIntellEndpoint
 		documentIntelligenceEndpoints: string(docIntelligenceService.outputs.docIntellEndpoints)
-		azureOpenAiEmbeddingMaxTokens: openAiConfigs.embeddingMaxTokens
+		foundryEmbeddingMaxTokens: foundryConfig.embeddingMaxTokens
 		aiIndexName: aiIndexName
-		openAiChatModel: openAiConfigs.completionModel
+		foundryChatDeployment: foundry.outputs.chatDeploymentName
+		foundryEmbeddingModel: foundry.outputs.embeddingModel
+		foundryEmbeddingDeployment: foundry.outputs.embeddingDeploymentName
+		foundryAgentId: foundryAgentId
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
 		appInsightsConnectionString: appInsights.outputs.connectionString
 		appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
+		usePlaceholderImage: true
 	}
 	dependsOn: [
 		storage
@@ -274,7 +297,6 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
 		currentUserObjectId : currentUserObjectId
 		functionPrincipalIds: functions.outputs.systemAssignedIdentities
-		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
 		containerRegistryName: containerRegistry.outputs.name
 		cosmosAccountName: cosmosDb.outputs.cosmosDbAccountName
 		cosmosAccountResourceGroup: resourceGroupName
@@ -290,57 +312,12 @@ module aiSearch 'core/aisearch.bicep' = {
 	}
 }
 
-module apiManagement 'apim/api-management.bicep' = {
-	name: 'apiManagement'
-	scope: rg
-	params: {
-		name: apiManagementName
-		location: location
-		apiManagementIdentityId: managedIdentity.outputs.id
-		publisherEmail: apiManagementPublisherEmail
-		publisherName: apiManagementPublisherName
-		subnetId: networking.outputs.apimSubnetId
-		openAIDeployments: openAi.outputs.openAIDeployments
-		sku: apimSku
-		tags: {
-			CreatedBy: currentUserObjectId
-		}
-	}
-	
-}
-
-module aoiManamgentSettings 'apim/api-management-settings.bicep' = {
-	name: 'apiManagementSettings'
-	scope: rg
-	params: {
-		apiManagementName: apiManagement.outputs.name
-		openApiApimBackends: apiManagement.outputs.openAIApiBackends
-		appInsightsName: appInsights.outputs.name
-	}
-	dependsOn: [
-		roleAssigments
-	]
-}
-
-module openAi './openai/openai.bicep' = {
-	name: 'openAi'
-	scope: rg
-	params: {
-		openAIInstances: openAiConfigs
-		instancePrefix: '${abbrs.openAIService}${appName}-'
-		managedIdentityId: managedIdentity.outputs.id
-	}
-}
-
-
-
-
 
 output resourceGroupName string = resourceGroupName
-output openAINames array = [for i in range(0, length(openAiConfigs.configs)): openAi.outputs.openAIDeployments[i].name]
-output openAiChatModel string = openAiConfigs.completionModel
-output openAiEmbeddingModel string = openAiConfigs.embeddingModel
-output apimName string = apiManagement.outputs.name
+output foundryAccountName string = foundry.outputs.accountName
+output foundryProjectEndpoint string = foundry.outputs.projectEndpoint
+output foundryChatDeployment string = foundry.outputs.chatDeploymentName
+output foundryEmbeddingDeployment string = foundry.outputs.embeddingDeploymentName
 output containerAppsEnvironmentName string = containerEnvironment.outputs.name
 output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
 output services array = functions.outputs.services

@@ -7,5 +7,8 @@ resource aiSearchInstance 'Microsoft.Search/searchServices@2023-11-01' = {
   sku: {
     name: 'basic'
   }
+  properties:{
+     disableLocalAuth: true
+  }
 }
 output aiSearchEndpoint string = 'https://${aiSearchName}.search.windows.net'

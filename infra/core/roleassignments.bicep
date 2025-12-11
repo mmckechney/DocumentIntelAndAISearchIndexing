@@ -2,7 +2,6 @@ param docIntelligencePrincipalIds array
 param functionPrincipalIds array
 param userAssignedManagedIdentityPrincipalId string
 param currentUserObjectId string
-param apimSystemAssignedIdentityPrincipalId string
 param containerRegistryName string
 param cosmosAccountName string
 param cosmosAccountResourceGroup string
@@ -103,15 +102,6 @@ resource cosmosDbAccountReader 'Microsoft.Authorization/roleDefinitions@2022-04-
 
 
 
-
-resource apimSysAssignedCogServicesUser 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
-  name: guid(apimSystemAssignedIdentityPrincipalId, cognitiveServicesUser.id, deploymentEntropy)
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: cognitiveServicesUser.id
-    principalId: apimSystemAssignedIdentityPrincipalId
-  }
-}
 
 resource cosmosDataContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()

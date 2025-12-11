@@ -1,31 +1,18 @@
 
 @export()
-type openAIConfigs = {
-  embeddingModel: string
-  completionModel: string
-  embeddingMaxTokens: int
-  configs: openAIConfig[] 
-}
-
-@export()
-type openAIConfig = {
+type foundryModelConfig = {
   name: string
-  location: string
-  suffix: string
-  priority: int
-  embedding: {
-    capacity: int
-  }
-  completion: {
-    capacity: int
-    sku: 'Standard' | 'GlobalStandard'
-  }
+  version: string
+  sku: string
+  capacity: int
 }
 
 @export()
-type apimSkuInfo = {
-  name: 'BasicV2' | 'StandardV2' | 'PremiumV2'
-  capacity: int
+type foundryConfig = {
+  projectDisplayName: string
+  embeddingMaxTokens: int
+  chatModel: foundryModelConfig
+  embeddingModel: foundryModelConfig
 }
 
 @export()
@@ -42,26 +29,9 @@ type keyVaultSecretsInfo = {
 
 
 @export()
-type openAiDeploymentInfo = {
-  id: string
-  name: string
-  host: string
-  endpoint: string
-  priority: int?
-
-}
-
-@export()
 type functionValue = {
   name: string
   tag: string
   serviceName: string?
-}
-
-@export()
-type openApiApimBackends = {
-  name: string
-  id: string
-  priority: int?
 }
 

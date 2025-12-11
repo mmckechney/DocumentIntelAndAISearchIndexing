@@ -17,20 +17,24 @@ param docQueueName string
 param customFieldQueueName string
 param moveQueueName string
 param toIndexQueueName string
-param openAiEmbeddingModel string
 param aiSearchEndpoint string
-param openAiEndpoint string
+param foundryProjectEndpoint string
 param cosmosDbEndpoint string
 param serviceBusFullyQualifiedNamespace string
 param documentIntelligenceEndpoint string
 param documentIntelligenceEndpoints string
-param azureOpenAiEmbeddingMaxTokens int = 8091
+param foundryEmbeddingMaxTokens int = 8091
 param aiIndexName string
-param openAiChatModel string
+param foundryChatDeployment string
+param foundryEmbeddingModel string
+param foundryEmbeddingDeployment string
+param foundryAgentId string
 param cosmosDbName string
 param cosmosContainerName string
 param appInsightsConnectionString string
 param appInsightsInstrumentationKey string
+@description('Use placeholder image for initial deployment before images are pushed to ACR')
+param usePlaceholderImage bool = false
 
 var configKeys = loadJsonContent('../constants/configKeys.json')
 
@@ -129,28 +133,28 @@ var sharedConfiguration = [
     value: aiIndexName
   }
   {
-    name: configKeys.AZURE_OPENAI_ENDPOINT
-    value: openAiEndpoint
+    name: configKeys.AZURE_FOUNDRY_PROJECT_ENDPOINT
+    value: foundryProjectEndpoint
   }
   {
-    name: configKeys.AZURE_OPENAI_EMBEDDING_MODEL
-    value: openAiEmbeddingModel
+    name: configKeys.AZURE_FOUNDRY_CHAT_DEPLOYMENT
+    value: foundryChatDeployment
   }
   {
-    name: configKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT
-    value: openAiEmbeddingModel
+    name: configKeys.AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT
+    value: foundryEmbeddingDeployment
   }
   {
-    name: configKeys.AZURE_OPENAI_CHAT_MODEL
-    value: openAiChatModel
+    name: configKeys.AZURE_FOUNDRY_EMBEDDING_MODEL
+    value: foundryEmbeddingModel
   }
   {
-    name: configKeys.AZURE_OPENAI_CHAT_DEPLOYMENT
-    value: openAiChatModel
+    name: configKeys.AZURE_FOUNDRY_EMBEDDING_MAXTOKENS
+    value: string(foundryEmbeddingMaxTokens)
   }
   {
-    name: configKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS
-    value: string(azureOpenAiEmbeddingMaxTokens)
+    name: configKeys.AZURE_FOUNDRY_AGENT_ID
+    value: foundryAgentId
   }
   {
     name: configKeys.DOCUMENT_INTELLIGENCE_MODEL_NAME
@@ -223,7 +227,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for functionV
       containers: [
         {
           name: functionValue.serviceName
-          image: '${containerRegistryServer}/${functionValue.serviceName}:latest'
+          image: usePlaceholderImage ? 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest' : '${containerRegistryServer}/${functionValue.serviceName}:${functionValue.tag}'
           env: containerRuntimeConfiguration
           resources: {
             cpu: functionValue.hasIngress ? json('1.0') : json('0.5')
@@ -232,7 +236,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for functionV
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: functionValue.hasIngress ? 3 : 2
       }
     }

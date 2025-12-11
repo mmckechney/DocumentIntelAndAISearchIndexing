@@ -88,68 +88,68 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      private string _azureOpenAiChatDeployment = string.Empty;
-      public string AzureOpenAiChatDeployment
+      private string _foundryProjectEndpoint = string.Empty;
+      public string AzureFoundryProjectEndpoint
       {
          get
          {
-            if (string.IsNullOrEmpty(_azureOpenAiChatDeployment))
+            if (string.IsNullOrEmpty(_foundryProjectEndpoint))
             {
-               _azureOpenAiChatDeployment = GetSettingsValue(ConfigKeys.AZURE_OPENAI_CHAT_DEPLOYMENT);
+               _foundryProjectEndpoint = GetSettingsValue(ConfigKeys.AZURE_FOUNDRY_PROJECT_ENDPOINT);
             }
-            return _azureOpenAiChatDeployment;
+            return _foundryProjectEndpoint;
          }
       }
 
-      private string _azureOpenAiChatModel = string.Empty;
-      public string AzureOpenAiChatModel
+      private string _foundryAgentId = string.Empty;
+      public string AzureFoundryAgentId
       {
          get
          {
-            if (string.IsNullOrEmpty(_azureOpenAiChatModel))
+            if (string.IsNullOrEmpty(_foundryAgentId))
             {
-               _azureOpenAiChatModel = GetSettingsValue(ConfigKeys.AZURE_OPENAI_CHAT_MODEL);
+               _foundryAgentId = GetSettingsValue(ConfigKeys.AZURE_FOUNDRY_AGENT_ID);
             }
-            return _azureOpenAiChatModel;
+            return _foundryAgentId;
          }
       }
 
-      private string _azureOpenAiEmbeddingDeployment = string.Empty;
-      public string AzureOpenAiEmbeddingDeployment
+      private string _foundryChatDeployment = string.Empty;
+      public string AzureFoundryChatDeployment
       {
          get
          {
-            if (string.IsNullOrEmpty(_azureOpenAiEmbeddingDeployment))
+            if (string.IsNullOrEmpty(_foundryChatDeployment))
             {
-               _azureOpenAiEmbeddingDeployment = GetSettingsValue(ConfigKeys.AZURE_OPENAI_EMBEDDING_DEPLOYMENT);
+               _foundryChatDeployment = GetSettingsValue(ConfigKeys.AZURE_FOUNDRY_CHAT_DEPLOYMENT);
             }
-            return _azureOpenAiEmbeddingDeployment;
+            return _foundryChatDeployment;
          }
       }
 
-      private string _azureOpenAiEmbeddingModel = string.Empty;
-      public string AzureOpenAiEmbeddingModel
+      private string _foundryEmbeddingDeployment = string.Empty;
+      public string AzureFoundryEmbeddingDeployment
       {
          get
          {
-            if (string.IsNullOrEmpty(_azureOpenAiEmbeddingModel))
+            if (string.IsNullOrEmpty(_foundryEmbeddingDeployment))
             {
-               _azureOpenAiEmbeddingModel = GetSettingsValue(ConfigKeys.AZURE_OPENAI_EMBEDDING_MODEL);
+               _foundryEmbeddingDeployment = GetSettingsValue(ConfigKeys.AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT);
             }
-            return _azureOpenAiEmbeddingModel;
+            return _foundryEmbeddingDeployment;
          }
       }
 
-      private string _azureOpenAiEndpoint = string.Empty;
-      public string AzureOpenAiEndpoint
+      private string _foundryEmbeddingModel = string.Empty;
+      public string AzureFoundryEmbeddingModel
       {
          get
          {
-            if (string.IsNullOrEmpty(_azureOpenAiEndpoint))
+            if (string.IsNullOrEmpty(_foundryEmbeddingModel))
             {
-               _azureOpenAiEndpoint = GetSettingsValue(ConfigKeys.AZURE_OPENAI_ENDPOINT);
+               _foundryEmbeddingModel = GetSettingsValue(ConfigKeys.AZURE_FOUNDRY_EMBEDDING_MODEL);
             }
-            return _azureOpenAiEndpoint;
+            return _foundryEmbeddingModel;
          }
       }
 
@@ -273,7 +273,7 @@ namespace HighVolumeProcessing.UtilityLibrary
          {
             if (embeddingMaxTokens == 0)
             {
-               int.TryParse(GetSettingsValue(ConfigKeys.AZURE_OPENAI_EMBEDDING_MAXTOKENS, embeddingMaxTokensDefault.ToString()), out embeddingMaxTokens);
+               int.TryParse(GetSettingsValue(ConfigKeys.AZURE_FOUNDRY_EMBEDDING_MAXTOKENS, embeddingMaxTokensDefault.ToString()), out embeddingMaxTokens);
             }
             return embeddingMaxTokens;
          }

@@ -9,9 +9,9 @@
 	  <UserSecretsId>4c03af0b-39c5-4550-9c79-eff5408fb5c2</UserSecretsId>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Azure.Identity" Version="1.13.2" />
-		<PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
-		<PackageReference Include="HttpMultipartParser" Version="9.0.0" />
+		<PackageReference Include="Azure.Identity" Version="1.17.1" />
+		<PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
+		<PackageReference Include="HttpMultipartParser" Version="9.2.0" />
 		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
    </ItemGroup>
 	<ItemGroup>

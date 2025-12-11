@@ -60,14 +60,4 @@ resource formOutputstorageContainer 'Microsoft.Storage/storageAccounts/blobServi
   parent: formBlobService
 }
 
-resource funcStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: funcStorageAcct
-  location: location
-  sku: {
-    name: 'Standard_LRS'
-  }
-  kind: 'StorageV2'
-}
-
-
 output storageAccountId string = formStorageAccount.id

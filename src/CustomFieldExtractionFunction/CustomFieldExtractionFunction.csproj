@@ -9,13 +9,13 @@
 	  <UserSecretsId>4623eb55-27cf-404a-8980-d91b4f0584f6</UserSecretsId>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Azure.Identity" Version="1.13.2" />
-		<PackageReference Include="Azure.Storage.Blobs" Version="12.24.0" />
-		<PackageReference Include="HttpMultipartParser" Version="9.0.0" />
+		<PackageReference Include="Azure.Identity" Version="1.17.1" />
+		<PackageReference Include="Azure.Storage.Blobs" Version="12.26.0" />
+		<PackageReference Include="HttpMultipartParser" Version="9.2.0" />
 		<PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="2.23.0" />
-      <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.1" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.1" />
    </ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />

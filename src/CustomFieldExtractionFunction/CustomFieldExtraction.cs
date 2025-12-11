@@ -1,9 +1,10 @@
 using HighVolumeProcessing.UtilityLibrary;
+using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Azure.Amqp.Framing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
-using HighVolumeProcessing.UtilityLibrary.Models;
 using System;
+using System.Threading.Tasks;
 
 namespace HighVolumeProcessing.CustomFieldExtractionFunction
 {
@@ -50,7 +51,14 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
       public async Task<bool> ProcessMessage(FileQueueMessage fileMessage)
       {
 
-            fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
+         if (fileMessage.CustomIndexFieldValues == null || fileMessage.CustomIndexFieldValues.Count == 0)
+         {
+            fileMessage = await tracker.TrackAndUpdate(fileMessage, "No Custom Fields Specified. Abandoning extraction");
+            fileMessage = fileMessage.CloneWithOverrides();
+         }
+         else
+         {
             var contents = await storageHelper.GetFileContents(settings.ProcessResultsContainerName, fileMessage.ProcessedFileName);
             if (string.IsNullOrEmpty(contents))
             {
@@ -68,14 +76,15 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
                fields.Add("NOT FOUND");
             }
             fileMessage = fileMessage.CloneWithOverrides(customIndexFieldValues: fields);
+         }
 
-            fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sending to {settings.ToIndexQueueName}");
-            var message = fileMessage.AsMessage();
-            await serviceBusHelper.SendMessageAsync(settings.ToIndexQueueName, message);
-            fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sent to {settings.ToIndexQueueName}");
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sending to {settings.ToIndexQueueName}");
+         var message = fileMessage.AsMessage();
+         await serviceBusHelper.SendMessageAsync(settings.ToIndexQueueName, message);
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sent to {settings.ToIndexQueueName}");
 
 
-            return true;
+         return true;
       }
    }
 

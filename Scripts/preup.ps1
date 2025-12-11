@@ -23,6 +23,7 @@ $abbrs = Get-Content './infra/constants/abbreviations.json' | ConvertFrom-Json
 
 $envValues = azd env get-values --output json | ConvertFrom-Json
 $envName = $envValues.AZURE_ENV_NAME
+$location = $envValues.AZURE_LOCATION
 $safeEnvName = $envName -replace '[^a-zA-Z0-9]', ''
 
 $functionValues = @(
@@ -62,11 +63,21 @@ $functionValues = @(
 $mainParamsPath = Join-Path $PSScriptRoot "../infra/main.parameters.json"
 $mainParamsContent = Get-Content $mainParamsPath -Raw | ConvertFrom-Json
 
-$openAiConfigs = $mainParamsContent.parameters.openAiConfigs.value
-foreach ($cfg in $openAiConfigs.configs) {
-    if($null -eq $cfg.name -or $cfg.name -eq "") {
-        $cfg.name = "$($safeEnvName)-$($cfg.suffix)"
-    }
+$foundryConfig = $mainParamsContent.parameters.foundryConfig.value
+
+if ($null -ne $foundryConfig.accountName) {
+    $foundryConfig.accountName = $foundryConfig.accountName -replace '\$\{APP_NAME_SAFE\}', $safeEnvName
+}
+if ($null -ne $foundryConfig.projectName) {
+    $foundryConfig.projectName = $foundryConfig.projectName -replace '\$\{APP_NAME_SAFE\}', $safeEnvName
+}
+if ($null -ne $foundryConfig.projectDisplayName) {
+    $foundryConfig.projectDisplayName = $foundryConfig.projectDisplayName -replace '\$\{APP_NAME\}', $envName
+}
+
+$foundryAgentIdValue = $mainParamsContent.parameters.foundryAgentId.value
+if ($foundryAgentIdValue -match '\$\{AZURE_FOUNDRY_AGENT_ID\}' -and $envValues.AZURE_FOUNDRY_AGENT_ID) {
+    $foundryAgentIdValue = $envValues.AZURE_FOUNDRY_AGENT_ID
 }
 
 $configObject = @{
@@ -74,7 +85,8 @@ $configObject = @{
             parameters = @{
                 docIntelligenceInstanceCount = 2
                 functionValues = $functionValues
-                openAiConfigs = $openAiConfigs
+                foundryConfig = $foundryConfig
+                foundryAgentId = $foundryAgentIdValue
             }
         }
     }
@@ -109,7 +121,7 @@ Set-EnvironmentVariable -Name "AZURE_CURRENT_USER_EMAIL" -Value $userEmail
 Set-EnvironmentVariable -Name "PUBLIC_IP" -Value $myPublicIp
 Set-EnvironmentVariable -Name "APP_NAME" -Value $envName
 Set-EnvironmentVariable -Name "APP_NAME_SAFE" -Value $safeEnvName
-
+Set-EnvironmentVariable -Name "AZURE_CONTAINER_REGISTRY_ENDPOINT" -Value "$($abbrs.containerRegistry)$($safeEnvName)$($location).azurecr.io"
 
 # Write all environment variables to .env file
 Write-Host "Writing environment variables to .env file at $envFilePath"

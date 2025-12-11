@@ -5,21 +5,50 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.39.26.7824",
-      "templateHash": "12861829842246733283"
+      "version": "0.34.44.8038",
+      "templateHash": "4305907080678473402"
     }
   },
   "definitions": {
-    "_1.apimSkuInfo": {
+    "_1.foundryConfig": {
+      "type": "object",
+      "properties": {
+        "accountName": {
+          "type": "string"
+        },
+        "projectName": {
+          "type": "string"
+        },
+        "projectDisplayName": {
+          "type": "string"
+        },
+        "embeddingMaxTokens": {
+          "type": "int"
+        },
+        "chatModel": {
+          "$ref": "#/definitions/_1.foundryModelConfig"
+        },
+        "embeddingModel": {
+          "$ref": "#/definitions/_1.foundryModelConfig"
+        }
+      },
+      "metadata": {
+        "__bicep_imported_from!": {
+          "sourceTemplate": "constants/customTypes.bicep"
+        }
+      }
+    },
+    "_1.foundryModelConfig": {
       "type": "object",
       "properties": {
         "name": {
-          "type": "string",
-          "allowedValues": [
-            "BasicV2",
-            "PremiumV2",
-            "StandardV2"
-          ]
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "sku": {
+          "type": "string"
         },
         "capacity": {
           "type": "int"
@@ -59,122 +88,6 @@
         },
         "primaryKeySecretName": {
           "type": "string"
-        }
-      },
-      "metadata": {
-        "__bicep_imported_from!": {
-          "sourceTemplate": "constants/customTypes.bicep"
-        }
-      }
-    },
-    "_1.openAIConfig": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "location": {
-          "type": "string"
-        },
-        "suffix": {
-          "type": "string"
-        },
-        "priority": {
-          "type": "int"
-        },
-        "embedding": {
-          "type": "object",
-          "properties": {
-            "capacity": {
-              "type": "int"
-            }
-          }
-        },
-        "completion": {
-          "type": "object",
-          "properties": {
-            "capacity": {
-              "type": "int"
-            },
-            "sku": {
-              "type": "string",
-              "allowedValues": [
-                "GlobalStandard",
-                "Standard"
-              ]
-            }
-          }
-        }
-      },
-      "metadata": {
-        "__bicep_imported_from!": {
-          "sourceTemplate": "constants/customTypes.bicep"
-        }
-      }
-    },
-    "_1.openAIConfigs": {
-      "type": "object",
-      "properties": {
-        "embeddingModel": {
-          "type": "string"
-        },
-        "completionModel": {
-          "type": "string"
-        },
-        "embeddingMaxTokens": {
-          "type": "int"
-        },
-        "configs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/_1.openAIConfig"
-          }
-        }
-      },
-      "metadata": {
-        "__bicep_imported_from!": {
-          "sourceTemplate": "constants/customTypes.bicep"
-        }
-      }
-    },
-    "_1.openAiDeploymentInfo": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "host": {
-          "type": "string"
-        },
-        "endpoint": {
-          "type": "string"
-        },
-        "priority": {
-          "type": "int",
-          "nullable": true
-        }
-      },
-      "metadata": {
-        "__bicep_imported_from!": {
-          "sourceTemplate": "constants/customTypes.bicep"
-        }
-      }
-    },
-    "_1.openApiApimBackends": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "id": {
-          "type": "string"
-        },
-        "priority": {
-          "type": "int",
-          "nullable": true
         }
       },
       "metadata": {
@@ -223,12 +136,6 @@
       "type": "string",
       "defaultValue": "documentindex"
     },
-    "apiManagementPublisherEmail": {
-      "type": "string"
-    },
-    "apiManagementPublisherName": {
-      "type": "string"
-    },
     "serviceBusSku": {
       "type": "string",
       "defaultValue": "Standard"
@@ -239,17 +146,17 @@
         "$ref": "#/definitions/_1.functionValue"
       }
     },
-    "apimSku": {
-      "$ref": "#/definitions/_1.apimSkuInfo",
-      "defaultValue": {
-        "name": "StandardV2",
-        "capacity": 1
+    "foundryConfig": {
+      "$ref": "#/definitions/_1.foundryConfig",
+      "metadata": {
+        "description": "Azure AI Foundry deployment configuration."
       }
     },
-    "openAiConfigs": {
-      "$ref": "#/definitions/_1.openAIConfigs",
+    "foundryAgentId": {
+      "type": "string",
+      "defaultValue": "",
       "metadata": {
-        "description": "OpenAI instances to deploy. Defaults to 2 across different regions."
+        "description": "Persistent agent identifier inside the Azure AI Foundry project (optional)."
       }
     }
   },
@@ -448,7 +355,7 @@
     "formStorageAcct": "[if(greater(length(variables('formStorageBase')), 24), substring(variables('formStorageBase'), 0, 24), variables('formStorageBase'))]",
     "funcStorageBase": "[format('{0}{1}func{2}', variables('abbrs').storageAccount, variables('appNameLc'), parameters('location'))]",
     "funcStorageAcct": "[if(greater(length(variables('funcStorageBase')), 24), substring(variables('funcStorageBase'), 0, 24), variables('funcStorageBase'))]",
-    "docIntelligence": "[format('{0}{1}-{2}', variables('abbrs').documentIntelligence, parameters('appName'), parameters('location'))]",
+    "docIntelligence": "[format('{0}{1}{2}', variables('abbrs').documentIntelligence, parameters('appName'), parameters('location'))]",
     "vnet": "[format('{0}{1}-{2}', variables('abbrs').virtualNetwork, parameters('appName'), parameters('location'))]",
     "subnet": "[format('{0}{1}-{2}', variables('abbrs').virtualNetworkSubnet, parameters('appName'), parameters('location'))]",
     "nsg": "[format('{0}{1}-{2}', variables('abbrs').networkSecurityGroup, parameters('appName'), parameters('location'))]",
@@ -464,7 +371,6 @@
     "appInsightsName": "[format('{0}{1}-{2}', variables('abbrs').applicationInsights, parameters('appName'), parameters('location'))]",
     "logAnalyticsName": "[format('{0}{1}-{2}', variables('abbrs').logAnalyticsWorkspace, parameters('appName'), parameters('location'))]",
     "managedIdentityName": "[format('{0}{1}-{2}', variables('abbrs').managedIdentity, parameters('appName'), parameters('location'))]",
-    "apiManagementName": "[format('{0}{1}-{2}', variables('abbrs').apiManagementService, parameters('appName'), parameters('location'))]",
     "cosmosDbName": "documentIndexing",
     "cosmosContainerName": "processTracker",
     "cosmosDbAccountName": "[toLower(format('{0}{1}-{2}', variables('abbrs').cosmosDBNoSQL, parameters('appName'), parameters('location')))]",
@@ -481,11 +387,14 @@
       "type": "Microsoft.Resources/resourceGroups",
       "apiVersion": "2021-04-01",
       "name": "[variables('resourceGroupName')]",
-      "location": "[parameters('location')]"
+      "location": "[parameters('location')]",
+      "tags": {
+        "SecurityControl": "Ignore"
+      }
     },
     "managedIdentity": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "managedIdentity",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -507,8 +416,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "7074326711784622006"
+              "version": "0.34.44.8038",
+              "templateHash": "15617797963517012510"
             }
           },
           "parameters": {
@@ -578,9 +487,252 @@
         "rg"
       ]
     },
+    "foundry": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "foundry",
+      "resourceGroup": "[variables('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "name": {
+            "value": "[parameters('foundryConfig').accountName]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": {
+              "CreatedBy": "[parameters('currentUserObjectId')]"
+            }
+          },
+          "managedIdentityId": {
+            "value": "[reference('managedIdentity').outputs.id.value]"
+          },
+          "projectName": {
+            "value": "[parameters('foundryConfig').projectName]"
+          },
+          "projectDisplayName": {
+            "value": "[parameters('foundryConfig').projectDisplayName]"
+          },
+          "chatModelName": {
+            "value": "[parameters('foundryConfig').chatModel.name]"
+          },
+          "chatModelVersion": {
+            "value": "[parameters('foundryConfig').chatModel.version]"
+          },
+          "chatSku": {
+            "value": "[parameters('foundryConfig').chatModel.sku]"
+          },
+          "chatCapacity": {
+            "value": "[parameters('foundryConfig').chatModel.capacity]"
+          },
+          "embeddingModelName": {
+            "value": "[parameters('foundryConfig').embeddingModel.name]"
+          },
+          "embeddingModelVersion": {
+            "value": "[parameters('foundryConfig').embeddingModel.version]"
+          },
+          "embeddingSku": {
+            "value": "[parameters('foundryConfig').embeddingModel.sku]"
+          },
+          "embeddingCapacity": {
+            "value": "[parameters('foundryConfig').embeddingModel.capacity]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.34.44.8038",
+              "templateHash": "972618327593776244"
+            }
+          },
+          "parameters": {
+            "name": {
+              "type": "string"
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "managedIdentityId": {
+              "type": "string"
+            },
+            "projectName": {
+              "type": "string"
+            },
+            "projectDisplayName": {
+              "type": "string"
+            },
+            "chatModelName": {
+              "type": "string"
+            },
+            "chatModelVersion": {
+              "type": "string"
+            },
+            "chatSku": {
+              "type": "string",
+              "defaultValue": "Standard"
+            },
+            "chatCapacity": {
+              "type": "int",
+              "defaultValue": 1
+            },
+            "embeddingModelName": {
+              "type": "string"
+            },
+            "embeddingModelVersion": {
+              "type": "string"
+            },
+            "embeddingSku": {
+              "type": "string",
+              "defaultValue": "Standard"
+            },
+            "embeddingCapacity": {
+              "type": "int",
+              "defaultValue": 1
+            }
+          },
+          "variables": {
+            "customSubdomain": "[toLower(parameters('name'))]",
+            "servicesEndpoint": "[format('https://{0}.services.ai.azure.com', variables('customSubdomain'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2025-06-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "AIServices",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('managedIdentityId'))]": {}
+                }
+              },
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', parameters('name'), parameters('chatModelName'))]",
+              "sku": {
+                "name": "[parameters('chatSku')]",
+                "capacity": "[parameters('chatCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('chatModelName')]",
+                  "version": "[parameters('chatModelVersion')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2025-06-01",
+              "name": "[format('{0}/{1}', parameters('name'), parameters('embeddingModelName'))]",
+              "sku": {
+                "name": "[parameters('embeddingSku')]",
+                "capacity": "[parameters('embeddingCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('embeddingModelName')]",
+                  "version": "[parameters('embeddingModelVersion')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.CognitiveServices/accounts/projects",
+              "apiVersion": "2025-07-01-preview",
+              "name": "[format('{0}/{1}', parameters('name'), parameters('projectName'))]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "displayName": "[parameters('projectDisplayName')]",
+                "description": "Generated via infrastructure-as-code for Document Intelligence and AI Search indexing."
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "accountName": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "accountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]"
+            },
+            "projectResourceName": {
+              "type": "string",
+              "value": "[parameters('projectName')]"
+            },
+            "projectEndpoint": {
+              "type": "string",
+              "value": "[format('{0}/api/projects/{1}', variables('servicesEndpoint'), parameters('projectName'))]"
+            },
+            "inferenceEndpoint": {
+              "type": "string",
+              "value": "[format('{0}/models', variables('servicesEndpoint'))]"
+            },
+            "servicesEndpointHost": {
+              "type": "string",
+              "value": "[variables('servicesEndpoint')]"
+            },
+            "chatDeploymentName": {
+              "type": "string",
+              "value": "[parameters('chatModelName')]"
+            },
+            "embeddingDeploymentName": {
+              "type": "string",
+              "value": "[parameters('embeddingModelName')]"
+            },
+            "embeddingModel": {
+              "type": "string",
+              "value": "[parameters('embeddingModelName')]"
+            },
+            "chatModel": {
+              "type": "string",
+              "value": "[parameters('chatModelName')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "managedIdentity",
+        "rg"
+      ]
+    },
     "networkSecurityGroup": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "networkSecurityGroup",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -605,8 +757,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "3435866166667452247"
+              "version": "0.34.44.8038",
+              "templateHash": "11516563349655266862"
             }
           },
           "parameters": {
@@ -803,7 +955,7 @@
     },
     "cosmosDb": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "cosmosDb",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -846,8 +998,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "5182333420182928583"
+              "version": "0.34.44.8038",
+              "templateHash": "862983272309652473"
             }
           },
           "parameters": {
@@ -1009,7 +1161,7 @@
     },
     "networking": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "networking",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1043,8 +1195,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "14647143966898263004"
+              "version": "0.34.44.8038",
+              "templateHash": "6488655325952190792"
             }
           },
           "parameters": {
@@ -1244,7 +1396,7 @@
     },
     "appInsights": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "appInsigts",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1269,8 +1421,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "2112045530476989664"
+              "version": "0.34.44.8038",
+              "templateHash": "7903147441951196652"
             }
           },
           "parameters": {
@@ -1349,7 +1501,7 @@
     },
     "storage": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "storage",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1389,8 +1541,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "12005531171186121550"
+              "version": "0.34.44.8038",
+              "templateHash": "16616409398590983899"
             }
           },
           "parameters": {
@@ -1507,7 +1659,7 @@
     },
     "docIntelligenceService": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "docintelligence",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1532,8 +1684,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "16483885732202572183"
+              "version": "0.34.44.8038",
+              "templateHash": "6261066906355335768"
             }
           },
           "parameters": {
@@ -1557,14 +1709,16 @@
               },
               "type": "Microsoft.CognitiveServices/accounts",
               "apiVersion": "2023-10-01-preview",
-              "name": "[format('{0}_{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()], 2, '0'))]",
+              "name": "[format('{0}-{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()], 2, '0'))]",
               "location": "[parameters('location')]",
               "kind": "FormRecognizer",
               "sku": {
                 "name": "S0"
               },
               "properties": {
-                "publicNetworkAccess": "Enabled"
+                "publicNetworkAccess": "Enabled",
+                "disableLocalAuth": true,
+                "customSubDomainName": "[format('{0}-{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()], 2, '0'))]"
               },
               "identity": {
                 "type": "SystemAssigned"
@@ -1574,31 +1728,31 @@
           "outputs": {
             "docIntelligenceAccountName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}_{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[0], 2, '0'))), '2023-10-01-preview').endpoint]"
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[0], 2, '0'))), '2023-10-01-preview').endpoint]"
             },
             "docIntelligenceAccountIds": {
               "type": "array",
               "copy": {
                 "count": "[length(range(0, parameters('docIntelligenceInstanceCount')))]",
-                "input": "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}_{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()]], 2, '0')))]"
+                "input": "[resourceId('Microsoft.CognitiveServices/accounts', format('{0}-{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()]], 2, '0')))]"
               }
             },
             "docIntelligencePrincipalIds": {
               "type": "array",
               "copy": {
                 "count": "[length(range(0, parameters('docIntelligenceInstanceCount')))]",
-                "input": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}_{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()]], 2, '0'))), '2023-10-01-preview', 'full').identity.principalId]"
+                "input": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()]], 2, '0'))), '2023-10-01-preview', 'full').identity.principalId]"
               }
             },
             "docIntellEndpoint": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}_{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[0], 2, '0'))), '2023-10-01-preview').endpoint]"
+              "value": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[0], 2, '0'))), '2023-10-01-preview').endpoint]"
             },
             "docIntellEndpoints": {
               "type": "array",
               "copy": {
                 "count": "[length(range(0, parameters('docIntelligenceInstanceCount')))]",
-                "input": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}_{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()]], 2, '0'))), '2023-10-01-preview').endpoint]"
+                "input": "[reference(resourceId('Microsoft.CognitiveServices/accounts', format('{0}-{1}', parameters('docIntelligenceName'), padLeft(range(0, parameters('docIntelligenceInstanceCount'))[range(0, parameters('docIntelligenceInstanceCount'))[copyIndex()]], 2, '0'))), '2023-10-01-preview').endpoint]"
               }
             }
           }
@@ -1611,7 +1765,7 @@
     },
     "servicebus": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "serviceBus",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1654,8 +1808,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "3010622481147311449"
+              "version": "0.34.44.8038",
+              "templateHash": "7226094278711892524"
             }
           },
           "parameters": {
@@ -1794,7 +1948,7 @@
     },
     "keyvault": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "keyvault",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1816,8 +1970,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "6607740487937915990"
+              "version": "0.34.44.8038",
+              "templateHash": "14572934140426015286"
             }
           },
           "parameters": {
@@ -1873,7 +2027,7 @@
     },
     "containerRegistry": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "containerRegistry",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1895,8 +2049,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "10493079992781387944"
+              "version": "0.34.44.8038",
+              "templateHash": "14745053921753412780"
             }
           },
           "parameters": {
@@ -1958,7 +2112,7 @@
     },
     "managedIdentityAcrPull": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "managedIdentityAcrPull",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -1980,8 +2134,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "5480609330597901005"
+              "version": "0.34.44.8038",
+              "templateHash": "5758010663509133825"
             }
           },
           "parameters": {
@@ -2017,7 +2171,7 @@
     },
     "containerEnvironment": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "containerEnvironment",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -2048,8 +2202,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "10930914970580496804"
+              "version": "0.34.44.8038",
+              "templateHash": "8948705875547871232"
             }
           },
           "parameters": {
@@ -2110,7 +2264,7 @@
     },
     "functions": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "functions",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -2167,14 +2321,14 @@
           "toIndexQueueName": {
             "value": "[variables('toIndexQueueName')]"
           },
-          "openAiEmbeddingModel": {
-            "value": "[parameters('openAiConfigs').embeddingModel]"
-          },
           "aiSearchEndpoint": {
             "value": "[reference('aiSearch').outputs.aiSearchEndpoint.value]"
           },
-          "openAiEndpoint": {
-            "value": "[reference('apiManagement').outputs.gatewayUrl.value]"
+          "foundryProjectEndpoint": {
+            "value": "[reference('foundry').outputs.projectEndpoint.value]"
+          },
+          "foundryInferenceEndpoint": {
+            "value": "[reference('foundry').outputs.inferenceEndpoint.value]"
           },
           "cosmosDbEndpoint": {
             "value": "[reference('cosmosDb').outputs.cosmosDbEndpoint.value]"
@@ -2188,14 +2342,23 @@
           "documentIntelligenceEndpoints": {
             "value": "[string(reference('docIntelligenceService').outputs.docIntellEndpoints.value)]"
           },
-          "azureOpenAiEmbeddingMaxTokens": {
-            "value": "[parameters('openAiConfigs').embeddingMaxTokens]"
+          "foundryEmbeddingMaxTokens": {
+            "value": "[parameters('foundryConfig').embeddingMaxTokens]"
           },
           "aiIndexName": {
             "value": "[parameters('aiIndexName')]"
           },
-          "openAiChatModel": {
-            "value": "[parameters('openAiConfigs').completionModel]"
+          "foundryChatDeployment": {
+            "value": "[reference('foundry').outputs.chatDeploymentName.value]"
+          },
+          "foundryEmbeddingModel": {
+            "value": "[reference('foundry').outputs.embeddingModel.value]"
+          },
+          "foundryEmbeddingDeployment": {
+            "value": "[reference('foundry').outputs.embeddingDeploymentName.value]"
+          },
+          "foundryAgentId": {
+            "value": "[parameters('foundryAgentId')]"
           },
           "cosmosDbName": {
             "value": "[variables('cosmosDbName')]"
@@ -2217,21 +2380,50 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "1545276139884238902"
+              "version": "0.34.44.8038",
+              "templateHash": "6475242553480648705"
             }
           },
           "definitions": {
-            "_1.apimSkuInfo": {
+            "_1.foundryConfig": {
+              "type": "object",
+              "properties": {
+                "accountName": {
+                  "type": "string"
+                },
+                "projectName": {
+                  "type": "string"
+                },
+                "projectDisplayName": {
+                  "type": "string"
+                },
+                "embeddingMaxTokens": {
+                  "type": "int"
+                },
+                "chatModel": {
+                  "$ref": "#/definitions/_1.foundryModelConfig"
+                },
+                "embeddingModel": {
+                  "$ref": "#/definitions/_1.foundryModelConfig"
+                }
+              },
+              "metadata": {
+                "__bicep_imported_from!": {
+                  "sourceTemplate": "../constants/customTypes.bicep"
+                }
+              }
+            },
+            "_1.foundryModelConfig": {
               "type": "object",
               "properties": {
                 "name": {
-                  "type": "string",
-                  "allowedValues": [
-                    "BasicV2",
-                    "PremiumV2",
-                    "StandardV2"
-                  ]
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                },
+                "sku": {
+                  "type": "string"
                 },
                 "capacity": {
                   "type": "int"
@@ -2271,122 +2463,6 @@
                 },
                 "primaryKeySecretName": {
                   "type": "string"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfig": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "location": {
-                  "type": "string"
-                },
-                "suffix": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int"
-                },
-                "embedding": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    }
-                  }
-                },
-                "completion": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    },
-                    "sku": {
-                      "type": "string",
-                      "allowedValues": [
-                        "GlobalStandard",
-                        "Standard"
-                      ]
-                    }
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfigs": {
-              "type": "object",
-              "properties": {
-                "embeddingModel": {
-                  "type": "string"
-                },
-                "completionModel": {
-                  "type": "string"
-                },
-                "embeddingMaxTokens": {
-                  "type": "int"
-                },
-                "configs": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/_1.openAIConfig"
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAiDeploymentInfo": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "host": {
-                  "type": "string"
-                },
-                "endpoint": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openApiApimBackends": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "id": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
                 }
               },
               "metadata": {
@@ -2468,13 +2544,13 @@
             "toIndexQueueName": {
               "type": "string"
             },
-            "openAiEmbeddingModel": {
-              "type": "string"
-            },
             "aiSearchEndpoint": {
               "type": "string"
             },
-            "openAiEndpoint": {
+            "foundryProjectEndpoint": {
+              "type": "string"
+            },
+            "foundryInferenceEndpoint": {
               "type": "string"
             },
             "cosmosDbEndpoint": {
@@ -2489,14 +2565,23 @@
             "documentIntelligenceEndpoints": {
               "type": "string"
             },
-            "azureOpenAiEmbeddingMaxTokens": {
+            "foundryEmbeddingMaxTokens": {
               "type": "int",
               "defaultValue": 8091
             },
             "aiIndexName": {
               "type": "string"
             },
-            "openAiChatModel": {
+            "foundryChatDeployment": {
+              "type": "string"
+            },
+            "foundryEmbeddingModel": {
+              "type": "string"
+            },
+            "foundryEmbeddingDeployment": {
+              "type": "string"
+            },
+            "foundryAgentId": {
               "type": "string"
             },
             "cosmosDbName": {
@@ -2533,12 +2618,13 @@
               "AZURE_AISEARCH_ENDPOINT": "AZURE_AISEARCH_ENDPOINT",
               "AZURE_AISEARCH_INCLUDE_GENERAL_INDEX": "AZURE_AISEARCH_INCLUDE_GENERAL_INDEX",
               "AZURE_AISEARCH_INDEX_NAME": "AZURE_AISEARCH_INDEX_NAME",
-              "AZURE_OPENAI_CHAT_DEPLOYMENT": "AZURE_OPENAI_CHAT_DEPLOYMENT",
-              "AZURE_OPENAI_CHAT_MODEL": "AZURE_OPENAI_CHAT_MODEL",
-              "AZURE_OPENAI_EMBEDDING_DEPLOYMENT": "AZURE_OPENAI_EMBEDDING_DEPLOYMENT",
-              "AZURE_OPENAI_EMBEDDING_MAXTOKENS": "AZURE_OPENAI_EMBEDDING_MAXTOKENS",
-              "AZURE_OPENAI_EMBEDDING_MODEL": "AZURE_OPENAI_EMBEDDING_MODEL",
-              "AZURE_OPENAI_ENDPOINT": "AZURE_OPENAI_ENDPOINT",
+              "AZURE_FOUNDRY_PROJECT_ENDPOINT": "AZURE_FOUNDRY_PROJECT_ENDPOINT",
+              "AZURE_FOUNDRY_AGENT_ID": "AZURE_FOUNDRY_AGENT_ID",
+              "AZURE_FOUNDRY_INFERENCE_ENDPOINT": "AZURE_FOUNDRY_INFERENCE_ENDPOINT",
+              "AZURE_FOUNDRY_CHAT_DEPLOYMENT": "AZURE_FOUNDRY_CHAT_DEPLOYMENT",
+              "AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT": "AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT",
+              "AZURE_FOUNDRY_EMBEDDING_MAXTOKENS": "AZURE_FOUNDRY_EMBEDDING_MAXTOKENS",
+              "AZURE_FOUNDRY_EMBEDDING_MODEL": "AZURE_FOUNDRY_EMBEDDING_MODEL",
               "COSMOS_ACCOUNT_ENDPOINT": "COSMOS_ACCOUNT_ENDPOINT",
               "COSMOS_DB_NAME": "COSMOS_DB_NAME",
               "COSMOS_CONTAINER_NAME": "COSMOS_CONTAINER_NAME",
@@ -2641,28 +2727,32 @@
                 "value": "[parameters('aiIndexName')]"
               },
               {
-                "name": "[variables('configKeys').AZURE_OPENAI_ENDPOINT]",
-                "value": "[parameters('openAiEndpoint')]"
+                "name": "[variables('configKeys').AZURE_FOUNDRY_PROJECT_ENDPOINT]",
+                "value": "[parameters('foundryProjectEndpoint')]"
               },
               {
-                "name": "[variables('configKeys').AZURE_OPENAI_EMBEDDING_MODEL]",
-                "value": "[parameters('openAiEmbeddingModel')]"
+                "name": "[variables('configKeys').AZURE_FOUNDRY_INFERENCE_ENDPOINT]",
+                "value": "[parameters('foundryInferenceEndpoint')]"
               },
               {
-                "name": "[variables('configKeys').AZURE_OPENAI_EMBEDDING_DEPLOYMENT]",
-                "value": "[parameters('openAiEmbeddingModel')]"
+                "name": "[variables('configKeys').AZURE_FOUNDRY_CHAT_DEPLOYMENT]",
+                "value": "[parameters('foundryChatDeployment')]"
               },
               {
-                "name": "[variables('configKeys').AZURE_OPENAI_CHAT_MODEL]",
-                "value": "[parameters('openAiChatModel')]"
+                "name": "[variables('configKeys').AZURE_FOUNDRY_EMBEDDING_DEPLOYMENT]",
+                "value": "[parameters('foundryEmbeddingDeployment')]"
               },
               {
-                "name": "[variables('configKeys').AZURE_OPENAI_CHAT_DEPLOYMENT]",
-                "value": "[parameters('openAiChatModel')]"
+                "name": "[variables('configKeys').AZURE_FOUNDRY_EMBEDDING_MODEL]",
+                "value": "[parameters('foundryEmbeddingModel')]"
               },
               {
-                "name": "[variables('configKeys').AZURE_OPENAI_EMBEDDING_MAXTOKENS]",
-                "value": "[string(parameters('azureOpenAiEmbeddingMaxTokens'))]"
+                "name": "[variables('configKeys').AZURE_FOUNDRY_EMBEDDING_MAXTOKENS]",
+                "value": "[string(parameters('foundryEmbeddingMaxTokens'))]"
+              },
+              {
+                "name": "[variables('configKeys').AZURE_FOUNDRY_AGENT_ID]",
+                "value": "[parameters('foundryAgentId')]"
               },
               {
                 "name": "[variables('configKeys').DOCUMENT_INTELLIGENCE_MODEL_NAME]",
@@ -2747,12 +2837,12 @@
       },
       "dependsOn": [
         "aiSearch",
-        "apiManagement",
         "appInsights",
         "containerEnvironment",
         "containerRegistry",
         "cosmosDb",
         "docIntelligenceService",
+        "foundry",
         "managedIdentity",
         "managedIdentityAcrPull",
         "rg",
@@ -2762,7 +2852,7 @@
     },
     "roleAssigments": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "roleAssigments",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -2783,11 +2873,14 @@
           "functionPrincipalIds": {
             "value": "[reference('functions').outputs.systemAssignedIdentities.value]"
           },
-          "apimSystemAssignedIdentityPrincipalId": {
-            "value": "[reference('apiManagement').outputs.identity.value]"
-          },
           "containerRegistryName": {
             "value": "[reference('containerRegistry').outputs.name.value]"
+          },
+          "cosmosAccountName": {
+            "value": "[reference('cosmosDb').outputs.cosmosDbAccountName.value]"
+          },
+          "cosmosAccountResourceGroup": {
+            "value": "[variables('resourceGroupName')]"
           }
         },
         "template": {
@@ -2796,8 +2889,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "3476036323936473755"
+              "version": "0.34.44.8038",
+              "templateHash": "8881880763875641122"
             }
           },
           "parameters": {
@@ -2813,10 +2906,13 @@
             "currentUserObjectId": {
               "type": "string"
             },
-            "apimSystemAssignedIdentityPrincipalId": {
+            "containerRegistryName": {
               "type": "string"
             },
-            "containerRegistryName": {
+            "cosmosAccountName": {
+              "type": "string"
+            },
+            "cosmosAccountResourceGroup": {
               "type": "string"
             }
           },
@@ -2846,7 +2942,10 @@
               "cognitiveServicesUser": "5e0bd9bd-7b93-4f28-af87-19fc36ad61bd",
               "cosmosDbOperator": "230815da-be43-4aae-9cb4-875f7bd000aa",
               "cosmosDbBuiltInDataContributor": "5bd9cd88-fe45-4216-938b-f97437e15450",
-              "searchServiceContributor": "de139f84-1756-47ae-9be6-808fbbe84772"
+              "cosmosDbAccountReader": "fbdf93bf-df7d-467e-a4d2-9458aa1360c8",
+              "searchServiceContributor": "7ca78c08-252a-4471-8644-bb5ff32d4ba0",
+              "searchIndexDataContributor": "8ebe5a00-799e-43f5-93ac-243d3dce84a7",
+              "searchIndexDataReader": "1407120a-92aa-4202-b7e9-c0e197c71c8f"
             },
             "principalIds": "[if(not(empty(parameters('currentUserObjectId'))), concat(parameters('functionPrincipalIds'), createArray(parameters('currentUserObjectId'), parameters('userAssignedManagedIdentityPrincipalId'))), concat(parameters('functionPrincipalIds'), createArray(parameters('userAssignedManagedIdentityPrincipalId'))))]",
             "acrPrincipalIds": "[if(not(empty(parameters('currentUserObjectId'))), concat(parameters('functionPrincipalIds'), createArray(parameters('currentUserObjectId'))), parameters('functionPrincipalIds'))]",
@@ -2854,15 +2953,6 @@
             "roles": "[variables('$fxv#0')]"
           },
           "resources": [
-            {
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "name": "[guid(parameters('apimSystemAssignedIdentityPrincipalId'), resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cognitiveServicesUser), variables('deploymentEntropy'))]",
-              "properties": {
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cognitiveServicesUser)]",
-                "principalId": "[parameters('apimSystemAssignedIdentityPrincipalId')]"
-              }
-            },
             {
               "copy": {
                 "name": "docIntelligenceBlobDataReader",
@@ -2956,19 +3046,6 @@
             },
             {
               "copy": {
-                "name": "functionManagedIdentityCosmosDataContributor",
-                "count": "[length(variables('principalIds'))]"
-              },
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2020-04-01-preview",
-              "name": "[guid(variables('principalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbBuiltInDataContributor), variables('deploymentEntropy'))]",
-              "properties": {
-                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbBuiltInDataContributor)]",
-                "principalId": "[variables('principalIds')[copyIndex()]]"
-              }
-            },
-            {
-              "copy": {
                 "name": "functionManagedIdentitySearchServiceContributor",
                 "count": "[length(variables('principalIds'))]"
               },
@@ -2995,6 +3072,71 @@
             },
             {
               "copy": {
+                "name": "functionManagedIdentitySearchIndexDataReader",
+                "count": "[length(variables('principalIds'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(variables('principalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').searchIndexDataReader), variables('deploymentEntropy'))]",
+              "properties": {
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').searchIndexDataReader)]",
+                "principalId": "[variables('principalIds')[copyIndex()]]"
+              }
+            },
+            {
+              "copy": {
+                "name": "functionManagedIdentitySearchIndexDataContributor",
+                "count": "[length(variables('principalIds'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(variables('principalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').searchIndexDataContributor), variables('deploymentEntropy'))]",
+              "properties": {
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').searchIndexDataContributor)]",
+                "principalId": "[variables('principalIds')[copyIndex()]]"
+              }
+            },
+            {
+              "copy": {
+                "name": "functionManagedIdentityCosmosDataContributor",
+                "count": "[length(variables('principalIds'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(variables('principalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbBuiltInDataContributor), variables('deploymentEntropy'))]",
+              "properties": {
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbBuiltInDataContributor)]",
+                "principalId": "[variables('principalIds')[copyIndex()]]"
+              }
+            },
+            {
+              "copy": {
+                "name": "functionManagedIdentityComsmosDbOperator",
+                "count": "[length(variables('principalIds'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(variables('principalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbOperator), variables('deploymentEntropy'))]",
+              "properties": {
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbOperator)]",
+                "principalId": "[variables('principalIds')[copyIndex()]]"
+              }
+            },
+            {
+              "copy": {
+                "name": "functionManagedIdentityComsmosDbAccountReader",
+                "count": "[length(variables('principalIds'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2020-04-01-preview",
+              "name": "[guid(variables('principalIds')[copyIndex()], resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbAccountReader), variables('deploymentEntropy'))]",
+              "properties": {
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').cosmosDbAccountReader)]",
+                "principalId": "[variables('principalIds')[copyIndex()]]"
+              }
+            },
+            {
+              "copy": {
                 "name": "principalAcrPullAssignments",
                 "count": "[length(variables('acrPrincipalIds'))]"
               },
@@ -3005,6 +3147,96 @@
               "properties": {
                 "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', variables('roles').acrPull)]",
                 "principalId": "[variables('acrPrincipalIds')[copyIndex()]]"
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2022-09-01",
+              "name": "cosmos-dataplane-roleassignments",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "principalIds": {
+                    "value": "[variables('principalIds')]"
+                  },
+                  "accountName": {
+                    "value": "[parameters('cosmosAccountName')]"
+                  },
+                  "cosmosRg": {
+                    "value": "[parameters('cosmosAccountResourceGroup')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.34.44.8038",
+                      "templateHash": "3970616830610173399"
+                    }
+                  },
+                  "parameters": {
+                    "accountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Cosmos DB account name"
+                      }
+                    },
+                    "principalIds": {
+                      "type": "array",
+                      "metadata": {
+                        "description": "AAD objectId of the principal to grant data access (user, SPN, or managed identity)"
+                      }
+                    },
+                    "cosmosRg": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Resource group of the Cosmos account"
+                      }
+                    }
+                  },
+                  "variables": {
+                    "subscriptionId": "[subscription().subscriptionId]",
+                    "cosmosDataRoles": {
+                      "reader": "00000000-0000-0000-0000-000000000001",
+                      "contributor": "00000000-0000-0000-0000-000000000002"
+                    }
+                  },
+                  "resources": [
+                    {
+                      "copy": {
+                        "name": "dataContributorAtAccount",
+                        "count": "[length(parameters('principalIds'))]"
+                      },
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
+                      "apiVersion": "2024-05-15",
+                      "name": "[format('{0}/{1}', parameters('accountName'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), parameters('principalIds')[copyIndex()], 'account-scope-contributor'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.DocumentDB/databaseAccounts/{2}/sqlRoleDefinitions/{3}', variables('subscriptionId'), parameters('cosmosRg'), parameters('accountName'), variables('cosmosDataRoles').contributor)]",
+                        "principalId": "[parameters('principalIds')[copyIndex()]]",
+                        "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName'))]"
+                      }
+                    },
+                    {
+                      "copy": {
+                        "name": "dataReaderAtAccount",
+                        "count": "[length(parameters('principalIds'))]"
+                      },
+                      "type": "Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments",
+                      "apiVersion": "2024-05-15",
+                      "name": "[format('{0}/{1}', parameters('accountName'), guid(resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName')), parameters('principalIds')[copyIndex()], 'account-scope-reader'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.DocumentDB/databaseAccounts/{2}/sqlRoleDefinitions/{3}', variables('subscriptionId'), parameters('cosmosRg'), parameters('accountName'), variables('cosmosDataRoles').reader)]",
+                        "principalId": "[parameters('principalIds')[copyIndex()]]",
+                        "scope": "[resourceId('Microsoft.DocumentDB/databaseAccounts', parameters('accountName'))]"
+                      }
+                    }
+                  ]
+                }
               }
             }
           ],
@@ -3017,8 +3249,8 @@
         }
       },
       "dependsOn": [
-        "apiManagement",
         "containerRegistry",
+        "cosmosDb",
         "docIntelligenceService",
         "functions",
         "managedIdentity",
@@ -3027,7 +3259,7 @@
     },
     "aiSearch": {
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
+      "apiVersion": "2022-09-01",
       "name": "aiSearch",
       "resourceGroup": "[variables('resourceGroupName')]",
       "properties": {
@@ -3049,8 +3281,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "18245671021975457939"
+              "version": "0.34.44.8038",
+              "templateHash": "12164776842200732067"
             }
           },
           "parameters": {
@@ -3084,1854 +3316,6 @@
       "dependsOn": [
         "rg"
       ]
-    },
-    "apiManagement": {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "apiManagement",
-      "resourceGroup": "[variables('resourceGroupName')]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "name": {
-            "value": "[variables('apiManagementName')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "apiManagementIdentityId": {
-            "value": "[reference('managedIdentity').outputs.id.value]"
-          },
-          "publisherEmail": {
-            "value": "[parameters('apiManagementPublisherEmail')]"
-          },
-          "publisherName": {
-            "value": "[parameters('apiManagementPublisherName')]"
-          },
-          "subnetId": {
-            "value": "[reference('networking').outputs.apimSubnetId.value]"
-          },
-          "openAIDeployments": {
-            "value": "[reference('openAi').outputs.openAIDeployments.value]"
-          },
-          "sku": {
-            "value": "[parameters('apimSku')]"
-          },
-          "tags": {
-            "value": {
-              "CreatedBy": "[parameters('currentUserObjectId')]"
-            }
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "languageVersion": "2.0",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "8719663157226737486"
-            }
-          },
-          "definitions": {
-            "_1.apimSkuInfo": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "allowedValues": [
-                    "BasicV2",
-                    "PremiumV2",
-                    "StandardV2"
-                  ]
-                },
-                "capacity": {
-                  "type": "int"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.functionValue": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "tag": {
-                  "type": "string"
-                },
-                "serviceName": {
-                  "type": "string",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.keyVaultSecretsInfo": {
-              "type": "object",
-              "properties": {
-                "keyVaultName": {
-                  "type": "string"
-                },
-                "primaryKeySecretName": {
-                  "type": "string"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfig": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "location": {
-                  "type": "string"
-                },
-                "suffix": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int"
-                },
-                "embedding": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    }
-                  }
-                },
-                "completion": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    },
-                    "sku": {
-                      "type": "string",
-                      "allowedValues": [
-                        "GlobalStandard",
-                        "Standard"
-                      ]
-                    }
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfigs": {
-              "type": "object",
-              "properties": {
-                "embeddingModel": {
-                  "type": "string"
-                },
-                "completionModel": {
-                  "type": "string"
-                },
-                "embeddingMaxTokens": {
-                  "type": "int"
-                },
-                "configs": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/_1.openAIConfig"
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAiDeploymentInfo": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "host": {
-                  "type": "string"
-                },
-                "endpoint": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openApiApimBackends": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "id": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.roleAssignmentInfo": {
-              "type": "object",
-              "properties": {
-                "roleDefinitionId": {
-                  "type": "string"
-                },
-                "principalId": {
-                  "type": "string"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            }
-          },
-          "parameters": {
-            "name": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of the resource."
-              }
-            },
-            "location": {
-              "type": "string",
-              "defaultValue": "[resourceGroup().location]",
-              "metadata": {
-                "description": "Location to deploy the resource. Defaults to the location of the resource group."
-              }
-            },
-            "tags": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "Tags for the resource."
-              }
-            },
-            "apiManagementIdentityId": {
-              "type": "string",
-              "metadata": {
-                "description": "ID for the Managed Identity associated with the API Management resource."
-              }
-            },
-            "subnetId": {
-              "type": "string",
-              "metadata": {
-                "description": "ID for the subnet to deploy the API Management resource."
-              }
-            },
-            "publisherEmail": {
-              "type": "string",
-              "minLength": 1,
-              "metadata": {
-                "description": "Email address of the owner for the API Management resource."
-              }
-            },
-            "publisherName": {
-              "type": "string",
-              "minLength": 1,
-              "metadata": {
-                "description": "Name of the owner for the API Management resource."
-              }
-            },
-            "sku": {
-              "$ref": "#/definitions/_1.apimSkuInfo",
-              "defaultValue": {
-                "name": "StandardV2",
-                "capacity": 1
-              },
-              "metadata": {
-                "description": "API Management SKU. Defaults to StandardV2, capacity 1."
-              }
-            },
-            "openAIDeployments": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/_1.openAiDeploymentInfo"
-              }
-            }
-          },
-          "resources": {
-            "apiManagement": {
-              "type": "Microsoft.ApiManagement/service",
-              "apiVersion": "2023-05-01-preview",
-              "name": "[parameters('name')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "sku": "[parameters('sku')]",
-              "identity": {
-                "type": "SystemAssigned, UserAssigned",
-                "userAssignedIdentities": {
-                  "[format('{0}', parameters('apiManagementIdentityId'))]": {}
-                }
-              },
-              "properties": {
-                "publisherEmail": "[parameters('publisherEmail')]",
-                "publisherName": "[parameters('publisherName')]",
-                "virtualNetworkType": "External",
-                "virtualNetworkConfiguration": {
-                  "subnetResourceId": "[parameters('subnetId')]"
-                }
-              }
-            },
-            "openAIApiBackend": {
-              "copy": {
-                "name": "openAIApiBackend",
-                "count": "[length(parameters('openAIDeployments'))]"
-              },
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[format('backend-openai-{0}', parameters('openAIDeployments')[copyIndex()].name)]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "name": {
-                    "value": "[format('OPENAI{0}', toUpper(parameters('openAIDeployments')[copyIndex()].name))]"
-                  },
-                  "apiManagementName": {
-                    "value": "[parameters('name')]"
-                  },
-                  "url": {
-                    "value": "[format('{0}openai', parameters('openAIDeployments')[copyIndex()].host)]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "14668101494877375535"
-                    }
-                  },
-                  "parameters": {
-                    "name": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the Backend."
-                      }
-                    },
-                    "apiManagementName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the API Management associated with the Backend."
-                      }
-                    },
-                    "url": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "URL of the Backend."
-                      }
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.ApiManagement/service/backends",
-                      "apiVersion": "2024-06-01-preview",
-                      "name": "[format('{0}/{1}', parameters('apiManagementName'), parameters('name'))]",
-                      "properties": {
-                        "protocol": "http",
-                        "url": "[parameters('url')]",
-                        "circuitBreaker": {
-                          "rules": [
-                            {
-                              "failureCondition": {
-                                "count": 3,
-                                "errorReasons": [
-                                  "Server errors"
-                                ],
-                                "interval": "PT10S",
-                                "statusCodeRanges": [
-                                  {
-                                    "min": 400,
-                                    "max": 599
-                                  }
-                                ]
-                              },
-                              "name": "[format('{0}-BreakerRule', parameters('name'))]",
-                              "tripDuration": "PT10S",
-                              "acceptRetryAfter": true
-                            }
-                          ]
-                        }
-                      }
-                    }
-                  ],
-                  "outputs": {
-                    "id": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "ID for the deployed API Management Backend resource."
-                      },
-                      "value": "[resourceId('Microsoft.ApiManagement/service/backends', parameters('apiManagementName'), parameters('name'))]"
-                    },
-                    "name": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name for the deployed API Management Backend resource."
-                      },
-                      "value": "[parameters('name')]"
-                    }
-                  }
-                }
-              },
-              "dependsOn": [
-                "apiManagement"
-              ]
-            }
-          },
-          "outputs": {
-            "id": {
-              "type": "string",
-              "metadata": {
-                "description": "ID for the deployed API Management resource."
-              },
-              "value": "[resourceId('Microsoft.ApiManagement/service', parameters('name'))]"
-            },
-            "name": {
-              "type": "string",
-              "metadata": {
-                "description": "Name for the deployed API Management resource."
-              },
-              "value": "[parameters('name')]"
-            },
-            "gatewayUrl": {
-              "type": "string",
-              "metadata": {
-                "description": "Gateway URL for the deployed API Management resource."
-              },
-              "value": "[reference('apiManagement').gatewayUrl]"
-            },
-            "identity": {
-              "type": "string",
-              "value": "[reference('apiManagement', '2023-05-01-preview', 'full').identity.principalId]"
-            },
-            "openAIApiBackends": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/_1.openApiApimBackends"
-              },
-              "copy": {
-                "count": "[length(parameters('openAIDeployments'))]",
-                "input": {
-                  "name": "[format('backend-openai-{0}', parameters('openAIDeployments')[copyIndex()].name)]",
-                  "id": "[reference(format('openAIApiBackend[{0}]', copyIndex())).outputs.id.value]",
-                  "priority": "[tryGet(parameters('openAIDeployments')[copyIndex()], 'priority')]"
-                }
-              }
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "managedIdentity",
-        "networking",
-        "openAi",
-        "rg"
-      ]
-    },
-    "aoiManamgentSettings": {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "apiManagementSettings",
-      "resourceGroup": "[variables('resourceGroupName')]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "apiManagementName": {
-            "value": "[reference('apiManagement').outputs.name.value]"
-          },
-          "openApiApimBackends": {
-            "value": "[reference('apiManagement').outputs.openAIApiBackends.value]"
-          },
-          "appInsightsName": {
-            "value": "[reference('appInsights').outputs.name.value]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "languageVersion": "2.0",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "9754202044846308276"
-            }
-          },
-          "definitions": {
-            "_1.apimSkuInfo": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "allowedValues": [
-                    "BasicV2",
-                    "PremiumV2",
-                    "StandardV2"
-                  ]
-                },
-                "capacity": {
-                  "type": "int"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.functionValue": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "tag": {
-                  "type": "string"
-                },
-                "serviceName": {
-                  "type": "string",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.keyVaultSecretsInfo": {
-              "type": "object",
-              "properties": {
-                "keyVaultName": {
-                  "type": "string"
-                },
-                "primaryKeySecretName": {
-                  "type": "string"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfig": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "location": {
-                  "type": "string"
-                },
-                "suffix": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int"
-                },
-                "embedding": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    }
-                  }
-                },
-                "completion": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    },
-                    "sku": {
-                      "type": "string",
-                      "allowedValues": [
-                        "GlobalStandard",
-                        "Standard"
-                      ]
-                    }
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfigs": {
-              "type": "object",
-              "properties": {
-                "embeddingModel": {
-                  "type": "string"
-                },
-                "completionModel": {
-                  "type": "string"
-                },
-                "embeddingMaxTokens": {
-                  "type": "int"
-                },
-                "configs": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/_1.openAIConfig"
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAiDeploymentInfo": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "host": {
-                  "type": "string"
-                },
-                "endpoint": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openApiApimBackends": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "id": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.roleAssignmentInfo": {
-              "type": "object",
-              "properties": {
-                "roleDefinitionId": {
-                  "type": "string"
-                },
-                "principalId": {
-                  "type": "string"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            }
-          },
-          "parameters": {
-            "apiManagementName": {
-              "type": "string"
-            },
-            "appInsightsName": {
-              "type": "string"
-            },
-            "openApiApimBackends": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/_1.openApiApimBackends"
-              }
-            }
-          },
-          "variables": {
-            "loadBalancerName": "openai-loadbalancer"
-          },
-          "resources": {
-            "apiManagement": {
-              "existing": true,
-              "type": "Microsoft.ApiManagement/service",
-              "apiVersion": "2023-05-01-preview",
-              "name": "[parameters('apiManagementName')]"
-            },
-            "openAIApi": {
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[format('{0}-api-openai', parameters('apiManagementName'))]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "name": {
-                    "value": "openai"
-                  },
-                  "loadBalancerName": {
-                    "value": "[reference('apimLoadBalancing').outputs.name.value]"
-                  },
-                  "apiManagementName": {
-                    "value": "[parameters('apiManagementName')]"
-                  },
-                  "path": {
-                    "value": "/openai"
-                  },
-                  "format": {
-                    "value": "openapi-link"
-                  },
-                  "displayName": {
-                    "value": "OpenAI"
-                  },
-                  "value": {
-                    "value": "https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "18034427520084457494"
-                    }
-                  },
-                  "parameters": {
-                    "name": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the API."
-                      }
-                    },
-                    "apiManagementName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the API Management associated with the API."
-                      }
-                    },
-                    "displayName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Display name of the API."
-                      }
-                    },
-                    "path": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Relative URL for the API and all of its resource paths associated with the API Management resource."
-                      }
-                    },
-                    "format": {
-                      "type": "string",
-                      "allowedValues": [
-                        "openapi",
-                        "openapi+json",
-                        "openapi+json-link",
-                        "openapi-link"
-                      ],
-                      "metadata": {
-                        "description": "Format for the OpenAPI specification."
-                      }
-                    },
-                    "value": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Value for the OpenAPI specification."
-                      }
-                    },
-                    "loadBalancerName": {
-                      "type": "string"
-                    }
-                  },
-                  "variables": {
-                    "$fxv#0": "<policies>\r\n    <inbound>\r\n        <base />\r\n        <validate-jwt header-name=\"Authorization\" failed-validation-httpcode=\"401\" failed-validation-error-message=\"Missing or invalid bearer token.\">\r\n            <openid-config url=\"https://login.microsoftonline.com/{{tenant-id}}/v2.0/.well-known/openid-configuration\" />\r\n            <audiences>\r\n                <audience>https://cognitiveservices.azure.com</audience>\r\n            </audiences>\r\n        </validate-jwt>\r\n        <set-backend-service backend-id=\"{{load-balancer-name}}\" />\r\n        <authentication-managed-identity resource=\"https://cognitiveservices.azure.com\" output-token-variable-name=\"msi-access-token\" ignore-error=\"false\" />\r\n        <set-header name=\"Authorization\" exists-action=\"override\">\r\n            <value>@(\"Bearer \" + (string)context.Variables[\"msi-access-token\"])</value>\r\n        </set-header>\r\n    </inbound>\r\n    <backend>\r\n        <base />\r\n    </backend>\r\n    <outbound>\r\n        <base />\r\n    </outbound>\r\n    <on-error>\r\n        <base />\r\n    </on-error>\r\n</policies>"
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.ApiManagement/service/apis",
-                      "apiVersion": "2024-06-01-preview",
-                      "name": "[format('{0}/{1}', parameters('apiManagementName'), parameters('name'))]",
-                      "properties": {
-                        "displayName": "[parameters('displayName')]",
-                        "path": "[parameters('path')]",
-                        "format": "[parameters('format')]",
-                        "value": "[parameters('value')]",
-                        "subscriptionRequired": false
-                      }
-                    },
-                    {
-                      "type": "Microsoft.ApiManagement/service/apis/policies",
-                      "apiVersion": "2022-08-01",
-                      "name": "[format('{0}/{1}/{2}', parameters('apiManagementName'), parameters('name'), 'policy')]",
-                      "properties": {
-                        "value": "[replace(replace(variables('$fxv#0'), '{{load-balancer-name}}', parameters('loadBalancerName')), '{{tenant-id}}', subscription().tenantId)]",
-                        "format": "rawxml"
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.ApiManagement/service/apis', parameters('apiManagementName'), parameters('name'))]"
-                      ]
-                    }
-                  ],
-                  "outputs": {
-                    "id": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "ID for the deployed API Management API resource."
-                      },
-                      "value": "[resourceId('Microsoft.ApiManagement/service/apis', parameters('apiManagementName'), parameters('name'))]"
-                    },
-                    "name": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name for the deployed API Management API resource."
-                      },
-                      "value": "[parameters('name')]"
-                    }
-                  }
-                }
-              },
-              "dependsOn": [
-                "apimLoadBalancing"
-              ]
-            },
-            "apimLogger": {
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[format('{0}-logger', parameters('apiManagementName'))]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "apiManagementName": {
-                    "value": "[parameters('apiManagementName')]"
-                  },
-                  "appInsightsName": {
-                    "value": "[parameters('appInsightsName')]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "7234678812015471774"
-                    }
-                  },
-                  "parameters": {
-                    "apiManagementName": {
-                      "type": "string"
-                    },
-                    "appInsightsName": {
-                      "type": "string"
-                    }
-                  },
-                  "resources": [
-                    {
-                      "type": "Microsoft.ApiManagement/service/loggers",
-                      "apiVersion": "2023-05-01-preview",
-                      "name": "[format('{0}/{1}', parameters('apiManagementName'), 'apimlogger')]",
-                      "properties": {
-                        "resourceId": "[resourceId('Microsoft.Insights/components', parameters('appInsightsName'))]",
-                        "description": "Application Insights for APIM",
-                        "loggerType": "applicationInsights",
-                        "credentials": {
-                          "instrumentationKey": "[reference(resourceId('Microsoft.Insights/components', parameters('appInsightsName')), '2020-02-02').InstrumentationKey]"
-                        }
-                      }
-                    }
-                  ]
-                }
-              }
-            },
-            "apimLoadBalancing": {
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[format('{0}-loadbalancer', parameters('apiManagementName'))]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "apiManagementName": {
-                    "value": "[parameters('apiManagementName')]"
-                  },
-                  "openApiApimBackends": {
-                    "value": "[parameters('openApiApimBackends')]"
-                  },
-                  "name": {
-                    "value": "[variables('loadBalancerName')]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "languageVersion": "2.0",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "2433261907788767284"
-                    }
-                  },
-                  "definitions": {
-                    "_1.apimSkuInfo": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "allowedValues": [
-                            "BasicV2",
-                            "PremiumV2",
-                            "StandardV2"
-                          ]
-                        },
-                        "capacity": {
-                          "type": "int"
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.functionValue": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "tag": {
-                          "type": "string"
-                        },
-                        "serviceName": {
-                          "type": "string",
-                          "nullable": true
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.keyVaultSecretsInfo": {
-                      "type": "object",
-                      "properties": {
-                        "keyVaultName": {
-                          "type": "string"
-                        },
-                        "primaryKeySecretName": {
-                          "type": "string"
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openAIConfig": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "location": {
-                          "type": "string"
-                        },
-                        "suffix": {
-                          "type": "string"
-                        },
-                        "priority": {
-                          "type": "int"
-                        },
-                        "embedding": {
-                          "type": "object",
-                          "properties": {
-                            "capacity": {
-                              "type": "int"
-                            }
-                          }
-                        },
-                        "completion": {
-                          "type": "object",
-                          "properties": {
-                            "capacity": {
-                              "type": "int"
-                            },
-                            "sku": {
-                              "type": "string",
-                              "allowedValues": [
-                                "GlobalStandard",
-                                "Standard"
-                              ]
-                            }
-                          }
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openAIConfigs": {
-                      "type": "object",
-                      "properties": {
-                        "embeddingModel": {
-                          "type": "string"
-                        },
-                        "completionModel": {
-                          "type": "string"
-                        },
-                        "embeddingMaxTokens": {
-                          "type": "int"
-                        },
-                        "configs": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/definitions/_1.openAIConfig"
-                          }
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openAiDeploymentInfo": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "host": {
-                          "type": "string"
-                        },
-                        "endpoint": {
-                          "type": "string"
-                        },
-                        "priority": {
-                          "type": "int",
-                          "nullable": true
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openApiApimBackends": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "priority": {
-                          "type": "int",
-                          "nullable": true
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.roleAssignmentInfo": {
-                      "type": "object",
-                      "properties": {
-                        "roleDefinitionId": {
-                          "type": "string"
-                        },
-                        "principalId": {
-                          "type": "string"
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../../constants/customTypes.bicep"
-                        }
-                      }
-                    }
-                  },
-                  "parameters": {
-                    "name": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the Loadbalancer config."
-                      }
-                    },
-                    "apiManagementName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the API Management associated with the Backend."
-                      }
-                    },
-                    "openApiApimBackends": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/definitions/_1.openApiApimBackends"
-                      },
-                      "metadata": {
-                        "description": "URL of the Backend."
-                      }
-                    }
-                  },
-                  "variables": {
-                    "copy": [
-                      {
-                        "name": "services",
-                        "count": "[length(parameters('openApiApimBackends'))]",
-                        "input": {
-                          "id": "[parameters('openApiApimBackends')[copyIndex('services')].id]",
-                          "priority": "[tryGet(parameters('openApiApimBackends')[copyIndex('services')], 'priority')]"
-                        }
-                      }
-                    ]
-                  },
-                  "resources": {
-                    "apiManagement": {
-                      "existing": true,
-                      "type": "Microsoft.ApiManagement/service",
-                      "apiVersion": "2024-06-01-preview",
-                      "name": "[parameters('apiManagementName')]"
-                    },
-                    "loadbalancer": {
-                      "type": "Microsoft.ApiManagement/service/backends",
-                      "apiVersion": "2024-06-01-preview",
-                      "name": "[format('{0}/{1}', parameters('apiManagementName'), parameters('name'))]",
-                      "properties": {
-                        "type": "Pool",
-                        "pool": {
-                          "services": "[variables('services')]"
-                        }
-                      }
-                    }
-                  },
-                  "outputs": {
-                    "id": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "ID for the deployed API Management Backend resource."
-                      },
-                      "value": "[resourceId('Microsoft.ApiManagement/service/backends', parameters('apiManagementName'), parameters('name'))]"
-                    },
-                    "name": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name for the deployed API Management Backend resource."
-                      },
-                      "value": "[parameters('name')]"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "apiManagement",
-        "appInsights",
-        "rg",
-        "roleAssigments"
-      ]
-    },
-    "openAi": {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "openAi",
-      "resourceGroup": "[variables('resourceGroupName')]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "openAIInstances": {
-            "value": "[parameters('openAiConfigs')]"
-          },
-          "instancePrefix": {
-            "value": "[format('{0}{1}-', variables('abbrs').openAIService, parameters('appName'))]"
-          },
-          "managedIdentityId": {
-            "value": "[reference('managedIdentity').outputs.id.value]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "languageVersion": "2.0",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.39.26.7824",
-              "templateHash": "7843084824030637864"
-            }
-          },
-          "definitions": {
-            "_1.apimSkuInfo": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "allowedValues": [
-                    "BasicV2",
-                    "PremiumV2",
-                    "StandardV2"
-                  ]
-                },
-                "capacity": {
-                  "type": "int"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.functionValue": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "tag": {
-                  "type": "string"
-                },
-                "serviceName": {
-                  "type": "string",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.keyVaultSecretsInfo": {
-              "type": "object",
-              "properties": {
-                "keyVaultName": {
-                  "type": "string"
-                },
-                "primaryKeySecretName": {
-                  "type": "string"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfig": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "location": {
-                  "type": "string"
-                },
-                "suffix": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int"
-                },
-                "embedding": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    }
-                  }
-                },
-                "completion": {
-                  "type": "object",
-                  "properties": {
-                    "capacity": {
-                      "type": "int"
-                    },
-                    "sku": {
-                      "type": "string",
-                      "allowedValues": [
-                        "GlobalStandard",
-                        "Standard"
-                      ]
-                    }
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAIConfigs": {
-              "type": "object",
-              "properties": {
-                "embeddingModel": {
-                  "type": "string"
-                },
-                "completionModel": {
-                  "type": "string"
-                },
-                "embeddingMaxTokens": {
-                  "type": "int"
-                },
-                "configs": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/definitions/_1.openAIConfig"
-                  }
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openAiDeploymentInfo": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "host": {
-                  "type": "string"
-                },
-                "endpoint": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.openApiApimBackends": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "id": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": "int",
-                  "nullable": true
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            },
-            "_1.roleAssignmentInfo": {
-              "type": "object",
-              "properties": {
-                "roleDefinitionId": {
-                  "type": "string"
-                },
-                "principalId": {
-                  "type": "string"
-                }
-              },
-              "metadata": {
-                "__bicep_imported_from!": {
-                  "sourceTemplate": "../constants/customTypes.bicep"
-                }
-              }
-            }
-          },
-          "parameters": {
-            "instancePrefix": {
-              "type": "string"
-            },
-            "openAIInstances": {
-              "$ref": "#/definitions/_1.openAIConfigs"
-            },
-            "managedIdentityId": {
-              "type": "string"
-            }
-          },
-          "resources": {
-            "openAI": {
-              "copy": {
-                "name": "openAI",
-                "count": "[length(parameters('openAIInstances').configs)]"
-              },
-              "type": "Microsoft.Resources/deployments",
-              "apiVersion": "2025-04-01",
-              "name": "[if(not(empty(tryGet(parameters('openAIInstances').configs[copyIndex()], 'name'))), parameters('openAIInstances').configs[copyIndex()].name, format('{0}{1}', parameters('instancePrefix'), parameters('openAIInstances').configs[copyIndex()].suffix))]",
-              "properties": {
-                "expressionEvaluationOptions": {
-                  "scope": "inner"
-                },
-                "mode": "Incremental",
-                "parameters": {
-                  "managedIdentityId": {
-                    "value": "[parameters('managedIdentityId')]"
-                  },
-                  "name": "[if(not(empty(tryGet(parameters('openAIInstances').configs[copyIndex()], 'name'))), createObject('value', parameters('openAIInstances').configs[copyIndex()].name), createObject('value', format('{0}{1}', parameters('instancePrefix'), parameters('openAIInstances').configs[copyIndex()].suffix)))]",
-                  "location": {
-                    "value": "[parameters('openAIInstances').configs[copyIndex()].location]"
-                  },
-                  "openAiConfig": {
-                    "value": "[parameters('openAIInstances').configs[copyIndex()]]"
-                  },
-                  "completionModel": {
-                    "value": "[parameters('openAIInstances').completionModel]"
-                  },
-                  "embeddingModel": {
-                    "value": "[parameters('openAIInstances').embeddingModel]"
-                  }
-                },
-                "template": {
-                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-                  "languageVersion": "2.0",
-                  "contentVersion": "1.0.0.0",
-                  "metadata": {
-                    "_generator": {
-                      "name": "bicep",
-                      "version": "0.39.26.7824",
-                      "templateHash": "17161662655735935986"
-                    }
-                  },
-                  "definitions": {
-                    "_1.apimSkuInfo": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string",
-                          "allowedValues": [
-                            "BasicV2",
-                            "PremiumV2",
-                            "StandardV2"
-                          ]
-                        },
-                        "capacity": {
-                          "type": "int"
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.functionValue": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "tag": {
-                          "type": "string"
-                        },
-                        "serviceName": {
-                          "type": "string",
-                          "nullable": true
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.keyVaultSecretsInfo": {
-                      "type": "object",
-                      "properties": {
-                        "keyVaultName": {
-                          "type": "string"
-                        },
-                        "primaryKeySecretName": {
-                          "type": "string"
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openAIConfig": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "location": {
-                          "type": "string"
-                        },
-                        "suffix": {
-                          "type": "string"
-                        },
-                        "priority": {
-                          "type": "int"
-                        },
-                        "embedding": {
-                          "type": "object",
-                          "properties": {
-                            "capacity": {
-                              "type": "int"
-                            }
-                          }
-                        },
-                        "completion": {
-                          "type": "object",
-                          "properties": {
-                            "capacity": {
-                              "type": "int"
-                            },
-                            "sku": {
-                              "type": "string",
-                              "allowedValues": [
-                                "GlobalStandard",
-                                "Standard"
-                              ]
-                            }
-                          }
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openAIConfigs": {
-                      "type": "object",
-                      "properties": {
-                        "embeddingModel": {
-                          "type": "string"
-                        },
-                        "completionModel": {
-                          "type": "string"
-                        },
-                        "embeddingMaxTokens": {
-                          "type": "int"
-                        },
-                        "configs": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/definitions/_1.openAIConfig"
-                          }
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openAiDeploymentInfo": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "host": {
-                          "type": "string"
-                        },
-                        "endpoint": {
-                          "type": "string"
-                        },
-                        "priority": {
-                          "type": "int",
-                          "nullable": true
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.openApiApimBackends": {
-                      "type": "object",
-                      "properties": {
-                        "name": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "priority": {
-                          "type": "int",
-                          "nullable": true
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    },
-                    "_1.roleAssignmentInfo": {
-                      "type": "object",
-                      "properties": {
-                        "roleDefinitionId": {
-                          "type": "string"
-                        },
-                        "principalId": {
-                          "type": "string"
-                        }
-                      },
-                      "metadata": {
-                        "__bicep_imported_from!": {
-                          "sourceTemplate": "../constants/customTypes.bicep"
-                        }
-                      }
-                    }
-                  },
-                  "parameters": {
-                    "name": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the resource."
-                      }
-                    },
-                    "location": {
-                      "type": "string",
-                      "defaultValue": "[resourceGroup().location]",
-                      "metadata": {
-                        "description": "Location to deploy the resource. Defaults to the location of the resource group."
-                      }
-                    },
-                    "tags": {
-                      "type": "object",
-                      "defaultValue": {},
-                      "metadata": {
-                        "description": "Tags for the resource."
-                      }
-                    },
-                    "managedIdentityId": {
-                      "type": "string"
-                    },
-                    "openAiConfig": {
-                      "$ref": "#/definitions/_1.openAIConfig"
-                    },
-                    "completionModel": {
-                      "type": "string"
-                    },
-                    "embeddingModel": {
-                      "type": "string"
-                    },
-                    "publicNetworkAccess": {
-                      "type": "string",
-                      "defaultValue": "Enabled",
-                      "allowedValues": [
-                        "Enabled",
-                        "Disabled"
-                      ],
-                      "metadata": {
-                        "description": "Whether to enable public network access. Defaults to Enabled."
-                      }
-                    }
-                  },
-                  "resources": {
-                    "cognitiveServices": {
-                      "type": "Microsoft.CognitiveServices/accounts",
-                      "apiVersion": "2023-10-01-preview",
-                      "name": "[parameters('name')]",
-                      "location": "[parameters('location')]",
-                      "tags": "[parameters('tags')]",
-                      "kind": "OpenAI",
-                      "identity": {
-                        "type": "UserAssigned",
-                        "userAssignedIdentities": {
-                          "[format('{0}', parameters('managedIdentityId'))]": {}
-                        }
-                      },
-                      "properties": {
-                        "customSubDomainName": "[toLower(parameters('name'))]",
-                        "publicNetworkAccess": "[parameters('publicNetworkAccess')]"
-                      },
-                      "sku": {
-                        "name": "S0"
-                      }
-                    },
-                    "completionDeployment": {
-                      "type": "Microsoft.CognitiveServices/accounts/deployments",
-                      "apiVersion": "2023-10-01-preview",
-                      "name": "[format('{0}/{1}', parameters('name'), parameters('completionModel'))]",
-                      "properties": {
-                        "model": {
-                          "format": "OpenAI",
-                          "name": "[parameters('completionModel')]"
-                        }
-                      },
-                      "sku": {
-                        "name": "[parameters('openAiConfig').completion.sku]",
-                        "capacity": "[parameters('openAiConfig').completion.capacity]"
-                      },
-                      "dependsOn": [
-                        "cognitiveServices"
-                      ]
-                    },
-                    "embeddingDeployment": {
-                      "type": "Microsoft.CognitiveServices/accounts/deployments",
-                      "apiVersion": "2023-10-01-preview",
-                      "name": "[format('{0}/{1}', parameters('name'), parameters('embeddingModel'))]",
-                      "properties": {
-                        "model": {
-                          "format": "OpenAI",
-                          "name": "[parameters('embeddingModel')]"
-                        }
-                      },
-                      "sku": {
-                        "name": "Standard",
-                        "capacity": "[parameters('openAiConfig').embedding.capacity]"
-                      },
-                      "dependsOn": [
-                        "cognitiveServices",
-                        "completionDeployment"
-                      ]
-                    }
-                  },
-                  "outputs": {
-                    "openAiInfo": {
-                      "$ref": "#/definitions/_1.openAiDeploymentInfo",
-                      "value": {
-                        "name": "[parameters('name')]",
-                        "id": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('name'))]",
-                        "host": "[reference('cognitiveServices').endpoint]",
-                        "endpoint": "[reference('cognitiveServices').endpoint]"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "outputs": {
-            "openAIDeployments": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/_1.openAiDeploymentInfo"
-              },
-              "copy": {
-                "count": "[length(range(0, length(parameters('openAIInstances').configs)))]",
-                "input": {
-                  "id": "[reference(format('openAI[{0}]', range(0, length(parameters('openAIInstances').configs))[copyIndex()])).outputs.openAiInfo.value.id]",
-                  "name": "[reference(format('openAI[{0}]', range(0, length(parameters('openAIInstances').configs))[copyIndex()])).outputs.openAiInfo.value.name]",
-                  "host": "[format('https://{0}.openai.azure.com/', reference(format('openAI[{0}]', range(0, length(parameters('openAIInstances').configs))[copyIndex()])).outputs.openAiInfo.value.name)]",
-                  "endpoint": "[format('https://{0}.openai.azure.com/openai/deployments/{1}/chat/completions?api-version=2023-10-01-preview', reference(format('openAI[{0}]', range(0, length(parameters('openAIInstances').configs))[copyIndex()])).outputs.openAiInfo.value.name, reference(format('openAI[{0}]', range(0, length(parameters('openAIInstances').configs))[copyIndex()])).outputs.openAiInfo.value.name)]",
-                  "priority": "[parameters('openAIInstances').configs[range(0, length(parameters('openAIInstances').configs))[copyIndex()]].priority]"
-                }
-              }
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "managedIdentity",
-        "rg"
-      ]
     }
   },
   "outputs": {
@@ -4939,24 +3323,25 @@
       "type": "string",
       "value": "[variables('resourceGroupName')]"
     },
-    "openAINames": {
-      "type": "array",
-      "copy": {
-        "count": "[length(range(0, length(parameters('openAiConfigs').configs)))]",
-        "input": "[reference('openAi').outputs.openAIDeployments.value[range(0, length(parameters('openAiConfigs').configs))[copyIndex()]].name]"
-      }
-    },
-    "openAiChatModel": {
+    "foundryAccountName": {
       "type": "string",
-      "value": "[parameters('openAiConfigs').completionModel]"
+      "value": "[reference('foundry').outputs.accountName.value]"
     },
-    "openAiEmbeddingModel": {
+    "foundryProjectEndpoint": {
       "type": "string",
-      "value": "[parameters('openAiConfigs').embeddingModel]"
+      "value": "[reference('foundry').outputs.projectEndpoint.value]"
     },
-    "apimName": {
+    "foundryInferenceEndpoint": {
       "type": "string",
-      "value": "[reference('apiManagement').outputs.name.value]"
+      "value": "[reference('foundry').outputs.inferenceEndpoint.value]"
+    },
+    "foundryChatDeployment": {
+      "type": "string",
+      "value": "[reference('foundry').outputs.chatDeploymentName.value]"
+    },
+    "foundryEmbeddingDeployment": {
+      "type": "string",
+      "value": "[reference('foundry').outputs.embeddingDeploymentName.value]"
     },
     "containerAppsEnvironmentName": {
       "type": "string",
@@ -4969,6 +3354,10 @@
     "services": {
       "type": "array",
       "value": "[reference('functions').outputs.services.value]"
+    },
+    "AZURE_CONTAINER_REGISTRY_ENDPOINT": {
+      "type": "string",
+      "value": "[reference('containerRegistry').outputs.loginServer.value]"
     }
   }
 }

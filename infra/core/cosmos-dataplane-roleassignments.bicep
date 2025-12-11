@@ -8,7 +8,7 @@ param principalIds array
 @description('Resource group of the Cosmos account')
 param cosmosRg string
 
-var subscriptionId string = subscription().subscriptionId
+var subscriptionId = subscription().subscriptionId
 
 // Reference the existing Cosmos DB account
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
