@@ -33,6 +33,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
+    disableLocalAuth: true
     locations: [
       {
         locationName: location
