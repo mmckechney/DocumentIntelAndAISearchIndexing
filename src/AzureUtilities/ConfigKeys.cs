@@ -3,8 +3,7 @@ namespace HighVolumeProcessing.UtilityLibrary
    public static class ConfigKeys
    {
       public const string AZURE_AISEARCH_ENDPOINT = "AZURE_AISEARCH_ENDPOINT";
-      public const string AZURE_AISEARCH_INCLUDE_GENERAL_INDEX = "AZURE_AISEARCH_INCLUDE_GENERAL_INDEX";
-      public const string AZURE_AISEARCH_INDEXNAME = "AZURE_AISEARCH_INDEXNAME";
+      public const string AZURE_AISEARCH_INDEX_NAME = "AZURE_AISEARCH_INDEX_NAME";
       
       public const string AZURE_FOUNDRY_PROJECT_ENDPOINT = "AZURE_FOUNDRY_PROJECT_ENDPOINT";
       public const string AZURE_FOUNDRY_AGENT_ID = "AZURE_FOUNDRY_AGENT_ID";

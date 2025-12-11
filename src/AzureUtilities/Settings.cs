@@ -82,7 +82,7 @@ namespace HighVolumeProcessing.UtilityLibrary
          {
             if (string.IsNullOrEmpty(_AiSearchIndexName))
             {
-               _AiSearchIndexName = GetSettingsValue(ConfigKeys.AZURE_AISEARCH_INDEXNAME, defaultAiIndexName);
+               _AiSearchIndexName = GetSettingsValue(ConfigKeys.AZURE_AISEARCH_INDEX_NAME, defaultAiIndexName);
             }
             return _AiSearchIndexName;
          }
