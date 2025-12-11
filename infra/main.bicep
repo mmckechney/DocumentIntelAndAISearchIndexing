@@ -225,7 +225,7 @@ module containerEnvironment 'core/containerapp-environment.bicep' = {
 	}
 }
 
-module functions 'functions/functions.bicep' = {
+module functions 'containerapp/containerapps.bicep' = {
 	name: 'functions'
 	scope: rg
 	params: {
