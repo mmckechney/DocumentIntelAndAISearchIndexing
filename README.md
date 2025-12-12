@@ -14,34 +14,32 @@ This solution leverages the following Azure services:
 
 - **[Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/?view=doc-intel-4.0.0)** - the Azure AI Service API that will perform the document intelligence, extraction and processing.
 
-- **[Azure OpenAI](https://azure.microsoft.com/en-us/products/ai-services/openai-service)** - the Azure AI Service API that will perform the semantic embedding calculations of the extracted text.
-- **[Azure API Management](https://learn.microsoft.com/en-us/azure/api-management/)** - used to load balance across multiple Azure OpenAI instances
+- **[Microsoft Foundry](https://azure.microsoft.com/en-us/products/ai-foundry)** - the Azure AI Service API that will perform the semantic embedding calculations of the extracted text.
 - **[Azure AI Search](https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search)** - the Azure AI Service that will index the extracted text for search and analysis.
 
 - **[Azure Blob Storage](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction)** with three containers
   - `documents` - starting location to perform your bulk upload of documents to be processed
   - `processresults`  - the extracted text output from the Document Intelligence service
   - `completed` - location where the original documents are moved to once successfully processed by Document Intelligence
-four
 - **[Azure Service Bus](https://learn.microsoft.com/en-us/azure/service-bus-messaging/)** with four queues
   - `docqueue` - this contains the messages for the files that need to be processed by the Document Intelligence service
   - `customfieldqueue` - this contains messages for the files that need to have custom field extraction compelted
   - `toindexqueue` - this contains the messages for the files that have been processed by the Document Intelligence service and the reults are ready to be indexed by Azure AI Search
   - `movequeue` - this contains the messages for the files that have been processed by the Document Intelligence service and are ready to be moved to the `completed` blob container
-- **[Azure Functions](https://learn.microsoft.com/en-us/azure/azure-functions/functions-overview?pivots=programming-language-csharp)**
-  - `DocumentQueueing` - identifies the files in the `document` blob container and send a claim check message (containing the file name) to the `docqueue` queue. This function is triggered by an HTTP call, but could also be modified to use a Blob Trigger
+- **[Azure Container Apps](https://learn.microsoft.com/en-us/azure/container-apps/overview)**
+  - `DocumentQueueing` - identifies the files in the `document` blob container and send a claim check message (containing the file name) to the `docqueue` queue. This app is triggered by an HTTP call, but could also be modified to use a Blob Trigger
   - `DocumentIntelligence` - processes the message in `docqueue` to Document Intelligence, then updates Blob metadata as "processed" and create new message in `customfieldqueue` \
-    This function employs scale limiting and [Polly](https://github.com/App-vNext/Polly) retries with back off for Document Intelligence (too many requests) replies to balance maximum throughput and overloading the API endpoint
+    This app employs scale limiting and [Polly](https://github.com/App-vNext/Polly) retries with back off for Document Intelligence (too many requests) replies to balance maximum throughput and overloading the API endpoint
   - `CustomFieldExtraction` - processes messages in the `customfieldqueue` to use Azure Open AI to extract custom fields based on the `AzureUtilities/Prompts/ExtractCustomFields.yaml` prompt description. Once complete, create new message in `toindexqueue`
   - `AiSearchIndexing` - processes messages in the `toindexqueue` to get embeddings of the extracted text from Azure Open AI and saves those embeddings to Azure AI Search.  Once complete, create new message in `movequeue`
   - `FileMover` - processes messages in the `movequeue` to move files from `document` to `completed` blob containers
-  - `AskQuestions` - simple HTTP function to demonstrate RAG retrieval by allowing you to ask questions on the indexed documents
+  - `AskQuestions` - simple HTTP app to demonstrate RAG retrieval by allowing you to ask questions on the indexed documents
 
 ### Multiple Document Intelligence endpoints
 
-To further allow for high throughput, the `DocumentIntelligence` function can distribute processing between 1-10 separate Document Intelligence accounts. This is managed by the `docqueue` funtion automatically adding a `RecognizerIndex` value of 0-9 when queueing the files for processing. 
+To further allow for high throughput, the `DocumentIntelligence` app can distribute processing between 1-10 separate Document Intelligence accounts. This is managed by the `docqueue` funtion automatically adding a `RecognizerIndex` value of 0-9 when queueing the files for processing. 
 
-The DocumentIntelligence function will distribute the files to the appropriate account (regardless of the number of Document Intelligence accounts actually provisioned).
+The DocumentIntelligence app will distribute the files to the appropriate account (regardless of the number of Document Intelligence accounts actually provisioned).
 
 To configure multiple Document Intelligence accounts with the script below, add a value between 1-10 for the `-docIntelligenceInstanceCount` (default is 1). To configure manually, you will need to add all of the Document Intelligence account keys to the Azure Key Vault's `DOCUMENT-INTELLIGENCE-KEY` secret -- _pipe separated_
 
@@ -142,12 +140,12 @@ To exercise the code and run the demo, follow these steps:
 
     The sample script above would would upload all of the files found in the `-path` directory, then create copies of them prefixed with 000000 through 000010. You can of course upload the files any way you see fit.
 
-2. In the Azure portal, navigate to the resource group that was created and locate the function with the `Queueing` in the name. Then select the Functions list and select the function method `DocumentQueueing`. In the "Code + Test" link, select Test/Run and hit "Run" (no query parameters are needed). This will kick off the queueing process for all of the files in the `documents` storage container. The output will be the number of files that were queued.
+2. In the Azure portal, navigate to the resource group that was created and locate the app with the `Queueing` in the name. Click on the Applciation URL, then in the new browser window add `/queue` to the end and hit return. This will kick off the queueing process for all of the files in the `documents` storage container. The output will be the number of files that were queued.
 
-3. Once messages start getting queued, the `DocumentIntelligence` function will start picking up the messages and begin processing. You should see the number of messages in the `docqueue` queue go down as they are successfully processed. You will also see new files getting created in the `processresults` container.
+3. Once messages start getting queued, the `DocumentIntelligence` app will start picking up the messages and begin processing. You should see the number of messages in the `docqueue` queue go down as they are successfully processed. You will also see new files getting created in the `processresults` container.
 
-4. Simultaneously, as the `DocumentIntelligence` function completes it's processing and queues messages in the `docqueue` queue, the `AiSearchIndexing` function will start picking up messages in the `toindexqueue` and sent the extracted text in the `processresults` container to Azure OpenAI for embedding calculation and then Azure AI Search for indexing. Also the `Mover` function will begin picking up those messages and moving the processed files from the `processed` container into the `completed` container.
+4. Simultaneously, as the `DocumentIntelligence` app completes it's processing and queues messages in the `docqueue` queue, the `AiSearchIndexing` app will start picking up messages in the `toindexqueue` and sent the extracted text in the `processresults` container to Azure OpenAI for embedding calculation and then Azure AI Search for indexing. Also the `Mover` app will begin picking up those messages and moving the processed files from the `processed` container into the `completed` container.
 
 5. You can review the execution and timings of the end to end process
 
-6. Use the `AskQuestions` function to demonstrate RAG retrieval of the index documents.
+6. Use the `AskQuestions` app to demonstrate RAG retrieval of the index documents (add `api/AskQuestions?filename=<file you uploaded>&question=<question you want to ask>` to the end of the URL and hit enter.).
