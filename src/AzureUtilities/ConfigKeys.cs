@@ -16,7 +16,6 @@ namespace HighVolumeProcessing.UtilityLibrary
       public const string COSMOS_CONTAINER_NAME = "COSMOS_CONTAINER_NAME";
       public const string COSMOS_DB_NAME = "COSMOS_DB_NAME";
      
-      public const string DOCUMENT_INTELLIGENCE_ENDPOINT = "DOCUMENT_INTELLIGENCE_ENDPOINT";
       public const string DOCUMENT_INTELLIGENCE_ENDPOINTS = "DOCUMENT_INTELLIGENCE_ENDPOINTS";
       public const string DOCUMENT_INTELLIGENCE_MODEL_NAME = "DOCUMENT_INTELLIGENCE_MODEL_NAME";
      

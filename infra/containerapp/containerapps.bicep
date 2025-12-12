@@ -220,6 +220,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for functionV
           identity: containerRegistryIdentityResourceId
         }
       ]
+      
     }, functionValue.hasIngress ? {
       ingress: ingressConfiguration[functionValue.serviceName]
     } : {})

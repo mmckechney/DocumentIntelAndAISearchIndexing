@@ -81,6 +81,11 @@ resource cognitiveServicesUser 'Microsoft.Authorization/roleDefinitions@2022-04-
   name: roles.cognitiveServicesUser
 }
 
+resource cognitiveServicesContributor'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
+  scope: resourceGroup()
+  name: roles.cognitiveServicesContributor
+}
+
 resource searchIndexDataContributor 'Microsoft.Authorization/roleDefinitions@2022-04-01' existing = {
   scope: resourceGroup()
   name: roles.searchIndexDataContributor
@@ -204,6 +209,16 @@ resource functionManagedIdentityCognitiveServicesUser 'Microsoft.Authorization/r
     principalId: id
   }
 }]
+
+resource functionManagedIdentityCognitiveServicesContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
+  name: guid(id, cognitiveServicesContributor.id, deploymentEntropy)
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: cognitiveServicesContributor.id
+    principalId: id
+  }
+}]
+
 
 resource functionManagedIdentitySearchIndexDataReader 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for id in principalIds: {
   name: guid(id, searchIndexDataReader.id, deploymentEntropy)

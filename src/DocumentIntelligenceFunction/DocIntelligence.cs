@@ -126,7 +126,7 @@ namespace HighVolumeProcessing.DocumentIntelligenceFunction
          {
             var intelClient = GetDocIntelligenceClient(index);
 
-
+            log.LogInformation($"Sending {fileUri.ToString()} to document intelligence endpoint {intelClient.Endpoint} for processing");
             //Retry policy to back off if too many calls are made to the Document Intelligence
             var retryPolicy = Policy.Handle<RequestFailedException>(e => e.Status == (int)HttpStatusCode.TooManyRequests)
                 .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(retryAttempt++) + TimeSpan.FromMilliseconds(jitterer.Next(0, 1000)));

@@ -1,7 +1,6 @@
 
 param location string = resourceGroup().location
 param formStorageAcct string
-param funcStorageAcct string
 param myPublicIp string
 param subnetIds array
 

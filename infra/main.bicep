@@ -24,8 +24,6 @@ var resourceGroupName = '${abbrs.resourceGroup}${appName}'
 var serviceBusNs = '${abbrs.serviceBusNamespace}${appName}-${location}'
 var formStorageBase = '${abbrs.storageAccount}${appNameLc}${location}'
 var formStorageAcct = length(formStorageBase) > 24 ? substring(formStorageBase, 0, 24) : formStorageBase
-var funcStorageBase = '${abbrs.storageAccount}${appNameLc}func${location}'
-var funcStorageAcct = length(funcStorageBase) > 24 ? substring(funcStorageBase, 0, 24) : funcStorageBase
 var docIntelligence = '${abbrs.documentIntelligence}${appName}${location}'
 
 var vnet = '${abbrs.virtualNetwork}${appName}-${location}'
@@ -37,10 +35,6 @@ var containerRegistryBase = toLower('${abbrs.containerRegistry}${appNameLc}${loc
 var containerRegistryName = length(containerRegistryBase) > 50 ? substring(containerRegistryBase, 0, 50) : containerRegistryBase
 var containerAppEnvironmentBase = toLower('${abbrs.containerAppsEnvironment}${appName}-${location}')
 var containerAppEnvironmentName = length(containerAppEnvironmentBase) > 32 ? substring(containerAppEnvironmentBase, 0, 32) : containerAppEnvironmentBase
-
-var keyvaultNameBase = '${abbrs.keyVault}${appName}-${location}'
-// Key Vaults allow up to 24 chars; trim to 24 if needed
-var keyvaultName = length(keyvaultNameBase) > 24 ? substring(keyvaultNameBase, 0, 24) : keyvaultNameBase
 
 var aiSearchName = '${abbrs.aiSearch}${appNameLc}-demo-${location}'
 var appInsightsName = '${abbrs.applicationInsights}${appName}-${location}'
@@ -158,7 +152,6 @@ module storage 'core/storage.bicep' = {
 	scope: rg
 	params: {
 		formStorageAcct: formStorageAcct
-		funcStorageAcct: funcStorageAcct
 		myPublicIp: myPublicIp
 		location: location
 		subnetIds: networking.outputs.storageSubnetIds
@@ -200,18 +193,6 @@ module servicebus 'core/servicebus.bicep' = {
 	]
 }
 
-module keyvault 'core/keyvault.bicep' = {
-	name: 'keyvault'
-	scope: rg
-	params: {
-		keyVaultName: keyvaultName
-		location: location
-	}
-	dependsOn: [
-		networking
-	]
-}
-
 module containerRegistry 'core/containerregistry.bicep' = {
 	name: 'containerRegistry'
 	scope: rg
@@ -245,8 +226,8 @@ module containerEnvironment 'core/containerapp-environment.bicep' = {
 	}
 }
 
-module functions 'containerapp/containerapps.bicep' = {
-	name: 'functions'
+module containerapps 'containerapp/containerapps.bicep' = {
+	name: 'containerapps'
 	scope: rg
 	params: {
 		location: location
@@ -296,7 +277,7 @@ module roleAssigments 'core/roleassignments.bicep' = {
 		docIntelligencePrincipalIds: docIntelligenceService.outputs.docIntelligencePrincipalIds
 		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
 		currentUserObjectId : currentUserObjectId
-		functionPrincipalIds: functions.outputs.systemAssignedIdentities
+		functionPrincipalIds: containerapps.outputs.systemAssignedIdentities
 		containerRegistryName: containerRegistry.outputs.name
 		cosmosAccountName: cosmosDb.outputs.cosmosDbAccountName
 		cosmosAccountResourceGroup: resourceGroupName
@@ -320,5 +301,5 @@ output foundryChatDeployment string = foundry.outputs.chatDeploymentName
 output foundryEmbeddingDeployment string = foundry.outputs.embeddingDeploymentName
 output containerAppsEnvironmentName string = containerEnvironment.outputs.name
 output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
-output services array = functions.outputs.services
+output services array = containerapps.outputs.services
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer

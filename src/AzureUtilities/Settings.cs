@@ -229,10 +229,6 @@ namespace HighVolumeProcessing.UtilityLibrary
             if (_docIntelEndpointList == null)
             {
                var parsed = ParseEndpointList(_config[ConfigKeys.DOCUMENT_INTELLIGENCE_ENDPOINTS]);
-               if (parsed.Count == 0 && !string.IsNullOrWhiteSpace(DocIntelEndpoint))
-               {
-                  parsed.Add(DocIntelEndpoint);
-               }
                _docIntelEndpointList = parsed;
             }
             return _docIntelEndpointList;
@@ -252,18 +248,6 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      private string _endpoint = string.Empty;
-      public string DocIntelEndpoint
-      {
-         get
-         {
-            if (string.IsNullOrWhiteSpace(_endpoint))
-            {
-               _endpoint = GetSettingsValue(ConfigKeys.DOCUMENT_INTELLIGENCE_ENDPOINT);
-            }
-            return _endpoint;
-         }
-      }
 
       private int embeddingMaxTokens = 0;
       private int embeddingMaxTokensDefault = 8191; // Default value for max tokens
