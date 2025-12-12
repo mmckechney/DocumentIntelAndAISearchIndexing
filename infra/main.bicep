@@ -16,6 +16,7 @@ param foundryConfig customTypes.foundryConfig
 
 @description('Persistent agent identifier inside the Azure AI Foundry project (optional).')
 param foundryAgentId string = ''
+param firstProvision bool = true
 
 var abbrs = loadJsonContent('./constants/abbreviations.json')
 var appNameLc = toLower(appNameSafe)
@@ -262,7 +263,7 @@ module containerapps 'containerapp/containerapps.bicep' = {
 		cosmosContainerName: cosmosContainerName
 		appInsightsConnectionString: appInsights.outputs.connectionString
 		appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
-		usePlaceholderImage: true
+		usePlaceholderImage: firstProvision
 	}
 	dependsOn: [
 		storage

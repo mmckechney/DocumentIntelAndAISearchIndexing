@@ -237,7 +237,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for functionV
         }
       ]
       scale: {
-        minReplicas: 0
+        minReplicas: 1
         maxReplicas: functionValue.hasIngress ? 3 : 2
       }
     }

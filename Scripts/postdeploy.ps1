@@ -72,3 +72,5 @@ foreach ($path in $functionPaths) {
         Write-Host "Directory $path not found. Skipping local.settings.json creation." -ForegroundColor Red
     }
 }
+
+ azd env set "FIRST_PROVISION" $false

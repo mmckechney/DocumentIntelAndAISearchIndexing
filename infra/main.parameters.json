@@ -20,6 +20,9 @@
     "myPublicIp": {
       "value": "${PUBLIC_IP}"
     },
+     "firstProvision": {
+      "value": "${FIRST_PROVISION}"
+    },
     "foundryConfig": {
       "value": {
         "projectDisplayName": "${APP_NAME} Document Intelligence",
