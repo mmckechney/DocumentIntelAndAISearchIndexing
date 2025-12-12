@@ -15,8 +15,7 @@ param vnetName string
 param subnetName string
 
 param myPublicIp string = ''
-param functionSubnetId string
-param apimSubnetId string
+param appSubnetId string
 
 resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
   name: vnetName
@@ -56,11 +55,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
         ignoreMissingVNetServiceEndpoint: false
       }
       {
-        id: functionSubnetId
-        ignoreMissingVNetServiceEndpoint: false
-      }
-      {
-        id: apimSubnetId
+        id: appSubnetId
         ignoreMissingVNetServiceEndpoint: false
       }
     ]

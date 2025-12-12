@@ -3,7 +3,6 @@ param location string = resourceGroup().location
 param tags object = {}
 param managedIdentityId string
 param projectName string
-param projectDisplayName string
 param chatModelName string
 param chatModelVersion string
 param chatSku string = 'Standard'
@@ -12,6 +11,10 @@ param embeddingModelName string
 param embeddingModelVersion string
 param embeddingSku string = 'Standard'
 param embeddingCapacity int = 1
+
+@secure()
+param appInsightsConnectionString string
+param appInsightsResourceId string
 
 var customSubdomain = toLower(aiFoundryResourceName)
 var servicesEndpoint = 'https://${customSubdomain}.services.ai.azure.com'
@@ -25,7 +28,10 @@ resource aiFoundryResource 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   }
   kind: 'AIServices'
   identity: {
-    type: 'SystemAssigned'
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {
     apiProperties: {}
@@ -45,12 +51,15 @@ resource aiFoundryResource 'Microsoft.CognitiveServices/accounts@2025-06-01' = {
   }
 }
 
-resource project 'Microsoft.CognitiveServices/accounts/projects@2025-07-01-preview' = {
+resource foundryProject 'Microsoft.CognitiveServices/accounts/projects@2025-07-01-preview' = {
   name: projectName
   parent: aiFoundryResource
   location: location
-  identity: {
-    type: 'SystemAssigned'
+   identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
   properties: {}
 }
@@ -96,11 +105,30 @@ resource embeddingDeployment 'Microsoft.CognitiveServices/accounts/deployments@2
   ]
 }
 
+resource appInsightsConnection 'Microsoft.CognitiveServices/accounts/projects/connections@2025-06-01' = {
+  parent: foundryProject
+  name: 'ApplicationInsights'
+  properties: {
+    category: 'AppInsights'
+    authType: 'ApiKey'
+    target: appInsightsResourceId
+    credentials: {
+      key: appInsightsConnectionString
+    }
+     
+    metadata: {
+      connectionString: appInsightsConnectionString
+
+    }
+    useWorkspaceManagedIdentity: false
+    peRequirement: 'NotApplicable'
+  }
+}
 
 output accountName string = aiFoundryResource.name
 output accountId string = aiFoundryResource.id
-output projectResourceName string = project.name
-output projectEndpoint string = project.properties.endpoints['AI Foundry API']
+output projectResourceName string = foundryProject.name
+output projectEndpoint string = foundryProject.properties.endpoints['AI Foundry API']
 output servicesEndpointHost string = servicesEndpoint
 output chatDeploymentName string = chatDeployment.name
 output embeddingDeploymentName string = embeddingDeployment.name

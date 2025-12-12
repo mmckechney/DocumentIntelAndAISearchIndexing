@@ -1,6 +1,7 @@
 param name string
 param location string = resourceGroup().location
 param logAnalyticsCustomerId string
+@secure()
 param logAnalyticsSharedKey string
 param infrastructureSubnetId string
 

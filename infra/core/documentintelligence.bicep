@@ -2,6 +2,7 @@ param location string = resourceGroup().location
 
 param docIntelligenceName string
 param docIntelligenceInstanceCount int = 1
+param managedIdentityId string
 
 resource docIntelligenceAccount 'Microsoft.CognitiveServices/accounts@2023-10-01-preview' = [for i in range(0,docIntelligenceInstanceCount): {
   name: '${docIntelligenceName}-${padLeft(i, 2,'0')}'
@@ -15,8 +16,11 @@ resource docIntelligenceAccount 'Microsoft.CognitiveServices/accounts@2023-10-01
    disableLocalAuth: true
    customSubDomainName: '${docIntelligenceName}-${padLeft(i, 2,'0')}'
   }
-  identity: {
-    type: 'SystemAssigned'
+   identity: {
+    type: 'SystemAssigned, UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentityId}': {}
+    }
   }
  
 }]

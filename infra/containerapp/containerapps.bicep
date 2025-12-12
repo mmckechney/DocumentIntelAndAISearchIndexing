@@ -245,6 +245,7 @@ resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for functionV
 }]
 
 output systemAssignedIdentities array = [for (functionValue, index) in normalizedFunctionValues: containerApps[index].identity.principalId]
+
 output services array = [for (functionValue, index) in normalizedFunctionValues: {
   serviceName: functionValue.serviceName
   containerAppName: containerApps[index].name

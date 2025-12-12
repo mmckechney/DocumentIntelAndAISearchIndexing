@@ -29,8 +29,7 @@ var docIntelligence = '${abbrs.documentIntelligence}${appName}${location}'
 var vnet = '${abbrs.virtualNetwork}${appName}-${location}'
 var subnet = '${abbrs.virtualNetworkSubnet}${appName}-${location}'
 var nsg = '${abbrs.networkSecurityGroup}${appName}-${location}'
-var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
-var apimsubnet = '${abbrs.virtualNetworkSubnet}${appName}-apim-${location}'
+var appSubnet = '${abbrs.virtualNetworkSubnet}${appName}-app-${location}'
 var containerRegistryBase = toLower('${abbrs.containerRegistry}${appNameLc}${location}')
 var containerRegistryName = length(containerRegistryBase) > 50 ? substring(containerRegistryBase, 0, 50) : containerRegistryBase
 var containerAppEnvironmentBase = toLower('${abbrs.containerAppsEnvironment}${appName}-${location}')
@@ -84,7 +83,6 @@ module foundry 'foundry/foundry.bicep' = {
 		}
 		managedIdentityId: managedIdentity.outputs.id
 		projectName: foundryProjectName
-		projectDisplayName: foundryConfig.projectDisplayName
 		chatModelName: foundryConfig.chatModel.name
 		chatModelVersion: foundryConfig.chatModel.version
 		chatSku: foundryConfig.chatModel.sku
@@ -93,6 +91,8 @@ module foundry 'foundry/foundry.bicep' = {
 		embeddingModelVersion: foundryConfig.embeddingModel.version
 		embeddingSku: foundryConfig.embeddingModel.sku
 		embeddingCapacity: foundryConfig.embeddingModel.capacity
+		appInsightsConnectionString: appInsights.outputs.connectionString
+		appInsightsResourceId: appInsights.outputs.resourceId
 	}
 }
 
@@ -113,8 +113,7 @@ module cosmosDb 'core/cosmos.bicep' = {
 		databaseName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
 		cosmosDbAccountName: cosmosDbAccountName
-		functionSubnetId: networking.outputs.functionSubnetId
-		apimSubnetId: networking.outputs.apimSubnetId
+		appSubnetId: networking.outputs.appSubNetId
 		location: location
 		vnetName: vnet
 		subnetName: subnet
@@ -128,9 +127,9 @@ module networking 'core/networking.bicep' = {
 		vnet: vnet
 		subnet: subnet
 		nsg: nsg
-		funcsubnet: funcsubnet
+		appsubnet: appSubnet
 		location: location
-		apimsubnet: apimsubnet
+		
 	}
 	dependsOn: [
 		networkSecurityGroup
@@ -168,6 +167,7 @@ module docIntelligenceService 'core/documentintelligence.bicep' = {
 		docIntelligenceName: docIntelligence
 		docIntelligenceInstanceCount: docIntelligenceInstanceCount
 		location: location
+		managedIdentityId: managedIdentity.outputs.id
 	}
 	dependsOn: [
   	networking
@@ -184,7 +184,7 @@ module servicebus 'core/servicebus.bicep' = {
 		moveQueueName: moveQueueName
 		toIndexQueueName: toIndexQueueName
 		customFieldQueueName: customFieldQueueName
-		subnetName: funcsubnet
+		subnetName: appSubnet
 		vnetName: vnet
 		serviceBusSku: serviceBusSku
 	}
@@ -222,7 +222,7 @@ module containerEnvironment 'core/containerapp-environment.bicep' = {
 		location: location
 		logAnalyticsCustomerId: appInsights.outputs.logAnalyticsCustomerId
 		logAnalyticsSharedKey: appInsights.outputs.logAnalyticsSharedKey
-		infrastructureSubnetId: networking.outputs.functionSubnetId
+		infrastructureSubnetId: networking.outputs.appSubNetId
 	}
 }
 
@@ -274,13 +274,12 @@ module roleAssigments 'core/roleassignments.bicep' = {
 	name: 'roleAssigments'
 	scope: rg
 	params: {
-		docIntelligencePrincipalIds: docIntelligenceService.outputs.docIntelligencePrincipalIds
 		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
 		currentUserObjectId : currentUserObjectId
-		functionPrincipalIds: containerapps.outputs.systemAssignedIdentities
-		containerRegistryName: containerRegistry.outputs.name
 		cosmosAccountName: cosmosDb.outputs.cosmosDbAccountName
 		cosmosAccountResourceGroup: resourceGroupName
+		functionPrincipalIds: containerapps.outputs.systemAssignedIdentities
+		docIntelligencePrincipalIds: docIntelligenceService.outputs.docIntelligencePrincipalIds
 	}
 }
 
