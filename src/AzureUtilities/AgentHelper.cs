@@ -12,39 +12,31 @@ using System.ClientModel.Primitives;
 namespace HighVolumeProcessing.UtilityLibrary
 {
 
-   public class SkHelper
+   public class AgentHelper
    {
       private AIAgent askQuestionsAgent;
+      private AIAgent customFieldAgent;
       private IEmbeddingGenerator<string, Embedding<float>>? _embeddingGenerator;
-      private ILogger<SkHelper> log;
+      private ILogger<AgentHelper> log;
       private IConfiguration config;
       private ILoggerFactory logFactory;
       private bool initCalled = false;
       private Settings settings;
       private AIProjectClient foundryProjectClient;
-      private AiSearchHelper aiSearchHelper;
-      private Dictionary<string, PromptTemplate> _prompts = new();
 
-      public SkHelper(ILoggerFactory logFactory, IConfiguration config,  Settings settings)//, AiSearchHelper aiSearchHelper)
+      public AgentHelper(ILoggerFactory logFactory, IConfiguration config,  Settings settings)
       {
-         log = logFactory.CreateLogger<SkHelper>();
+         log = logFactory.CreateLogger<AgentHelper>();
          this.config = config;
          this.logFactory = logFactory;
          this.settings = settings;
-         // this.aiSearchHelper = aiSearchHelper;
-
       }
 
       private readonly object lockObject = new object();
 
-      private async Task InitClients()
+      private async Task InitAgents()
       {
-         initCalled = true;
-
-         if (askQuestionsAgent != null && _embeddingGenerator != null && _prompts.Count > 0)
-         {
-            return;
-         }
+         if(initCalled && askQuestionsAgent != null && customFieldAgent != null && _embeddingGenerator != null) return;
 
          var projectEndpoint = settings.AzureFoundryProjectEndpoint ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_FOUNDRY_PROJECT_ENDPOINT} in configuration.");
          var embeddingDeployment = settings.AzureFoundryEmbeddingDeployment;
@@ -72,19 +64,19 @@ namespace HighVolumeProcessing.UtilityLibrary
          var embeddingClient = azureOpenAIClient.GetEmbeddingClient(embeddingDeployment);
          _embeddingGenerator = embeddingClient.AsIEmbeddingGenerator();
 
-         var agentName = "AskQuestions";
-         string instructions = @"  You are a document answering bot.  
+         var askQuestionsAgentName = "AskQuestions";
+         string askQuestionsInstructions = @"  You are a document answering bot.  
   You will be provided with information from a document, and you are to answer the question based on the content provided.  
   Your are not to make up answers. Use the content provided to answer the question.";
 
-         string description = "An agent that can answer questions about documents.";
+         string askQuestionsDescription = "An agent that can answer questions about documents.";
 
          //AITool aiTool = AIFunctionFactory.Create(aiSearchHelper.SearchByCustomField);
-         askQuestionsAgent = await GetFoundryAgent(agentName);//, [aiTool]);
+         askQuestionsAgent = await GetFoundryAgent(askQuestionsAgentName);//, [aiTool]);
 
          if (askQuestionsAgent == null)
          {
-            askQuestionsAgent = await CreateFoundryAgent(agentName, chatDeployment, description, instructions);//, [aiTool]);
+            askQuestionsAgent = await CreateFoundryAgent(askQuestionsAgentName, chatDeployment, askQuestionsDescription, askQuestionsInstructions);//, [aiTool]);
          }
 
          if (askQuestionsAgent == null)
@@ -92,52 +84,57 @@ namespace HighVolumeProcessing.UtilityLibrary
             throw new NullReferenceException("The agent failed to initialize!");
          }
 
+         var customFieldAgentName = "ExtractCustomFields";
+         string customFieldInstructions = @"   You are a document analysis expert. 
+   You will be provided with a document and you need to extract identifiers from the document.
+   The identifier is called a ""load"" and can consist of a combination of letters and numbers.
+   It might some times be referred to as a ""Shipping ID"", ""BOL"", ""Bill of Lading"", ""Load ID"", ""Load Number"", ""Load Code"", ""Load Reference"", ""Load Ref"", ""Load ID Number"", ""Load ID Code"", ""Load ID Ref"", ""Load ID Reference"", ""Booking Number"" or similar terms.""
+   The load will not be a recognizable word and will be at least 8 characters long and may or may not be labeled as a load.
+   Ignore any identifiers that are part of an item list or table
+   The document may contain one or more loads.
+
+   Return a list of loads in the following JSON format - 
+      [ ""load1"",
+         ""load2"",
+         ""etc..""
+      ] ";
+
+         string customFieldDescription = "Extract Custom Fields from a document";
+
+         customFieldAgent = await GetFoundryAgent(customFieldAgentName);//, [aiTool]);
+
+         if (customFieldAgent == null)
+         {
+            customFieldAgent = await CreateFoundryAgent(customFieldAgentName, chatDeployment, customFieldDescription, customFieldInstructions);//, [aiTool]);
+         }
+
+         if (customFieldAgent == null)
+         {
+            throw new NullReferenceException("The agent failed to initialize!");
+         }
+
+         initCalled = true;
       }
 
       public async Task<string> AskQuestion(string question, string documentContent)
       {
-         if (askQuestionsAgent == null) await InitClients();
+         await InitAgents();
          log.LogInformation("Asking question about document...");
 
-         // Get the AskQuestions prompt template
-         if (!_prompts.TryGetValue("AskQuestions", out var promptTemplate))
-         {
-            throw new InvalidOperationException("AskQuestions prompt template not found");
-         }
+         string prompt = $"**QUESTION:** {question}\n**CONTENT:** {documentContent}";
 
-         // Render the template with variables
-         var chatMessages = CreateChatMessages(promptTemplate, new Dictionary<string, string>
-         {
-            { "question", question },
-            { "content", documentContent }
-         });
-
-         var agentRunOptions = CreateAgentRunOptions(promptTemplate);
-         var response = await askQuestionsAgent.RunAsync(chatMessages, options: agentRunOptions);
+         var response = await askQuestionsAgent.RunAsync(prompt);
          return response?.Text ?? string.Empty;
       }
 
       public async IAsyncEnumerable<string> AskQuestionStreaming(string question, string documentContent)
       {
-         if (askQuestionsAgent == null) await InitClients();
-         log.LogDebug("Asking question about document...");
+         await InitAgents();
+         log.LogDebug("Asking question about document via streaming...");
 
-         // Get the AskQuestions prompt template
-         if (!_prompts.TryGetValue("AskQuestions", out var promptTemplate))
-         {
-            throw new InvalidOperationException("AskQuestions prompt template not found");
-         }
+         string prompt = $"**QUESTION:** {question}\n**CONTENT:** {documentContent}";
 
-         // Render the template with variables
-         var chatMessages = CreateChatMessages(promptTemplate, new Dictionary<string, string>
-         {
-            { "question", question },
-            { "content", documentContent }
-         });
-
-         var agentRunOptions = CreateAgentRunOptions(promptTemplate);
-
-         await foreach (var update in askQuestionsAgent.RunStreamingAsync(chatMessages, options: agentRunOptions))
+         await foreach (var update in askQuestionsAgent.RunStreamingAsync(prompt))
          {
             if (!string.IsNullOrEmpty(update.Text))
             {
@@ -148,31 +145,18 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       public async Task<CustomFields?> ExtractCustomField(string documentContent)
       {
-         if (askQuestionsAgent == null) InitClients();
+         if (customFieldAgent == null) await InitAgents();
          var chunked = TextChunker.SplitPlainTextParagraphs(documentContent.Split('\n'), settings.EmbeddingMaxTokens);
          CustomFields? customFieldsObj = new();
          
          try
          {
-            // Get the ExtractCustomFields prompt template
-            if (!_prompts.TryGetValue("ExtractCustomFields", out var promptTemplate))
-            {
-               throw new InvalidOperationException("ExtractCustomFields prompt template not found");
-            }
 
             foreach (var chunk in chunked)
             {
                log.LogInformation("Extracting custom fields from document...");
-               
-               // Render the template with variables
-               var chatMessages = CreateChatMessages(promptTemplate, new Dictionary<string, string>
-               {
-                  { "content", chunk }
-               });
 
-               var agentRunOptions = CreateAgentRunOptions(promptTemplate);
-
-               var response = await askQuestionsAgent.RunAsync(chatMessages, options: agentRunOptions);
+               var response = await customFieldAgent.RunAsync(documentContent);
                var customFieldsString = (response?.Text ?? string.Empty).CleanJson();
                
                try
@@ -205,7 +189,7 @@ namespace HighVolumeProcessing.UtilityLibrary
       {
          try
          {
-            if (_embeddingGenerator == null) await InitClients();
+            if (_embeddingGenerator == null) await InitAgents();
             log.LogInformation($"Getting embedding for {fileName}...");
 
             var embeddings = await _embeddingGenerator.GenerateAsync(content);
@@ -222,43 +206,6 @@ namespace HighVolumeProcessing.UtilityLibrary
             log.LogError($"Failed to create embeddings for {fileName}. {exe.Message}");
             return null!;
          }
-      }
-
-      private static List<ChatMessage> CreateChatMessages(PromptTemplate promptTemplate, Dictionary<string, string> variables)
-      {
-         var renderedTemplate = PromptLoader.RenderTemplate(promptTemplate.Template, variables);
-         var messages = PromptLoader.ParseMessages(renderedTemplate);
-         return messages.Select(m => m.Role switch
-         {
-            "system" => new ChatMessage(ChatRole.System, m.Content),
-            "user" => new ChatMessage(ChatRole.User, m.Content),
-            _ => new ChatMessage(ChatRole.Assistant, m.Content)
-         }).ToList();
-      }
-
-      private static ChatClientAgentRunOptions CreateAgentRunOptions(PromptTemplate promptTemplate)
-      {
-         ExecutionSetting? execution = null;
-         if (promptTemplate.ExecutionSettings.TryGetValue("default", out var settings))
-         {
-            execution = settings;
-         }
-
-         var chatOptions = new ChatOptions
-         {
-            MaxOutputTokens = execution?.MaxTokens ?? 3500,
-            Temperature = (float)(execution?.Temperature ?? 0.9)
-         };
-
-         if (!string.IsNullOrWhiteSpace(execution?.ModelId))
-         {
-            chatOptions.ModelId = execution!.ModelId;
-         }
-
-         return new ChatClientAgentRunOptions
-         {
-            ChatOptions = chatOptions
-         };
       }
 
       private async Task<AIAgent?> GetFoundryAgent(string agentName, params AITool[] tools)

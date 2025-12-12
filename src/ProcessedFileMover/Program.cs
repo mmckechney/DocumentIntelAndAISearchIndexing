@@ -22,7 +22,7 @@ var builder = Host.CreateDefaultBuilder(args)
    })
    .ConfigureServices((context, services) =>
    {
-      services.AddSingleton<SkHelper>();
+      services.AddSingleton<AgentHelper>();
       services.AddSingleton<StorageHelper>();
       services.AddSingleton<ServiceBusHelper>();
       services.AddSingleton<Settings>();

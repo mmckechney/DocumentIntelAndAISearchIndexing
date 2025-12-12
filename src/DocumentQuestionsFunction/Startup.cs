@@ -18,7 +18,7 @@ builder.Logging
    .AddFilter("Microsoft", LogLevel.Warning)
    .SetMinimumLevel(LogLevel.Information);
 
-builder.Services.AddSingleton<SkHelper>();
+builder.Services.AddSingleton<AgentHelper>();
 builder.Services.AddSingleton<AiSearchHelper>();
 builder.Services.AddSingleton<Helper>();
 builder.Services.AddSingleton<StorageHelper>();

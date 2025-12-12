@@ -12,14 +12,14 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
 
    public class CustomFieldExtraction
    {
-      private SkHelper semanticUtility;
+      private AgentHelper semanticUtility;
       ILogger<CustomFieldExtraction> log;
       IConfiguration config;
       StorageHelper storageHelper;
       ServiceBusHelper serviceBusHelper;
       Settings settings;
       Tracker<CustomFieldExtraction> tracker;
-      public CustomFieldExtraction(ILogger<CustomFieldExtraction> log, IConfiguration config, SkHelper semanticMemory, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<CustomFieldExtraction> tracker)
+      public CustomFieldExtraction(ILogger<CustomFieldExtraction> log, IConfiguration config, AgentHelper semanticMemory, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<CustomFieldExtraction> tracker)
       {
          this.log = log;
          this.config = config;

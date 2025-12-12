@@ -10,14 +10,14 @@ namespace HighVolumeProcessing.AiSearchIndexingFunction
    public class AiSearchIndexing
    {
       private readonly ILogger<AiSearchIndexing> log;
-      private readonly SkHelper semanticUtility;
+      private readonly AgentHelper semanticUtility;
       private StorageHelper storageHelper;
       private AiSearchHelper aiSearchHelper;
       Settings settings;
       ServiceBusHelper serviceBusHelper;
       Tracker<AiSearchIndexing> tracker;
       bool searchInitialized = false;
-      public AiSearchIndexing(ILogger<AiSearchIndexing> logger, SkHelper semanticUtility, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, AiSearchHelper aiSearchHelper, Settings settings, Tracker<AiSearchIndexing> tracker)
+      public AiSearchIndexing(ILogger<AiSearchIndexing> logger, AgentHelper semanticUtility, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, AiSearchHelper aiSearchHelper, Settings settings, Tracker<AiSearchIndexing> tracker)
       {
          log = logger;
          this.semanticUtility = semanticUtility;

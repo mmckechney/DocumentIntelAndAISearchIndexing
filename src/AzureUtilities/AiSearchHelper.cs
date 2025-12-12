@@ -17,12 +17,12 @@ namespace HighVolumeProcessing.UtilityLibrary
       SearchIndexClient client;
       ILogger<AiSearchHelper> log;
       IConfiguration config;
-      SkHelper semanticUtility;
+      AgentHelper semanticUtility;
       Settings settings;
       private readonly SemaphoreSlim initSemaphore = new SemaphoreSlim(1, 1);
       private bool indexConfirmed = false;
 
-      public AiSearchHelper(ILogger<AiSearchHelper> log, IConfiguration config, SkHelper semanticUtility, Settings settings)
+      public AiSearchHelper(ILogger<AiSearchHelper> log, IConfiguration config, AgentHelper semanticUtility, Settings settings)
       {
          this.log = log;
          this.config = config;

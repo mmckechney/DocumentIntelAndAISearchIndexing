@@ -11,13 +11,13 @@ namespace HighVolumeProcessing.DocumentQuestionsFunction
 {
    public class AskQuestions
    {
-      private SkHelper semanticUtility;
+      private AgentHelper semanticUtility;
       AiSearchHelper aiSearch;
       ILogger<AskQuestions> log;
       IConfiguration config;
       Helper common;
       Settings settings;
-      public AskQuestions(ILogger<AskQuestions> log, IConfiguration config, Helper common, SkHelper semanticMemory, AiSearchHelper aiSearch, Settings settings)
+      public AskQuestions(ILogger<AskQuestions> log, IConfiguration config, Helper common, AgentHelper semanticMemory, AiSearchHelper aiSearch, Settings settings)
       {
          this.log = log;
          this.config = config;
@@ -43,7 +43,7 @@ namespace HighVolumeProcessing.DocumentQuestionsFunction
             }
 
             var contentBuilder = new StringBuilder();
-            var results = await aiSearch.SearchByCustomField(fileName, customField, question);
+            var results = await aiSearch.SearchByCustomField(fileName, question, customField);
             foreach (var result in results)
             {
                contentBuilder.Append(result.Text);
