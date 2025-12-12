@@ -8,7 +8,7 @@ namespace HighVolumeProcessing.UtilityLibrary.Models
       [SimpleField(IsKey = true, IsFilterable = true, IsSortable = false, IsFacetable = false)]
       public string Id { get; set; }
 
-      [VectorSearchField(VectorSearchDimensions = 1536, VectorSearchProfileName = Settings.VectorSearchProfileName)]
+      [VectorSearchField(VectorSearchDimensions = 3072, VectorSearchProfileName = Settings.VectorSearchProfileName)]
       public IList<Single> Embedding { get; set; } // Assuming it's a collection of strings  
 
       [SearchableField(IsFilterable = true, IsSortable = false, IsFacetable = false, SearchAnalyzerName = "standard.lucene", IndexAnalyzerName = "standard.lucene")]

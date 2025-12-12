@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace HighVolumeProcessing.UtilityLibrary.Models
 {
    public class FileQueueMessage
@@ -40,7 +41,8 @@ namespace HighVolumeProcessing.UtilityLibrary.Models
 
       public override string ToString()
       {
-         return $"SourceFileName: {SourceFileName}, ProcessedFileName: {ProcessedFileName}, ContainerName: {ContainerName}, Id: {id}, RecognizerIndex: {RecognizerIndex}, CustomIndexFieldValues: {string.Join(", ", CustomIndexFieldValues)}";
+         var jsonString = JsonSerializer.Serialize<FileQueueMessage>(this, new JsonSerializerOptions() { WriteIndented = true});
+         return jsonString;
 
       }
    }

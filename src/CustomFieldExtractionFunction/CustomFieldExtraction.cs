@@ -1,11 +1,10 @@
-using Azure.Messaging.ServiceBus;
-using HighVolumeProcessing.UtilityLibrary; 
-using Microsoft.Azure.Functions.Worker;
+using HighVolumeProcessing.UtilityLibrary;
+using HighVolumeProcessing.UtilityLibrary.Models;
+using Microsoft.Azure.Amqp.Framing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
-using HighVolumeProcessing.UtilityLibrary.Models;
 using System;
+using System.Threading.Tasks;
 
 namespace HighVolumeProcessing.CustomFieldExtractionFunction
 {
@@ -13,14 +12,14 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
 
    public class CustomFieldExtraction
    {
-      private SkHelper semanticUtility;
+      private AgentHelper semanticUtility;
       ILogger<CustomFieldExtraction> log;
       IConfiguration config;
       StorageHelper storageHelper;
       ServiceBusHelper serviceBusHelper;
       Settings settings;
       Tracker<CustomFieldExtraction> tracker;
-      public CustomFieldExtraction(ILogger<CustomFieldExtraction> log, IConfiguration config, SkHelper semanticMemory, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<CustomFieldExtraction> tracker)
+      public CustomFieldExtraction(ILogger<CustomFieldExtraction> log, IConfiguration config, AgentHelper semanticMemory, StorageHelper storageHelper, ServiceBusHelper serviceBusHelper, Settings settings, Tracker<CustomFieldExtraction> tracker)
       {
          this.log = log;
          this.config = config;
@@ -32,28 +31,34 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
       }
 
 
-      //function you can call to ask a question about a document.
-      [Function("CustomFieldExtraction")]
-      public async Task Run([ServiceBusTrigger("%SERVICEBUS_CUSTOMFIELD_QUEUE_NAME%", Connection = "SERVICEBUS_CONNECTION")] ServiceBusReceivedMessage message)
+      public async Task ProcessMessageAsync(FileQueueMessage fileMessage)
       {
-         var fileMessage = message.As<FileQueueMessage>();
+         ArgumentNullException.ThrowIfNull(fileMessage);
+
          try
          {
-            log.LogInformation($"CustomFieldExtraction triggered with message -- {fileMessage.ToString()}");
-
+            log.LogInformation("CustomFieldExtraction triggered with message -- {Message}", fileMessage.ToString());
             await ProcessMessage(fileMessage);
          }
          catch (Exception exe)
          {
-            log.LogError($"Failure in CustomFieldExtraction: {exe.Message}");
+            log.LogError(exe, "Failure in CustomFieldExtraction for file '{FileName}'", fileMessage.SourceFileName);
             await tracker.TrackAndUpdate(fileMessage, $"Failure in CustomFieldExtraction: {exe.Message}");
+            throw;
          }
       }
 
       public async Task<bool> ProcessMessage(FileQueueMessage fileMessage)
       {
 
-            fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, "Processing");
+         if (fileMessage.CustomIndexFieldValues == null || fileMessage.CustomIndexFieldValues.Count == 0)
+         {
+            fileMessage = await tracker.TrackAndUpdate(fileMessage, "No Custom Fields Specified. Abandoning extraction");
+            fileMessage = fileMessage.CloneWithOverrides();
+         }
+         else
+         {
             var contents = await storageHelper.GetFileContents(settings.ProcessResultsContainerName, fileMessage.ProcessedFileName);
             if (string.IsNullOrEmpty(contents))
             {
@@ -71,14 +76,15 @@ namespace HighVolumeProcessing.CustomFieldExtractionFunction
                fields.Add("NOT FOUND");
             }
             fileMessage = fileMessage.CloneWithOverrides(customIndexFieldValues: fields);
+         }
 
-            fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sending to {settings.ToIndexQueueName}");
-            var message = fileMessage.AsMessage();
-            await serviceBusHelper.SendMessageAsync(settings.ToIndexQueueName, message);
-            fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sent to {settings.ToIndexQueueName}");
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sending to {settings.ToIndexQueueName}");
+         var message = fileMessage.AsMessage();
+         await serviceBusHelper.SendMessageAsync(settings.ToIndexQueueName, message);
+         fileMessage = await tracker.TrackAndUpdate(fileMessage, $"Sent to {settings.ToIndexQueueName}");
 
 
-            return true;
+         return true;
       }
    }
 

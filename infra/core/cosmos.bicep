@@ -8,9 +8,6 @@ param location string = resourceGroup().location
 param databaseName string
 param cosmosContainerName string
 
-@description('The name of the Key Vault')
-param keyVaultName string
-
 @description('The name of the Virtual Network')
 param vnetName string
 
@@ -18,14 +15,7 @@ param vnetName string
 param subnetName string
 
 param myPublicIp string = ''
-param functionSubnetId string
-param apimSubnetId string
-
-var keyVaultKeys = loadJsonContent('../constants/keyVaultKeys.json')
-
-resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' existing = {
-  name: keyVaultName
-}
+param appSubnetId string
 
 resource vnet 'Microsoft.Network/virtualNetworks@2021-05-01' existing = {
   name: vnetName
@@ -42,6 +32,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
+    disableLocalAuth: true
     locations: [
       {
         locationName: location
@@ -64,11 +55,7 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2021-10-15' = {
         ignoreMissingVNetServiceEndpoint: false
       }
       {
-        id: functionSubnetId
-        ignoreMissingVNetServiceEndpoint: false
-      }
-      {
-        id: apimSubnetId
+        id: appSubnetId
         ignoreMissingVNetServiceEndpoint: false
       }
     ]
@@ -119,13 +106,6 @@ resource cosmosDbContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/c
   }
 }
 
-resource adminKey 'Microsoft.KeyVault/vaults/secrets@2023-02-01' = {
-  parent: keyVault
-  name: keyVaultKeys.COSMOS_CONNECTION
-  properties: {
-    value: cosmosDbAccount.listConnectionStrings().connectionStrings[0].connectionString
-  }
-}
-
 output cosmosDbAccountName string = cosmosDbAccount.name
 output cosmosDbDatabaseName string = cosmosDbDatabase.name
+output cosmosDbEndpoint string = cosmosDbAccount.properties.documentEndpoint

@@ -34,8 +34,8 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                try
                {
-                  var connectionString = settings.CosmosDbConnectionString;
-                  _client = new CosmosClient(connectionString);
+                  var accountEndpoint = settings.CosmosAccountEndpoint ?? throw new InvalidOperationException($"Missing {ConfigKeys.COSMOS_ACCOUNT_ENDPOINT} in configuration.");
+                  _client = new CosmosClient(accountEndpoint, AadHelper.TokenCredential);
                }
                catch(Exception ex)
                {
@@ -55,7 +55,8 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                try
                {
-                  _database = Client.CreateDatabaseIfNotExistsAsync(settings.CosmosDbName).GetAwaiter().GetResult();
+                  //_database = Client.CreateDatabaseIfNotExistsAsync(settings.CosmosDbName).GetAwaiter().GetResult();
+                  _database = Client.GetDatabase(settings.CosmosDbName);
                }
                catch (Exception ex)
                {
@@ -77,7 +78,8 @@ namespace HighVolumeProcessing.UtilityLibrary
                try
                {
                   
-                  var container = Database.CreateContainerIfNotExistsAsync(settings.CosmosConstainerName, "/id").GetAwaiter().GetResult();
+                  //var container = Database.CreateContainerIfNotExistsAsync(settings.CosmosConstainerName, "/id").GetAwaiter().GetResult();
+                  var container = Database.GetContainer(settings.CosmosConstainerName);
                   _container = container;
                }
                catch (Exception ex)

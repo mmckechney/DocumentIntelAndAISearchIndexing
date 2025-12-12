@@ -2,53 +2,50 @@ import * as customTypes from './constants/customTypes.bicep'
 targetScope = 'subscription'
 
 param appName string
+param appNameSafe string
 param location string
 param myPublicIp string
 param docIntelligenceInstanceCount int
 param currentUserObjectId string
 param aiIndexName string = 'documentindex'
-param apiManagementPublisherEmail string
-param apiManagementPublisherName string
 param serviceBusSku string = 'Standard'
 param functionValues customTypes.functionValue[] 
-param apimSku customTypes.apimSkuInfo = {
-	name: 'StandardV2'
-	capacity: 1
-}
-@allowed(['EP1', 'P0V3', 'P1V3', 'P2V3'])
-param funcAppPlanSku string
 
+@description('Azure AI Foundry deployment configuration.')
+param foundryConfig customTypes.foundryConfig
 
-@description('OpenAI instances to deploy. Defaults to 2 across different regions.')
-param openAiConfigs customTypes.openAIConfigs
+@description('Persistent agent identifier inside the Azure AI Foundry project (optional).')
+param foundryAgentId string = ''
+param firstProvision bool = true
 
 var abbrs = loadJsonContent('./constants/abbreviations.json')
-var appNameLc = toLower(appName)
+var appNameLc = toLower(appNameSafe)
 
 var resourceGroupName = '${abbrs.resourceGroup}${appName}'
 var serviceBusNs = '${abbrs.serviceBusNamespace}${appName}-${location}'
-var formStorageAcct = '${abbrs.storageAccount}${appNameLc}${location}'
-var funcStorageAcct = '${abbrs.storageAccount}${appNameLc}func${location}'
-var docIntelligence = '${abbrs.documentIntelligence}${appName}-${location}'
+var formStorageBase = '${abbrs.storageAccount}${appNameLc}${location}'
+var formStorageAcct = length(formStorageBase) > 24 ? substring(formStorageBase, 0, 24) : formStorageBase
+var docIntelligence = '${abbrs.documentIntelligence}${appName}${location}'
 
 var vnet = '${abbrs.virtualNetwork}${appName}-${location}'
 var subnet = '${abbrs.virtualNetworkSubnet}${appName}-${location}'
 var nsg = '${abbrs.networkSecurityGroup}${appName}-${location}'
-var funcsubnet = '${abbrs.virtualNetworkSubnet}${appName}-func-${location}'
-var apimsubnet = '${abbrs.virtualNetworkSubnet}${appName}-apim-${location}'
-var funcAppPlan = '${abbrs.appServicePlan}${appName}-${location}'
-
-var keyvaultName = '${abbrs.keyVault}${appName}-${location}'
+var appSubnet = '${abbrs.virtualNetworkSubnet}${appName}-app-${location}'
+var containerRegistryBase = toLower('${abbrs.containerRegistry}${appNameLc}${location}')
+var containerRegistryName = length(containerRegistryBase) > 50 ? substring(containerRegistryBase, 0, 50) : containerRegistryBase
+var containerAppEnvironmentBase = toLower('${abbrs.containerAppsEnvironment}${appName}-${location}')
+var containerAppEnvironmentName = length(containerAppEnvironmentBase) > 32 ? substring(containerAppEnvironmentBase, 0, 32) : containerAppEnvironmentBase
 
 var aiSearchName = '${abbrs.aiSearch}${appNameLc}-demo-${location}'
 var appInsightsName = '${abbrs.applicationInsights}${appName}-${location}'
 var logAnalyticsName = '${abbrs.logAnalyticsWorkspace}${appName}-${location}'
 var managedIdentityName = '${abbrs.managedIdentity}${appName}-${location}'
-var apiManagementName = '${abbrs.apiManagementService}${appName}-${location}'
-
 var cosmosDbName = 'documentIndexing'
 var cosmosContainerName = 'processTracker'
 var cosmosDbAccountName = toLower('${abbrs.cosmosDBNoSQL}${appName}-${location}')
+
+var foundryResourceName = '${abbrs.foundryResource}${appName}-${location}'
+var foundryProjectName = '${abbrs.foundryProject}${appName}-${location}'
 
 var documentStorageContainer = 'documents'
 var processResultsContainer = 'processresults'
@@ -59,12 +56,12 @@ var docQueueName = 'docqueue'
 var moveQueueName = 'movequeue'
 var toIndexQueueName = 'toindexqueue'
 
-var openAiApiName = 'openai'
-
-
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 	name: resourceGroupName
 	location: location
+	tags: {
+		SecurityControl: 'Ignore'
+	}
 }
 
 module managedIdentity 'core/managed-identity.bicep' = {
@@ -73,6 +70,30 @@ module managedIdentity 'core/managed-identity.bicep' = {
 	params: {
 		name: managedIdentityName
 		location: location
+	}
+}
+
+module foundry 'foundry/foundry.bicep' = {
+	name: 'foundry'
+	scope: rg
+	params: {
+		aiFoundryResourceName: foundryResourceName
+		location: location
+		tags: {
+			CreatedBy: currentUserObjectId
+		}
+		managedIdentityId: managedIdentity.outputs.id
+		projectName: foundryProjectName
+		chatModelName: foundryConfig.chatModel.name
+		chatModelVersion: foundryConfig.chatModel.version
+		chatSku: foundryConfig.chatModel.sku
+		chatCapacity: foundryConfig.chatModel.capacity
+		embeddingModelName: foundryConfig.embeddingModel.name
+		embeddingModelVersion: foundryConfig.embeddingModel.version
+		embeddingSku: foundryConfig.embeddingModel.sku
+		embeddingCapacity: foundryConfig.embeddingModel.capacity
+		appInsightsConnectionString: appInsights.outputs.connectionString
+		appInsightsResourceId: appInsights.outputs.resourceId
 	}
 }
 
@@ -93,17 +114,12 @@ module cosmosDb 'core/cosmos.bicep' = {
 		databaseName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
 		cosmosDbAccountName: cosmosDbAccountName
-		functionSubnetId: networking.outputs.functionSubnetId
-		apimSubnetId: networking.outputs.apimSubnetId
+		appSubnetId: networking.outputs.appSubNetId
 		location: location
-		keyVaultName: keyvaultName
 		vnetName: vnet
 		subnetName: subnet
 		myPublicIp: myPublicIp
 	}
-	dependsOn: [
-		keyvault
-	]
 }
 module networking 'core/networking.bicep' = {
 	name: 'networking'
@@ -112,9 +128,9 @@ module networking 'core/networking.bicep' = {
 		vnet: vnet
 		subnet: subnet
 		nsg: nsg
-		funcsubnet: funcsubnet
+		appsubnet: appSubnet
 		location: location
-		apimsubnet: apimsubnet
+		
 	}
 	dependsOn: [
 		networkSecurityGroup
@@ -128,7 +144,6 @@ module appInsights 'core/appinsights.bicep' = {
 		appInsightsName: appInsightsName
 		logAnalyticsName : logAnalyticsName
 		location: location
-		functionNames: [for f in functionValues: f.name]
 	}
 }
 
@@ -137,18 +152,13 @@ module storage 'core/storage.bicep' = {
 	scope: rg
 	params: {
 		formStorageAcct: formStorageAcct
-		funcStorageAcct: funcStorageAcct
 		myPublicIp: myPublicIp
 		location: location
 		subnetIds: networking.outputs.storageSubnetIds
 		completedContainer: completedContainer
 		documentStorageContainer: documentStorageContainer
 		processResultsContainer: processResultsContainer
-		keyVaultName:	keyvaultName
 	}
-	dependsOn: [
-		keyvault
-	]
 }
 
 module docIntelligenceService 'core/documentintelligence.bicep' = {
@@ -158,11 +168,10 @@ module docIntelligenceService 'core/documentintelligence.bicep' = {
 		docIntelligenceName: docIntelligence
 		docIntelligenceInstanceCount: docIntelligenceInstanceCount
 		location: location
-		keyVaultName: keyvaultName
+		managedIdentityId: managedIdentity.outputs.id
 	}
 	dependsOn: [
   	networking
-		keyvault
 	]
 }
 
@@ -176,65 +185,89 @@ module servicebus 'core/servicebus.bicep' = {
 		moveQueueName: moveQueueName
 		toIndexQueueName: toIndexQueueName
 		customFieldQueueName: customFieldQueueName
-		keyVaultName: keyvaultName
-		subnetName: funcsubnet
+		subnetName: appSubnet
 		vnetName: vnet
 		serviceBusSku: serviceBusSku
 	}
 	dependsOn: [
-		keyvault
 		networking
 	]
 }
 
-module keyvault 'core/keyvault.bicep' = {
-	name: 'keyvault'
+module containerRegistry 'core/containerregistry.bicep' = {
+	name: 'containerRegistry'
 	scope: rg
 	params: {
-		keyVaultName: keyvaultName
+		registryName: containerRegistryName
 		location: location
 	}
+}
+ 
+module managedIdentityAcrPull 'core/containerregistry-acr-roleassignment.bicep' = {
+	name: 'managedIdentityAcrPull'
+	scope: rg
+	params: {
+		containerRegistryName: containerRegistryName
+		principalId: managedIdentity.outputs.principalId
+	}
 	dependsOn: [
-		networking
+		containerRegistry
 	]
 }
 
-module functions 'functions/functions.bicep' = {
-	name: 'functions'
+module containerEnvironment 'core/containerapp-environment.bicep' = {
+	name: 'containerEnvironment'
 	scope: rg
 	params: {
-		funcAppPlan: funcAppPlan
-		functionValues: functionValues
-		customFieldQueueName: customFieldQueueName
-		formStorageAcctName: formStorageAcct
-		functionStorageAcctName: funcStorageAcct
-		moveQueueName: moveQueueName
-		serviceBusNs: serviceBusNs
-		functionSubnetId: networking.outputs.functionSubnetId
-		keyVaultUri: keyvault.outputs.keyVaultUri
+		name: containerAppEnvironmentName
 		location: location
-		docQueueName: docQueueName
-		completedContainer: completedContainer
+		logAnalyticsCustomerId: appInsights.outputs.logAnalyticsCustomerId
+		logAnalyticsSharedKey: appInsights.outputs.logAnalyticsSharedKey
+		infrastructureSubnetId: networking.outputs.appSubNetId
+	}
+}
+
+module containerapps 'containerapp/containerapps.bicep' = {
+	name: 'containerapps'
+	scope: rg
+	params: {
+		location: location
+		functionValues: functionValues
+		managedEnvironmentId: containerEnvironment.outputs.id
+		containerRegistryServer: containerRegistry.outputs.loginServer
+		containerRegistryIdentityResourceId: managedIdentity.outputs.id
+		managedIdentityId: managedIdentity.outputs.id
+		managedIdentityClientId: managedIdentity.outputs.clientId
+		formStorageAcctName: formStorageAcct
 		documentStorageContainer: documentStorageContainer
 		processResultsContainer: processResultsContainer
+		completedContainer: completedContainer
+		serviceBusNs: serviceBusNs
+		docQueueName: docQueueName
+		customFieldQueueName: customFieldQueueName
+		moveQueueName: moveQueueName
 		toIndexQueueName: toIndexQueueName
 		aiSearchEndpoint: aiSearch.outputs.aiSearchEndpoint
-		openAiEmbeddingModel: openAiConfigs.embeddingModel
-		appInsightsName: appInsightsName
+		foundryProjectEndpoint: foundry.outputs.projectEndpoint
+		cosmosDbEndpoint: cosmosDb.outputs.cosmosDbEndpoint
+		serviceBusFullyQualifiedNamespace: servicebus.outputs.serviceBusFullyQualifiedNamespace
+		documentIntelligenceEndpoint: docIntelligenceService.outputs.docIntellEndpoint
+		documentIntelligenceEndpoints: string(docIntelligenceService.outputs.docIntellEndpoints)
+		foundryEmbeddingMaxTokens: foundryConfig.embeddingMaxTokens
 		aiIndexName: aiIndexName
-		managedIdentityId: managedIdentity.outputs.id
-		azureOpenAiEmbeddingMaxTokens: openAiConfigs.embeddingMaxTokens
-		openAiEndpoint: apiManagement.outputs.gatewayUrl
-		openAiChatModel: openAiConfigs.completionModel
+		foundryChatDeployment: foundry.outputs.chatDeploymentName
+		foundryEmbeddingModel: foundry.outputs.embeddingModel
+		foundryEmbeddingDeployment: foundry.outputs.embeddingDeploymentName
+		foundryAgentId: foundryAgentId
 		cosmosDbName: cosmosDbName
 		cosmosContainerName: cosmosContainerName
-		funcAppPlanSku: funcAppPlanSku
-	
+		appInsightsConnectionString: appInsights.outputs.connectionString
+		appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
+		usePlaceholderImage: firstProvision
 	}
 	dependsOn: [
 		storage
-		servicebus
-		cosmosDb
+		managedIdentityAcrPull
 	]
 }
 
@@ -242,11 +275,12 @@ module roleAssigments 'core/roleassignments.bicep' = {
 	name: 'roleAssigments'
 	scope: rg
 	params: {
-		docIntelligencePrincipalIds: docIntelligenceService.outputs.docIntelligencePrincipalIds
 		userAssignedManagedIdentityPrincipalId: managedIdentity.outputs.principalId
 		currentUserObjectId : currentUserObjectId
-		functionPrincipalIds: functions.outputs.systemAssignedIdentities
-		apimSystemAssignedIdentityPrincipalId: apiManagement.outputs.identity
+		cosmosAccountName: cosmosDb.outputs.cosmosDbAccountName
+		cosmosAccountResourceGroup: resourceGroupName
+		functionPrincipalIds: containerapps.outputs.systemAssignedIdentities
+		docIntelligencePrincipalIds: docIntelligenceService.outputs.docIntelligencePrincipalIds
 	}
 }
 
@@ -255,78 +289,17 @@ module aiSearch 'core/aisearch.bicep' = {
 	scope: rg
 	params: {
 		aiSearchName: aiSearchName
-		keyVaultName: keyvault.outputs.keyVaultName
 		location: location
 	}
 }
-
-module keyvaultSecrets 'core/keyvault-secrets.bicep' = {
-	name: 'keyvaultSecrets'
-	scope: rg
-	params: {
-		keyvault: keyvaultName
-		docIntelKeyArray: docIntelligenceService.outputs.docIntellKeyArray
-	}
-	dependsOn: [
-		keyvault
-	]
-}
-
-module apiManagement 'apim/api-management.bicep' = {
-	name: 'apiManagement'
-	scope: rg
-	params: {
-		name: apiManagementName
-		location: location
-		apiManagementIdentityId: managedIdentity.outputs.id
-		publisherEmail: apiManagementPublisherEmail
-		publisherName: apiManagementPublisherName
-		subnetId: networking.outputs.apimSubnetId
-		openAIDeployments: openAi.outputs.openAIDeployments
-		sku: apimSku
-		tags: {
-			CreatedBy: currentUserObjectId
-		}
-	}
-	
-}
-
-module aoiManamgentSettings 'apim/api-management-settings.bicep' = {
-	name: 'apiManagementSettings'
-	scope: rg
-	params: {
-		apiManagementName: apiManagement.outputs.name
-		keyVaultUri: keyvault.outputs.keyVaultUri
-		keyvaultName: keyvaultName
-		openApiApimBackends: apiManagement.outputs.openAIApiBackends
-		openAIDeployments: openAi.outputs.openAIDeployments
-		openAiApiName: openAiApiName
-		appInsightsName: appInsights.outputs.name
-		userAssignedIdentityId: managedIdentity.outputs.clientId
-	}
-	dependsOn: [
-		roleAssigments
-	]
-}
-
-module openAi './openai/openai.bicep' = {
-	name: 'openAi'
-	scope: rg
-	params: {
-		openAIInstances: openAiConfigs
-		keyvaultName: keyvault.outputs.keyVaultName
-		instancePrefix: '${abbrs.openAIService}${appName}-'
-		managedIdentityId: managedIdentity.outputs.id
-	}
-}
-
-
-
 
 
 output resourceGroupName string = resourceGroupName
-output openAINames array = [for i in range(0, length(openAiConfigs.configs)): openAi.outputs.openAIDeployments[i].name]
-output openAiChatModel string = openAiConfigs.completionModel
-output openAiEmbeddingModel string = openAiConfigs.embeddingModel
-output apimName string = apiManagement.outputs.name
-
+output foundryAccountName string = foundry.outputs.accountName
+output foundryProjectEndpoint string = foundry.outputs.projectEndpoint
+output foundryChatDeployment string = foundry.outputs.chatDeploymentName
+output foundryEmbeddingDeployment string = foundry.outputs.embeddingDeploymentName
+output containerAppsEnvironmentName string = containerEnvironment.outputs.name
+output containerRegistryLoginServer string = containerRegistry.outputs.loginServer
+output services array = containerapps.outputs.services
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer

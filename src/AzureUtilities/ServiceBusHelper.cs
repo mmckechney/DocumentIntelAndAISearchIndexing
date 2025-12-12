@@ -5,8 +5,11 @@ namespace HighVolumeProcessing.UtilityLibrary
    public class ServiceBusHelper
    {
       private readonly ILogger<ServiceBusHelper> logger;
-      private Dictionary<string, ServiceBusSender> senders = new();
-      Settings settings;
+      private readonly Dictionary<string, ServiceBusSender> senders = new();
+      private readonly Settings settings;
+      private readonly object lockObject = new();
+      private ServiceBusClient? cachedClient;
+
       public ServiceBusHelper(ILogger<ServiceBusHelper> logger, Settings settings)
       {
          this.logger = logger;
@@ -20,34 +23,55 @@ namespace HighVolumeProcessing.UtilityLibrary
          logger.LogInformation($"Sending to Queue: '{queueName}'");
          await sender.SendMessageAsync(message);
       }
-      object lockObject = new object();
+
+      public ServiceBusProcessor CreateProcessor(string queueName, ServiceBusProcessorOptions? options = null)
+      {
+         var client = GetOrCreateClient();
+         return client.CreateProcessor(queueName, options ?? new ServiceBusProcessorOptions()
+         {
+            AutoCompleteMessages = false,
+            MaxConcurrentCalls = 1
+         });
+      }
+
       private ServiceBusSender GetServiceBusSender(string queueName)
       {
          lock (lockObject)
          {
-            if (senders.ContainsKey(queueName))
+            if (senders.TryGetValue(queueName, out var existing))
             {
-               return senders[queueName];
+               return existing;
             }
-            else
-            {
-               var serviceBusSender = CreateServiceBusSender(settings.ServiceBusNamespaceName, queueName);
-               senders.Add(queueName, serviceBusSender);
-               return serviceBusSender;
-            }
+
+            var serviceBusSender = CreateServiceBusSender(queueName);
+            senders.Add(queueName, serviceBusSender);
+            return serviceBusSender;
          }
       }
 
-      private ServiceBusClient CreateServiceBusClient(string serviceBusNamespace, string queueName)
+      private ServiceBusClient GetOrCreateClient()
+      {
+         lock (lockObject)
+         {
+            if (cachedClient == null)
+            {
+               cachedClient = CreateServiceBusClient(settings.ServiceBusNamespaceName);
+            }
+
+            return cachedClient;
+         }
+      }
+
+      private ServiceBusClient CreateServiceBusClient(string serviceBusNamespace)
       {
          var fullyQualified = $"{serviceBusNamespace}.servicebus.windows.net";
          return new ServiceBusClient(fullyQualified, AadHelper.TokenCredential);
       }
 
-      private ServiceBusSender CreateServiceBusSender(string serviceBusNamespace, string queueName)
+      private ServiceBusSender CreateServiceBusSender(string queueName)
       {
-         var sbc = CreateServiceBusClient(serviceBusNamespace, queueName);
-         return sbc.CreateSender(queueName);
+         var client = GetOrCreateClient();
+         return client.CreateSender(queueName);
       }
    }
 }

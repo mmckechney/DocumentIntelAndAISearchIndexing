@@ -1,15 +1,6 @@
 param appInsightsName string
 param logAnalyticsName string
-param functionNames array
 param location string = resourceGroup().location
-
-
-var functionTags = reduce(functionNames, {}, (cur, functionName) => union(
-  cur, 
-  { 
-    '${format('hidden-link:/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.Web/sites/{2}', subscription().id, resourceGroup().name, functionName)}': 'Resource'
-  }
-))
 
 
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
@@ -22,7 +13,6 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     publicNetworkAccessForQuery: 'Enabled'
     WorkspaceResourceId: logAnalytics.id
   }
-  tags: functionTags
 }
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
@@ -34,7 +24,14 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
       enableLogAccessUsingOnlyResourcePermissions: true
     }
   }
-  
 }
 
 output name string = appInsights.name
+@secure()
+output connectionString string = appInsights.properties.ConnectionString
+output resourceId string = appInsights.id
+output instrumentationKey string = appInsights.properties.InstrumentationKey
+output logAnalyticsResourceId string = logAnalytics.id
+output logAnalyticsCustomerId string = logAnalytics.properties.customerId
+@secure()
+output logAnalyticsSharedKey string = listKeys(logAnalytics.id, '2020-08-01').primarySharedKey

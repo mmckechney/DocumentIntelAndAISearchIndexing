@@ -1,8 +1,8 @@
 ### Force queuing of files in the storage account
-GET http://localhost:7100/api/DocumentQueueing?force=true
+GET http://localhost:5011/queue
 
 ### Test the questions
-POST http://localhost:7104/api/AskQuestions
+POST http://localhost:8675/api/AskQuestions
 Content-Type: application/json
 
 {

@@ -2,18 +2,11 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "funcAppPlanSku": {
-      "value": "P0V3"
-    },
-
-    "apiManagementPublisherEmail": {
-      "value": "${AZURE_CURRENT_USER_EMAIL}"
-    },
-    "apiManagementPublisherName": {
-      "value": "${AZURE_CURRENT_USER_NAME}"
-    },
     "appName": {
       "value": "${APP_NAME}"
+    },
+    "appNameSafe": {
+      "value": "${APP_NAME_SAFE}"
     },
     "currentUserObjectId": {
       "value": "${AZURE_CURRENT_USER_OBJECT_ID}"
@@ -27,42 +20,29 @@
     "myPublicIp": {
       "value": "${PUBLIC_IP}"
     },
-    "openAiConfigs": {
-      "value": 
-      {
-        "embeddingModel" : "text-embedding-ada-002",
-        "embeddingMaxTokens" : 8191,
-        "completionModel" : "gpt-4o",
-        "configs" :     [
-          {
-            "name": "",
-            "location": "eastus2",
-            "suffix": "eastus2",
-            "priority": 1,
-            "embedding": {
-              "capacity": 100        
-            },
-            "completion": {
-              "capacity": 100, 
-              "sku" : "GlobalStandard"            
-            }
-          },
-          {
-            "name": "",
-            "location": "westus",
-            "suffix": "westus",
-            "priority": 2,
-            "embedding": {
-              "capacity": 100
-            },
-            "completion": {
-              "capacity": 100, 
-              "sku" : "GlobalStandard"            
-            }
-          }
-        ]
+     "firstProvision": {
+      "value": "${FIRST_PROVISION}"
+    },
+    "foundryConfig": {
+      "value": {
+        "projectDisplayName": "${APP_NAME} Document Intelligence",
+        "embeddingMaxTokens": 8192,
+        "chatModel": {
+          "name": "gpt-5-mini",
+          "version": "2025-08-07",
+          "sku": "GlobalStandard",
+          "capacity": 100
+        },
+        "embeddingModel": {
+          "name": "text-embedding-3-large",
+          "version": "1",
+          "sku": "GlobalStandard",
+          "capacity": 100
+        }
       }
-    
+    },
+    "foundryAgentId": {
+      "value": "${AZURE_FOUNDRY_AGENT_ID}"
     }
   }
 }

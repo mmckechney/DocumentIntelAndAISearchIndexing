@@ -1,11 +1,11 @@
-﻿using Azure;
-using Azure.Search.Documents;
+﻿using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.ComponentModel;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -17,43 +17,68 @@ namespace HighVolumeProcessing.UtilityLibrary
       SearchIndexClient client;
       ILogger<AiSearchHelper> log;
       IConfiguration config;
-      SkHelper semanticUtility;
+      AgentHelper semanticUtility;
       Settings settings;
-      public AiSearchHelper(ILogger<AiSearchHelper> log, IConfiguration config, SkHelper semanticUtility, Settings settings)
+      private readonly SemaphoreSlim initSemaphore = new SemaphoreSlim(1, 1);
+      private bool indexConfirmed = false;
+
+      public AiSearchHelper(ILogger<AiSearchHelper> log, IConfiguration config, AgentHelper semanticUtility, Settings settings)
       {
          this.log = log;
          this.config = config;
          this.semanticUtility = semanticUtility;
          this.settings = settings;
          var aISearchEndpoint = settings.AiSearchEndpoint ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_AISEARCH_ENDPOINT} in configuration.");
-         var aISearchAdminKey = settings.AiSearchAdminKey ?? throw new ArgumentException($"Missing {ConfigKeys.AZURE_AISEARCH_ADMIN_KEY} in configuration.");
-
-
-         // Create a client
-         AzureKeyCredential credential = new AzureKeyCredential(aISearchAdminKey);
-         client = new SearchIndexClient(new Uri(aISearchEndpoint), credential);
-         CreateCustomFieldIndex().Wait();
-
+         client = new SearchIndexClient(new Uri(aISearchEndpoint), AadHelper.TokenCredential);
       }
+
+      public async Task<bool> EnsureIndexInitializedAsync()
+      {
+         if (indexConfirmed) return true;
+
+         await initSemaphore.WaitAsync();
+         try
+         {
+            if (indexConfirmed) return true;
+            await CreateCustomFieldIndexAsync();
+            indexConfirmed = true;
+            return true;
+         }
+         finally
+         {
+            initSemaphore.Release();
+         }
+      }
+
       public async Task<List<string>> ListAvailableIndexes(bool quoted = true)
       {
-         List<string> names = new();
-         await foreach (var page in client.GetIndexNamesAsync())
+         try
          {
-            if (quoted)
+            List<string> names = new();
+            await foreach (var page in client.GetIndexNamesAsync())
             {
-               names.Add($"\"{page}\"");
+               if (quoted)
+               {
+                  names.Add($"\"{page}\"");
+               }
+               else
+               {
+                  names.Add($"{page}");
+               }
             }
-            else
-            {
-               names.Add($"{page}");
-            }
+            return names;
          }
-         return names;
+         catch (Exception exe)
+         {
+            log.LogError(exe, "Failed to get list of existing indexes");
+            throw;
+         }
       }
 
       public async Task<bool> AddToIndexAsync(List<string> customFieldValues, List<string> chunkedText, string fileName)
       {
+         await EnsureIndexInitializedAsync();
+
          var searchClient = client.GetSearchClient(settings.AiSearchIndexName);
          var embeddings = await semanticUtility.GetEmbeddingAsync(chunkedText, fileName);
 
@@ -87,8 +112,14 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      public async Task<List<CustomFieldIndexModel>> SearchByCustomField(string fileName, string customFieldValue, string query)
+      [Description("Searches AI Search index for information from the specified document and the provided query.")]
+      public async Task<List<CustomFieldIndexModel>> SearchByCustomField(
+         [Description("The name of the file to filter search.")] string fileName,
+         [Description("The search query.")] string query,
+         [Description("The custom field to search for (if provided).")] string customFieldValue = "")
       {
+         await EnsureIndexInitializedAsync();
+
          string customFieldQuery = string.Empty;
          var searchClient = client.GetSearchClient(settings.AiSearchIndexName);
          if (!string.IsNullOrWhiteSpace(customFieldValue))
@@ -128,16 +159,11 @@ namespace HighVolumeProcessing.UtilityLibrary
          return values;
       }
 
-
-      private bool indexConfimed = false;
-      private async Task CreateCustomFieldIndex()
+      private async Task CreateCustomFieldIndexAsync()
       {
-         if (indexConfimed) return;
-
          var indexes = await this.ListAvailableIndexes(false);
          if (indexes.Contains(settings.AiSearchIndexName))
          {
-            indexConfimed = true;
             return;
          }
          var fields = new FieldBuilder().Build(typeof(CustomFieldIndexModel));
@@ -152,11 +178,8 @@ namespace HighVolumeProcessing.UtilityLibrary
          index.VectorSearch.Profiles.Add(vectorSearchProfile);
          index.VectorSearch.Algorithms.Add(algoConfig);
 
-         client.CreateIndex(index);
+         await client.CreateIndexAsync(index);
          log.LogInformation($"Index {settings.AiSearchIndexName} created or updated successfully.");
-
-
-
       }
 
       private (VectorSearchProfile, VectorSearchAlgorithmConfiguration) CreateVectorProfileAndAlgo()
