@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json.schemastore.org/aspire-8.0.json",
+  "resources": {
+    "storage": {
+      "type": "azure.bicep.v0",
+      "path": "storage.module.bicep"
+    },
+    "blobs": {
+      "type": "value.v0",
+      "connectionString": "{storage.outputs.blobEndpoint}"
+    },
+    "servicebus": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{servicebus.outputs.serviceBusEndpoint}",
+      "path": "servicebus.module.bicep"
+    },
+    "cosmos": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{cosmos.outputs.connectionString}",
+      "path": "cosmos.module.bicep"
+    },
+    "cosmosdb": {
+      "type": "value.v0",
+      "connectionString": "AccountEndpoint={cosmos.outputs.connectionString};Database=cosmosdb"
+    },
+    "aisearch": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{aisearch.outputs.connectionString}",
+      "path": "aisearch.module.bicep"
+    },
+    "insights": {
+      "type": "azure.bicep.v0",
+      "connectionString": "{insights.outputs.appInsightsConnectionString}",
+      "path": "insights.module.bicep"
+    },
+    "queueing-app": {
+      "type": "project.v0",
+      "path": "../DocumentQueueingFunction/DocumentQueueingFunction.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{insights.connectionString}"
+      }
+    },
+    "intelligence-app": {
+      "type": "project.v0",
+      "path": "../DocumentIntelligenceFunction/DocumentIntelligenceFunction.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{insights.connectionString}"
+      }
+    },
+    "custom-field-app": {
+      "type": "project.v0",
+      "path": "../CustomFieldExtractionFunction/CustomFieldExtractionFunction.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "ConnectionStrings__cosmosdb": "{cosmosdb.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{insights.connectionString}"
+      }
+    },
+    "aisearch-app": {
+      "type": "project.v0",
+      "path": "../AiSearchIndexingFunction/AiSearchIndexingFunction.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "ConnectionStrings__aisearch": "{aisearch.connectionString}",
+        "ConnectionStrings__cosmosdb": "{cosmosdb.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{insights.connectionString}"
+      }
+    },
+    "askquestions-app": {
+      "type": "project.v0",
+      "path": "../DocumentQuestionsFunction/DocumentQuestionsFunction.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
+        "HTTP_PORTS": "{askquestions-app.bindings.http.targetPort}",
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{insights.connectionString}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http"
+        },
+        "https": {
+          "scheme": "https",
+          "protocol": "tcp",
+          "transport": "http"
+        }
+      }
+    },
+    "mover-app": {
+      "type": "project.v0",
+      "path": "../ProcessedFileMover/ProcessedFileMover.csproj",
+      "env": {
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
+        "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
+        "ConnectionStrings__blobs": "{blobs.connectionString}",
+        "ConnectionStrings__servicebus": "{servicebus.connectionString}",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "{insights.connectionString}"
+      }
+    },
+    "storage-roles": {
+      "type": "azure.bicep.v0",
+      "path": "storage-roles.module.bicep",
+      "params": {
+        "storage_outputs_name": "{storage.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "servicebus-roles": {
+      "type": "azure.bicep.v0",
+      "path": "servicebus-roles.module.bicep",
+      "params": {
+        "servicebus_outputs_name": "{servicebus.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    },
+    "cosmos-roles": {
+      "type": "azure.bicep.v0",
+      "path": "cosmos-roles.module.bicep",
+      "params": {
+        "cosmos_outputs_name": "{cosmos.outputs.name}",
+        "principalId": ""
+      }
+    },
+    "aisearch-roles": {
+      "type": "azure.bicep.v0",
+      "path": "aisearch-roles.module.bicep",
+      "params": {
+        "aisearch_outputs_name": "{aisearch.outputs.name}",
+        "principalType": "",
+        "principalId": ""
+      }
+    }
+  }
+}

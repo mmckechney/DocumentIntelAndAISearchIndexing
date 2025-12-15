@@ -5,34 +5,32 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-var builder = Host.CreateDefaultBuilder(args)
-   .ConfigureAppConfiguration((context, config) =>
-   {
-      config
-         .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-         .AddJsonFile($"appsettings.{context.HostingEnvironment.EnvironmentName}.json", optional: true, reloadOnChange: false)
-         .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)
-         .AddEnvironmentVariables();
-   })
-   .ConfigureLogging(logging =>
-   {
-      logging.SetMinimumLevel(LogLevel.Information);
-      logging.AddFilter("System", LogLevel.Warning);
-      logging.AddFilter("Microsoft", LogLevel.Warning);
-   })
-   .ConfigureServices((context, services) =>
-   {
-      services.AddSingleton<AgentHelper>();
-      services.AddSingleton<AiSearchHelper>();
-      services.AddSingleton<StorageHelper>();
-      services.AddSingleton<ServiceBusHelper>();
-      services.AddSingleton<Settings>();
-      services.AddSingleton<Tracker<AiSearchIndexing>>();
-      services.AddSingleton<CosmosDbHelper>();
-      services.AddSingleton<AiSearchIndexing>();
-      services.AddHostedService<AiSearchIndexingWorker>();
-      services.AddHttpClient();
-      services.AddApplicationInsightsTelemetryWorkerService();
-   });
+var builder = Host.CreateApplicationBuilder(args);
 
-await builder.RunConsoleAsync();
+builder.AddServiceDefaults();
+
+builder.Configuration
+   .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+   .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+   .AddJsonFile("local.settings.json", optional: true, reloadOnChange: false)
+   .AddEnvironmentVariables();
+
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Logging.AddFilter("System", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft", LogLevel.Warning);
+
+builder.Services.AddSingleton<AgentHelper>();
+builder.Services.AddSingleton<AiSearchHelper>();
+builder.Services.AddSingleton<StorageHelper>();
+builder.Services.AddSingleton<ServiceBusHelper>();
+builder.Services.AddSingleton<Settings>();
+builder.Services.AddSingleton<Tracker<AiSearchIndexing>>();
+builder.Services.AddSingleton<CosmosDbHelper>();
+builder.Services.AddSingleton<AiSearchIndexing>();
+builder.Services.AddHostedService<AiSearchIndexingWorker>();
+builder.Services.AddHttpClient();
+builder.Services.AddApplicationInsightsTelemetryWorkerService();
+
+var host = builder.Build();
+
+await host.RunAsync();

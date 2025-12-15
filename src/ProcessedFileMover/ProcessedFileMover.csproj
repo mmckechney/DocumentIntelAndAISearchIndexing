@@ -22,6 +22,7 @@
    </ItemGroup>
    <ItemGroup>
       <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />
+      <ProjectReference Include="..\DocumentIntelAndAISearchIndexing.ServiceDefaults\DocumentIntelAndAISearchIndexing.ServiceDefaults.csproj" />
    </ItemGroup>
    <ItemGroup>
       <None Update="appsettings.json">

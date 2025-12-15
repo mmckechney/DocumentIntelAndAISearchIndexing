@@ -1,5 +1,7 @@
 # High Volume Azure AI Document Intelligence with AI Search Indexing
 
+> **🚀 Now with .NET Aspire!** This solution has been updated to use .NET Aspire for improved local development, orchestration, and observability. See [QUICKSTART.md](QUICKSTART.md) for running locally or [ASPIRE-README.md](ASPIRE-README.md) for full details.
+
 This repository is offered to demonstrate a set of resources that will allow you to leverage [Azure AI Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/?view=doc-intel-4.0.0) for high throughput of processing documents stored in Azure Blob Storage to extract text. It then utilized Semantic Kernel, Azure OpenAI and Azure AI Search to index the contents of these documents. The solution can be used to process documents in a variety of formats, including Office documents, PDF, PNG, and JPEG.
 
 **IMPORTANT!** In addition to leveraging the solution below with multiple Document Intelligence instances, it will be beneficial to _request a transaction limit increase_ for your Document Intelligence Accounts. Instructions for how to do this can be found in the [Azure AI Document Intelligence Documentation](https://docs.microsoft.com/en-us/azure/applied-ai-services/form-recognizer/service-limits#increasing-transactions-per-second-request-limit)

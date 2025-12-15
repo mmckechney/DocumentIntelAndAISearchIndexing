@@ -60,7 +60,8 @@ $functionPaths = @(
     "./src/ProcessedFileMover",
     "./src/DocumentQueueingFunction",
     "./src/AiSearchIndexingFunction",
-    "./src/DocumentQuestionsFunction"
+    "./src/DocumentQuestionsFunction",
+    "./src/DocumentIntelAndAISearchIndexing.AppHost"
 )
 
 foreach ($path in $functionPaths) {

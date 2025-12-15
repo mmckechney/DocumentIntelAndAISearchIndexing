@@ -7,6 +7,8 @@ using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Configuration
    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
@@ -29,6 +31,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddApplicationInsightsTelemetry();
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 app.MapGet("/", () => Results.Ok("Document queueing worker is running"));
 
