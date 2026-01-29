@@ -38,7 +38,7 @@ namespace HighVolumeProcessing.DocumentQueueingFunction
             var containerClient = storageHelper.GetContainerClient(settings.SourceContainerName);
             logger.LogInformation("Using storage container '{ContainerName}' as files source.", containerClient.Name);
 
-            var blobList = containerClient.GetBlobsAsync(BlobTraits.Metadata);
+            var blobList = containerClient.GetBlobsAsync(new GetBlobsOptions { Traits = BlobTraits.Metadata });
             var metadataTasks = new List<Task>();
             int counter = 0;
             int fileCounter = 0;

@@ -77,7 +77,7 @@ namespace HighVolumeProcessing.ProcessedFileMover
       {
          List<string> lstBlobsToMove = new List<string>();
 
-         var blobList = storageHelper.GetContainerClient(settings.SourceContainerName).GetBlobsAsync(BlobTraits.Metadata);
+         var blobList = storageHelper.GetContainerClient(settings.SourceContainerName).GetBlobsAsync(new GetBlobsOptions { Traits = BlobTraits.Metadata });
          await foreach (var blob in blobList)
          {
             if (blob.Metadata.ContainsKey("Processed"))
