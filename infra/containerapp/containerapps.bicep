@@ -197,7 +197,7 @@ var containerRuntimeConfiguration = concat(sharedConfiguration, [
   }
 ])
 
-resource containerApps 'Microsoft.App/containerApps@2023-05-01' = [for functionValue in normalizedFunctionValues: {
+resource containerApps 'Microsoft.App/containerApps@2024-03-01' = [for functionValue in normalizedFunctionValues: {
   name: functionValue.name
   location: location
   tags: {
@@ -250,6 +250,6 @@ output services array = [for (functionValue, index) in normalizedFunctionValues:
   serviceName: functionValue.serviceName
   containerAppName: containerApps[index].name
   containerAppResourceId: containerApps[index].id
-  ingressFqdn: functionValue.hasIngress ? reference(containerApps[index].id, '2023-05-01', 'full').properties.configuration.ingress.fqdn : ''
+  ingressFqdn: functionValue.hasIngress ? reference(containerApps[index].id, '2024-03-01', 'full').properties.configuration.ingress.fqdn : ''
 }]
 

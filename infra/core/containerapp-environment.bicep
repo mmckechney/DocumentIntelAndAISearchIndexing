@@ -5,7 +5,7 @@ param logAnalyticsCustomerId string
 param logAnalyticsSharedKey string
 param infrastructureSubnetId string
 
-resource managedEnvironment 'Microsoft.App/managedEnvironments@2022-03-01' = {
+resource managedEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: name
   location: location
   properties: {
@@ -19,6 +19,21 @@ resource managedEnvironment 'Microsoft.App/managedEnvironments@2022-03-01' = {
     vnetConfiguration: {
       infrastructureSubnetId: infrastructureSubnetId
     }
+    workloadProfiles: [
+      {
+        name: 'Consumption'
+        workloadProfileType: 'Consumption'
+      }
+    ]
+  }
+}
+
+// Enable the Aspire Dashboard for the Container Apps Environment
+resource aspireDashboard 'Microsoft.App/managedEnvironments/dotNetComponents@2024-10-02-preview' = {
+  name: 'aspire-dashboard'
+  parent: managedEnvironment
+  properties: {
+    componentType: 'AspireDashboard'
   }
 }
 

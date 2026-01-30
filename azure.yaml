@@ -47,10 +47,16 @@ services:
             context: ../..
             dockerfile: src/ProcessedFileMover/Dockerfile
 
+infra:
+  bicep: ./infra/main.bicep
+
 hooks:
   preup: 
     - shell: pwsh
       run: ./scripts/preup.ps1
+  postpackage:
+    - shell: pwsh
+      run: ./scripts/postpackage.ps1
   postdeploy:
     - shell: pwsh
-      run: ./scripts/postdeploy.ps1            
+      run: ./scripts/postdeploy.ps1

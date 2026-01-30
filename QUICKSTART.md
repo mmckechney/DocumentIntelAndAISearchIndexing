@@ -1,7 +1,5 @@
 # Quick Start: Running with .NET Aspire
 
-> **⚠️ Important**: If you encounter "DCP not found" errors when running locally, see [ASPIRE-LOCAL-DEV.md](./ASPIRE-LOCAL-DEV.md) for solutions.
-
 ## Prerequisites
 - .NET 10.0 SDK
 - Docker Desktop (for Azure emulators)

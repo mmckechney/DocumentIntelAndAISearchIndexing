@@ -22,6 +22,14 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
         name: appsubnet
         properties: {
            addressPrefix: '10.10.4.0/23'
+          delegations: [
+            {
+              name: 'Microsoft.App.environments'
+              properties: {
+                serviceName: 'Microsoft.App/environments'
+              }
+            }
+          ]
           serviceEndpoints: [
             {
               service: 'Microsoft.Storage'

@@ -61,6 +61,7 @@ if (-not $functionValues) {
 
 foreach ($function in $functionValues) {
     $serviceName = $function.serviceName.ToLower()
+    $functionTag = $function.tag
     $localRepo = "$projectName/$serviceName-$appNameLower"
     $imageMetadata = @(docker images $localRepo --format '{{json .}}' |
         ForEach-Object { $_ | ConvertFrom-Json } |
@@ -74,11 +75,20 @@ foreach ($function in $functionValues) {
     $tag = $latestImage.Tag
     $source = "$($localRepo):$tag"
     $targetRepo = "$registryServer/$serviceName"
-    $target = "$($targetRepo):latest"
-    Write-Host "Tagging $source => $target" -ForegroundColor Cyan
-    docker tag $source $target
-    Write-Host "Pushing $target" -ForegroundColor Gray
-    docker push $target | Out-Null
+    
+    # Push with 'latest' tag
+    $targetLatest = "$($targetRepo):latest"
+    Write-Host "Tagging $source => $targetLatest" -ForegroundColor Cyan
+    docker tag $source $targetLatest
+    Write-Host "Pushing $targetLatest" -ForegroundColor Gray
+    docker push $targetLatest | Out-Null
+    
+    # Also push with the function-specific tag that Container Apps expect
+    $targetFunctionTag = "$($targetRepo):$functionTag"
+    Write-Host "Tagging $source => $targetFunctionTag" -ForegroundColor Cyan
+    docker tag $source $targetFunctionTag
+    Write-Host "Pushing $targetFunctionTag" -ForegroundColor Gray
+    docker push $targetFunctionTag | Out-Null
 }
 
 Write-Host "Container images synced to $registryServer" -ForegroundColor Green
