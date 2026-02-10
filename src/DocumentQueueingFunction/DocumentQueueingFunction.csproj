@@ -9,7 +9,7 @@
       <UserSecretsId>5a6d02b0-1a66-4888-8a89-c720f3b87b36</UserSecretsId>
    </PropertyGroup>
    <ItemGroup>
-      <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
+      <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0" />
    </ItemGroup>
    <ItemGroup>
       <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />
