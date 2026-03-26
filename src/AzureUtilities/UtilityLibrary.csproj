@@ -6,31 +6,33 @@
     <Nullable>enable</Nullable>
      <RootNamespace>HighVolumeProcessing.UtilityLibrary</RootNamespace>
      <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+     <EnablePreviewFeatures>true</EnablePreviewFeatures>
+     <GenerateRequiresPreviewFeaturesAttribute>true</GenerateRequiresPreviewFeaturesAttribute>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Azure.AI.DocumentIntelligence" Version="1.0.0" />
     <PackageReference Include="Azure.AI.Inference" Version="1.0.0-beta.5" />
      <PackageReference Include="Azure.Search.Documents" Version="11.8.0-beta.1" />
-     <PackageReference Include="Azure.Identity" Version="1.17.1" />
+     <PackageReference Include="Azure.Identity" Version="1.19.0" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
-    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.9.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.57.0" />
-    <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.260209.1" />
-    <PackageReference Include="Microsoft.Agents.AI.AzureAI" Version="1.0.0-preview.260209.1" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.AI" Version="10.3.0" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.58.0" />
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-rc4" />
+    <PackageReference Include="Microsoft.Agents.AI.AzureAI.Persistent" Version="1.0.0-preview.260311.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.4.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="YamlDotNet" Version="16.3.0" />
-	  <PackageReference Include="Azure.AI.OpenAI" Version="2.8.0-beta.1" />
-	  <PackageReference Include="Azure.AI.Projects" Version="1.2.0-beta.5" />
-	  <PackageReference Include="Azure.AI.Projects.OpenAI" Version="1.0.0-beta.5" />
-	  <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
-    <PackageReference Include="System.Memory.Data" Version="10.0.3" />
+	  <PackageReference Include="Azure.AI.OpenAI" Version="2.9.0-beta.1" />
+	  <PackageReference Include="Azure.AI.Projects" Version="2.0.0-beta.2" />
+	  <PackageReference Include="Azure.AI.Projects.OpenAI" Version="2.0.0-beta.1" />
+	  <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.4.1" />
+    <PackageReference Include="System.Memory.Data" Version="10.0.5" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Prompts\**\*.yaml" />

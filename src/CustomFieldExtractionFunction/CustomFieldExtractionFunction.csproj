@@ -7,15 +7,16 @@
       <RootNamespace>HighVolumeProcessing.CustomFieldExtractionFunction</RootNamespace>
       <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
 	  <UserSecretsId>4623eb55-27cf-404a-8980-d91b4f0584f6</UserSecretsId>
+     <EnablePreviewFeatures>true</EnablePreviewFeatures>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="Azure.Identity" Version="1.17.1" />
+		<PackageReference Include="Azure.Identity" Version="1.19.0" />
 		<PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
-		<PackageReference Include="HttpMultipartParser" Version="9.2.0" />
+		<PackageReference Include="HttpMultipartParser" Version="10.0.0" />
 		<PackageReference Include="Microsoft.ApplicationInsights.WorkerService" Version="3.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.3" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.5" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
    </ItemGroup>
 	<ItemGroup>
 	  <ProjectReference Include="..\AzureUtilities\UtilityLibrary.csproj" />

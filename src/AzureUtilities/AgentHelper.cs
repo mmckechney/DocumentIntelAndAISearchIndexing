@@ -1,6 +1,6 @@
 ﻿using Azure.AI.OpenAI;
 using Azure.AI.Projects;
-using Azure.AI.Projects.OpenAI;
+using Azure.AI.Agents.Persistent;
 using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Agents.AI;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
@@ -14,15 +14,16 @@ namespace HighVolumeProcessing.UtilityLibrary
 
    public class AgentHelper
    {
-      private AIAgent askQuestionsAgent;
-      private AIAgent customFieldAgent;
+      private AIAgent? askQuestionsAgent;
+      private AIAgent? customFieldAgent;
       private IEmbeddingGenerator<string, Embedding<float>>? _embeddingGenerator;
       private ILogger<AgentHelper> log;
       private IConfiguration config;
       private ILoggerFactory logFactory;
       private bool initCalled = false;
       private Settings settings;
-      private AIProjectClient foundryProjectClient;
+      private AIProjectClient? foundryProjectClient;
+      private PersistentAgentsClient? persistentAgentsClient;
 
       public AgentHelper(ILoggerFactory logFactory, IConfiguration config,  Settings settings)
       {
@@ -53,6 +54,8 @@ namespace HighVolumeProcessing.UtilityLibrary
 
 
          this.foundryProjectClient = new AIProjectClient(new Uri(projectEndpoint), AadHelper.TokenCredential);
+         this.persistentAgentsClient = new PersistentAgentsClient(projectEndpoint, AadHelper.TokenCredential);
+         
          ClientConnection connection = this.foundryProjectClient.GetConnection(typeof(AzureOpenAIClient).FullName!);
          if (!connection.TryGetLocatorAsUri(out Uri? uri) || uri is null)
          {
@@ -123,7 +126,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
          string prompt = $"**QUESTION:** {question}\n**CONTENT:** {documentContent}";
 
-         var response = await askQuestionsAgent.RunAsync(prompt);
+         var response = await askQuestionsAgent!.RunAsync(prompt, null);
          return response?.Text ?? string.Empty;
       }
 
@@ -134,7 +137,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
          string prompt = $"**QUESTION:** {question}\n**CONTENT:** {documentContent}";
 
-         await foreach (var update in askQuestionsAgent.RunStreamingAsync(prompt))
+         await foreach (var update in askQuestionsAgent!.RunStreamingAsync(prompt, null))
          {
             if (!string.IsNullOrEmpty(update.Text))
             {
@@ -156,7 +159,7 @@ namespace HighVolumeProcessing.UtilityLibrary
             {
                log.LogInformation("Extracting custom fields from document...");
 
-               var response = await customFieldAgent.RunAsync(documentContent);
+               var response = await customFieldAgent!.RunAsync(documentContent, null);
                var customFieldsString = (response?.Text ?? string.Empty).CleanJson();
                
                try
@@ -208,11 +211,15 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      private async Task<AIAgent?> GetFoundryAgent(string agentName, params AITool[] tools)
+      private async Task<AIAgent?> GetFoundryAgent(string agentName)
       {
+         if (persistentAgentsClient == null)
+         {
+            throw new InvalidOperationException("PersistentAgentsClient not initialized.");
+         }
 
-         var allAgents = new List<AgentRecord>();
-         await foreach (var a in foundryProjectClient.Agents.GetAgentsAsync())
+         var allAgents = new List<PersistentAgent>();
+         await foreach (var a in persistentAgentsClient.Administration.GetAgentsAsync())
          {
             allAgents.Add(a);
          }
@@ -227,8 +234,9 @@ namespace HighVolumeProcessing.UtilityLibrary
             return null;
          }
 
-         //Need to add local tools each time you "get" the an existing agent
-         return foundryProjectClient.GetAIAgent(agentName, tools)
+         //Need to add local tools each time you "get" an existing agent
+         var agent = await persistentAgentsClient.GetAIAgentAsync(named[0].Id);
+         return agent
                .AsBuilder()
                .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
                {
@@ -237,24 +245,28 @@ namespace HighVolumeProcessing.UtilityLibrary
                .Build();
       }
 
-      private async Task<AIAgent?> CreateFoundryAgent(string name, string deployment, string description, string instructions, params AITool[] tools)
+      private async Task<AIAgent?> CreateFoundryAgent(string name, string deployment, string description, string instructions)
       {
+         if (persistentAgentsClient == null)
+         {
+            throw new InvalidOperationException("PersistentAgentsClient not initialized.");
+         }
        
          try
          {
-            AIAgent? agent = null;
-            await Task.Run(async () =>
-            {
-               agent = foundryProjectClient.CreateAIAgent(name: name, description: description, instructions: instructions, tools: tools, model: deployment)
-                  .AsBuilder()
-                    .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
-                    {
-                       cfg.EnableSensitiveData = true;
-                    })
-                  .Build();
-
-            });
-            return agent;
+            var agent = await persistentAgentsClient.CreateAIAgentAsync(
+               model: deployment,
+               name: name,
+               description: description,
+               instructions: instructions);
+            
+            return agent
+               .AsBuilder()
+               .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
+               {
+                  cfg.EnableSensitiveData = true;
+               })
+               .Build();
          }
          catch (Exception exe)
          {
