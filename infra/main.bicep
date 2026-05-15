@@ -263,7 +263,7 @@ module containerapps 'containerapp/containerapps.bicep' = {
 		cosmosContainerName: cosmosContainerName
 		appInsightsConnectionString: appInsights.outputs.connectionString
 		appInsightsInstrumentationKey: appInsights.outputs.instrumentationKey
-		usePlaceholderImage: firstProvision
+		usePlaceholderImage: true // azd deploy manages actual container images; Bicep always uses placeholder to avoid tag mismatches
 	}
 	dependsOn: [
 		storage

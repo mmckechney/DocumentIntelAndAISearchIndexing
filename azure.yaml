@@ -9,6 +9,7 @@ services:
         host: containerapp
         language: dotnet
         docker:
+            remoteBuild: true
             context: ../..
             dockerfile: src/AiSearchIndexingFunction/Dockerfile
     custom-field-app:
@@ -16,6 +17,7 @@ services:
         host: containerapp
         language: dotnet
         docker:
+            remoteBuild: true
             context: ../..
             dockerfile: src/CustomFieldExtractionFunction/Dockerfile
     intelligence-app:
@@ -23,6 +25,7 @@ services:
         host: containerapp
         language: dotnet
         docker:
+            remoteBuild: true
             context: ../..
             dockerfile: src/DocumentIntelligenceFunction/Dockerfile
     askquestions-app:
@@ -30,6 +33,7 @@ services:
         host: containerapp
         language: dotnet
         docker:
+            remoteBuild: true
             context: ../..
             dockerfile: src/DocumentQuestionsFunction/Dockerfile
     queueing-app:
@@ -37,6 +41,7 @@ services:
         host: containerapp
         language: dotnet
         docker:
+            remoteBuild: true
             context: ../..
             dockerfile: src/DocumentQueueingFunction/Dockerfile
     mover-app:
@@ -44,6 +49,7 @@ services:
         host: containerapp
         language: dotnet
         docker:
+            remoteBuild: true
             context: ../..
             dockerfile: src/ProcessedFileMover/Dockerfile
 

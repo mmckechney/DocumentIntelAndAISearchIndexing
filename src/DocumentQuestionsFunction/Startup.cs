@@ -1,4 +1,5 @@
-﻿using HighVolumeProcessing.DocumentQuestionsFunction;
+﻿using Azure.Monitor.OpenTelemetry.AspNetCore;
+using HighVolumeProcessing.DocumentQuestionsFunction;
 using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -26,7 +27,7 @@ builder.Services.AddSingleton<ServiceBusHelper>();
 builder.Services.AddSingleton<Settings>();
 builder.Services.AddSingleton<AskQuestions>();
 builder.Services.AddHttpClient();
-builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddOpenTelemetry().UseAzureMonitor();
 
 var app = builder.Build();
 

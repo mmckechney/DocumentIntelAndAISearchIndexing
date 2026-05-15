@@ -1,4 +1,5 @@
-﻿using HighVolumeProcessing.DocumentIntelligenceFunction;
+﻿using Azure.Monitor.OpenTelemetry.AspNetCore;
+using HighVolumeProcessing.DocumentIntelligenceFunction;
 using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +32,7 @@ var builder = Host.CreateDefaultBuilder(args)
       services.AddSingleton<DocIntelligence>();
       services.AddHostedService<DocIntelligenceWorker>();
       services.AddHttpClient();
-      services.AddApplicationInsightsTelemetryWorkerService();
+      services.AddOpenTelemetry().UseAzureMonitor();
    });
 
 await builder.RunConsoleAsync();

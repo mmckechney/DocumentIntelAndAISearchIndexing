@@ -1,4 +1,5 @@
-﻿using HighVolumeProcessing.DocumentQueueingFunction;
+﻿using Azure.Monitor.OpenTelemetry.AspNetCore;
+using HighVolumeProcessing.DocumentQueueingFunction;
 using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -26,7 +27,7 @@ builder.Services.AddSingleton<Tracker<DocumentQueueing>>();
 builder.Services.AddSingleton<CosmosDbHelper>();
 builder.Services.AddSingleton<DocumentQueueing>();
 builder.Services.AddHttpClient();
-builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddOpenTelemetry().UseAzureMonitor();
 
 var app = builder.Build();
 

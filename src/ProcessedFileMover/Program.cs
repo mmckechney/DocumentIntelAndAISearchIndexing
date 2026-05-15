@@ -1,4 +1,5 @@
-﻿using HighVolumeProcessing.ProcessedFileMover;
+﻿using Azure.Monitor.OpenTelemetry.AspNetCore;
+using HighVolumeProcessing.ProcessedFileMover;
 using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +32,7 @@ var builder = Host.CreateDefaultBuilder(args)
       services.AddSingleton<FileMover>();
       services.AddHostedService<ProcessedFileMoverWorker>();
       services.AddHttpClient();
-      services.AddApplicationInsightsTelemetryWorkerService();
+      services.AddOpenTelemetry().UseAzureMonitor();
    });
 
 await builder.RunConsoleAsync();

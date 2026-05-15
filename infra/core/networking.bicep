@@ -46,6 +46,14 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-02-01' = {
               locations: ['*']
             }
           ]
+          delegations: [
+            {
+              name: 'Microsoft.App.environments'
+              properties: {
+                serviceName: 'Microsoft.App/environments'
+              }
+            }
+          ]
           networkSecurityGroup: {
             id: networkSecurityGroup.id
           }

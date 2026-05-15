@@ -1,4 +1,5 @@
-﻿using HighVolumeProcessing.AiSearchIndexingFunction;
+﻿using Azure.Monitor.OpenTelemetry.AspNetCore;
+using HighVolumeProcessing.AiSearchIndexingFunction;
 using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,7 +33,7 @@ var builder = Host.CreateDefaultBuilder(args)
       services.AddSingleton<AiSearchIndexing>();
       services.AddHostedService<AiSearchIndexingWorker>();
       services.AddHttpClient();
-      services.AddApplicationInsightsTelemetryWorkerService();
+      services.AddOpenTelemetry().UseAzureMonitor();
    });
 
 await builder.RunConsoleAsync();

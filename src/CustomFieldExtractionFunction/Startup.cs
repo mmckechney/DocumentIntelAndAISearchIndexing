@@ -1,4 +1,5 @@
-﻿using HighVolumeProcessing.CustomFieldExtractionFunction;
+﻿using Azure.Monitor.OpenTelemetry.AspNetCore;
+using HighVolumeProcessing.CustomFieldExtractionFunction;
 using HighVolumeProcessing.UtilityLibrary;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,7 +32,7 @@ var builder = Host.CreateDefaultBuilder(args)
       services.AddSingleton<CustomFieldExtraction>();
       services.AddHostedService<CustomFieldExtractionWorker>();
       services.AddHttpClient();
-      services.AddApplicationInsightsTelemetryWorkerService();
+      services.AddOpenTelemetry().UseAzureMonitor();
    });
 
 await builder.RunConsoleAsync();
