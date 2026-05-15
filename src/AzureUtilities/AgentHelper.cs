@@ -73,17 +73,7 @@ namespace HighVolumeProcessing.UtilityLibrary
          string askQuestionsDescription = "An agent that can answer questions about documents.";
 
          //AITool aiTool = AIFunctionFactory.Create(aiSearchHelper.SearchByCustomField);
-         askQuestionsAgent = await GetFoundryAgent(askQuestionsAgentName);//, [aiTool]);
-
-         if (askQuestionsAgent == null)
-         {
-            askQuestionsAgent = await CreateFoundryAgent(askQuestionsAgentName, chatDeployment, askQuestionsDescription, askQuestionsInstructions);//, [aiTool]);
-         }
-
-         if (askQuestionsAgent == null)
-         {
-            throw new NullReferenceException("The agent failed to initialize!");
-         }
+         askQuestionsAgent = await GetOrCreateAgent(askQuestionsAgentName, chatDeployment, askQuestionsDescription, askQuestionsInstructions);
 
          var customFieldAgentName = "ExtractCustomFields";
          string customFieldInstructions = @"   You are a document analysis expert. 
@@ -102,17 +92,7 @@ namespace HighVolumeProcessing.UtilityLibrary
 
          string customFieldDescription = "Extract Custom Fields from a document";
 
-         customFieldAgent = await GetFoundryAgent(customFieldAgentName);//, [aiTool]);
-
-         if (customFieldAgent == null)
-         {
-            customFieldAgent = await CreateFoundryAgent(customFieldAgentName, chatDeployment, customFieldDescription, customFieldInstructions);//, [aiTool]);
-         }
-
-         if (customFieldAgent == null)
-         {
-            throw new NullReferenceException("The agent failed to initialize!");
-         }
+         customFieldAgent = await GetOrCreateAgent(customFieldAgentName, chatDeployment, customFieldDescription, customFieldInstructions);
 
          initCalled = true;
       }
@@ -209,59 +189,43 @@ namespace HighVolumeProcessing.UtilityLibrary
          }
       }
 
-      private async Task<AIAgent?> GetFoundryAgent(string agentName, params AITool[] tools)
+      private async Task<AIAgent> GetOrCreateAgent(string agentName, string deployment, string description, string instructions, params AITool[] tools)
       {
+         // Try to use an existing server-side agent first
          try
          {
             var agentRecord = await agentAdminClient.GetAgentAsync(agentName);
-            if (agentRecord == null)
+            if (agentRecord != null)
             {
-               return null;
+               log.LogInformation($"Found existing server-side agent '{agentName}'.");
+               return foundryProjectClient.AsAIAgent(agentRecord, tools.ToList())
+                     .AsBuilder()
+                     .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
+                     {
+                        cfg.EnableSensitiveData = true;
+                     })
+                     .Build();
             }
-
-            return foundryProjectClient.AsAIAgent(agentRecord, tools.ToList())
-                  .AsBuilder()
-                  .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
-                  {
-                     cfg.EnableSensitiveData = true;
-                  })
-                  .Build();
          }
-         catch (Exception ex) when (ex is InvalidOperationException || ex is Azure.RequestFailedException)
+         catch (Exception ex) when (ex is InvalidOperationException || ex is Azure.RequestFailedException || ex is System.ClientModel.ClientResultException)
          {
-            log.LogInformation($"Agent '{agentName}' not found: {ex.Message}");
-            return null;
+            log.LogInformation($"Server-side agent '{agentName}' not found, creating code-first agent.");
          }
-      }
 
-      private async Task<AIAgent?> CreateFoundryAgent(string name, string deployment, string description, string instructions, params AITool[] tools)
-      {
-       
-         try
-         {
-            var agentDefinition = new DeclarativeAgentDefinition(deployment)
+         // Fall back to code-first agent (no server-side registration required)
+         return foundryProjectClient.AsAIAgent(
+               model: deployment,
+               instructions: instructions,
+               name: agentName,
+               description: description,
+               tools: tools.ToList(),
+               loggerFactory: logFactory)
+            .AsBuilder()
+            .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
             {
-               Instructions = instructions
-            };
-            var creationOptions = new ProjectsAgentVersionCreationOptions(agentDefinition)
-            {
-               Description = description
-            };
-            var agentVersion = await agentAdminClient.CreateAgentVersionAsync(name, creationOptions);
-
-            return foundryProjectClient.AsAIAgent(agentVersion, tools.ToList())
-                  .AsBuilder()
-                  .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
-                  {
-                     cfg.EnableSensitiveData = true;
-                  })
-                  .Build();
-         }
-         catch (Exception exe)
-         {
-            log.LogError($"Failed to create Agent: {exe.ToString()}");
-            return null;
-         }
+               cfg.EnableSensitiveData = true;
+            })
+            .Build();
       }
 
    }
