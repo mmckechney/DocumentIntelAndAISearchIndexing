@@ -1,13 +1,12 @@
 ﻿using Azure.AI.OpenAI;
 using Azure.AI.Projects;
+using Azure.AI.Projects.Agents;
 using Azure.AI.Projects.OpenAI;
 using HighVolumeProcessing.UtilityLibrary.Models;
 using Microsoft.Agents.AI;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.ClientModel.Primitives;
 
 namespace HighVolumeProcessing.UtilityLibrary
 {
@@ -23,6 +22,7 @@ namespace HighVolumeProcessing.UtilityLibrary
       private bool initCalled = false;
       private Settings settings;
       private AIProjectClient foundryProjectClient;
+      private AgentAdministrationClient agentAdminClient;
 
       public AgentHelper(ILoggerFactory logFactory, IConfiguration config,  Settings settings)
       {
@@ -53,7 +53,8 @@ namespace HighVolumeProcessing.UtilityLibrary
 
 
          this.foundryProjectClient = new AIProjectClient(new Uri(projectEndpoint), AadHelper.TokenCredential);
-         ClientConnection connection = this.foundryProjectClient.GetConnection(typeof(AzureOpenAIClient).FullName!);
+         this.agentAdminClient = new AgentAdministrationClient(new Uri(projectEndpoint), AadHelper.TokenCredential);
+         var connection = this.foundryProjectClient.GetConnection(typeof(AzureOpenAIClient).FullName!);
          if (!connection.TryGetLocatorAsUri(out Uri? uri) || uri is null)
          {
             throw new InvalidOperationException("Invalid URI.");
@@ -210,31 +211,27 @@ namespace HighVolumeProcessing.UtilityLibrary
 
       private async Task<AIAgent?> GetFoundryAgent(string agentName, params AITool[] tools)
       {
-
-         var allAgents = new List<AgentRecord>();
-         await foreach (var a in foundryProjectClient.Agents.GetAgentsAsync())
+         try
          {
-            allAgents.Add(a);
+            var agentRecord = await agentAdminClient.GetAgentAsync(agentName);
+            if (agentRecord == null)
+            {
+               return null;
+            }
+
+            return foundryProjectClient.AsAIAgent(agentRecord, tools.ToList())
+                  .AsBuilder()
+                  .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
+                  {
+                     cfg.EnableSensitiveData = true;
+                  })
+                  .Build();
          }
-
-         // Filter by name
-         var named = allAgents
-            .Where(a => a.Name == agentName)
-            .ToList();
-
-         if (named.Count == 0)
+         catch (Exception ex) when (ex is InvalidOperationException || ex is Azure.RequestFailedException)
          {
+            log.LogInformation($"Agent '{agentName}' not found: {ex.Message}");
             return null;
          }
-
-         //Need to add local tools each time you "get" the an existing agent
-         return foundryProjectClient.GetAIAgent(agentName, tools)
-               .AsBuilder()
-               .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
-               {
-                  cfg.EnableSensitiveData = true;
-               })
-               .Build();
       }
 
       private async Task<AIAgent?> CreateFoundryAgent(string name, string deployment, string description, string instructions, params AITool[] tools)
@@ -242,19 +239,23 @@ namespace HighVolumeProcessing.UtilityLibrary
        
          try
          {
-            AIAgent? agent = null;
-            await Task.Run(async () =>
+            var agentDefinition = new DeclarativeAgentDefinition(deployment)
             {
-               agent = foundryProjectClient.CreateAIAgent(name: name, description: description, instructions: instructions, tools: tools, model: deployment)
-                  .AsBuilder()
-                    .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
-                    {
-                       cfg.EnableSensitiveData = true;
-                    })
-                  .Build();
+               Instructions = instructions
+            };
+            var creationOptions = new ProjectsAgentVersionCreationOptions(agentDefinition)
+            {
+               Description = description
+            };
+            var agentVersion = await agentAdminClient.CreateAgentVersionAsync(name, creationOptions);
 
-            });
-            return agent;
+            return foundryProjectClient.AsAIAgent(agentVersion, tools.ToList())
+                  .AsBuilder()
+                  .UseOpenTelemetry(sourceName: "HighVolumeProcessing", configure: cfg =>
+                  {
+                     cfg.EnableSensitiveData = true;
+                  })
+                  .Build();
          }
          catch (Exception exe)
          {
